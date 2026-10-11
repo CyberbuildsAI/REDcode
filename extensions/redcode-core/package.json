@@ -158,7 +158,7 @@
         "command": "redcode.saveJsonToProject",
         "title": "Save JSON to Project",
         "category": "REDcode",
-        "icon": "$(save-as)"
+        "icon": { "light": "images/save-to-project-light.svg", "dark": "images/save-to-project.svg" }
       },
       {
         "command": "redcode.refreshProject",
