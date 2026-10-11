@@ -1,0 +1,26 @@
+# GitHub Pages (Jekyll) settings for the docs site.
+# Every markdown page in docs/ renders with the HUD layout in _layouts/default.html.
+# Built and deployed by .github/workflows/pages.yml.
+
+title: REDcode
+url: https://cyberbuildsai.github.io
+baseurl: /REDcode
+repo: https://github.com/CyberbuildsAI/REDcode
+
+markdown: kramdown
+kramdown:
+  input: GFM
+  syntax_highlighter: rouge
+
+defaults:
+  - scope:
+      path: ""
+    values:
+      layout: default
+
+# Status bar links, in order.
+nav:
+  - title: Docs
+    url: /
+  - title: Dev setup
+    url: /dev-setup.html
