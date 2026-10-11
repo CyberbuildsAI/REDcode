@@ -1,0 +1,17 @@
+{
+  "name": "redcode-workspace",
+  "private": true,
+  "license": "MIT",
+  "workspaces": [
+    "extensions/*"
+  ],
+  "scripts": {
+    "theme:package": "node -e \"require('fs').mkdirSync('dist',{recursive:true})\" && cd extensions/rednode-hud-theme && vsce package --no-dependencies --out ../../dist/"
+  },
+  "devDependencies": {
+    "@vscode/vsce": "^4.0.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

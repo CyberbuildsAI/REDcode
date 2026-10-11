@@ -1,0 +1,20 @@
+# REDcode: notes for Claude sessions
+
+REDcode is a Cyberpunk 2077 modding IDE built on VS Code, wrapping WolvenKit's C# engine behind a local JSON-RPC bridge. It is the build-time half of the ecosystem; REDnode (https://github.com/CyberbuildsAI/REDnode) is the runtime half. The same person owns both, and REDnode's `CLAUDE.md` and `docs/dev-setup.md` set the conventions used here too.
+
+## Current status and next step
+
+- **Design:** done, as a private design document held by the owner. It is not in this repo yet. Ask the owner for it before architectural work.
+- **Decisions pending:** the license model. WolvenKit is GPL-3.0, and a bridge that links it must be GPL-3.0. Options are a split (MIT extensions here, GPL bridge in its own repo) or all GPL-3.0. Do not write the bridge until this is decided.
+- **In the repo:** only the shared VS Code theme.
+- **Next phase (C0):** contact the WolvenKit team, confirm the Redscript IDE extension is on Open VSX, build WolvenKit's headless libraries locally (.NET 10 SDK), and start a `docs/dev-setup.md` here.
+
+## Conventions
+
+- Commit straight to `main` and push, in small logical commits. Agree the plan in chat first. PRs only for large or risky changes.
+- Git identity is set per repo to `CyberbuildsAI` with the GitHub no-reply email. Never change the global identity.
+- Never commit game files, WolvenKit binaries, or data extracted from the game.
+- Record every tool install in a `docs/dev-setup.md`, with versions and exact commands.
+- Writing style: plain, short sentences, tables for comparisons. Terms: the bridge (`REDcode.Bridge`), extensions `redcode-core`, `redcode-explorer`, `redcode-editors`, `redcode-tools`, phases C0 to C7. Mark anything unverified as unverified.
+- House style is the HUD look from REDnode's design doc. The `rednode-hud-theme` extension is the default theme. Keep its package identity `cyberbuildsai.rednode-hud-theme`; REDnode carries a copy, so changes go to both until one is made canonical.
+- Goal to keep in mind: a Node-based ecosystem that integrates well with AI. Prefer machine-readable interfaces (JSON-RPC, generated types, structured docs). Coexist with WolvenKit and credit it.
