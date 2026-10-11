@@ -23,6 +23,6 @@ nav:
   - title: Docs
     url: /
   - title: Dev setup
+    url: /dev-setup.html
   - title: Design
     url: /design.html
-    url: /dev-setup.html
