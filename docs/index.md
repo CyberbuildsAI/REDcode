@@ -12,8 +12,9 @@ The design document is not published yet. It will appear here with the first wor
 
 | Phase | Status |
 |---|---|
-| C0 Decide | Not started |
-| C1 Bridge MVP | Not started |
-| C2 to C7 | Not started |
+| C0 Decide | Done. See the REDbridge docs for the WolvenKit build findings |
+| C1 Bridge MVP | Done. `redcode-core` opens a game file as JSON through REDbridge |
+| C2 Browse | Next: project explorer, asset browser, extract |
+| C3 to C7 | Not started |
 
 Source code and issues: [github.com/CyberbuildsAI/REDcode](https://github.com/CyberbuildsAI/REDcode)

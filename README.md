@@ -19,7 +19,7 @@ REDcode is the build-time half of an AI-first, Node-based modding ecosystem; [RE
 **[Read the docs](https://cyberbuildsai.github.io/REDcode/)** &middot; [REDbridge](https://github.com/CyberbuildsAI/REDbridge) &middot; [REDnode](https://github.com/CyberbuildsAI/REDnode)
 
 > [!NOTE]
-> **Status: design phase.** The architecture is settled. The first code is the shared theme below; the design document will be published with the first working extension.
+> **Status: C1 works end to end.** `redcode-core` starts REDbridge, searches the game archives as you type, and opens any game file as JSON in an editor tab. Next: the project explorer and asset browser (C2).
 
 ## How it works
 
@@ -45,6 +45,7 @@ Everything a modder touches is text an AI assistant can read and write: game fil
 
 | Path | Contents |
 |---|---|
+| `extensions/redcode-core/` | Bridge client, status bar, log channel, and the commands that open game files as JSON |
 | `extensions/rednode-hud-theme/` | The REDnode HUD color theme, REDcode's default theme. Shared with REDnode |
 | `docs/` | Documentation site |
 | `tools/brand/` | Generates the banner, badges and icon |
@@ -53,8 +54,9 @@ Everything a modder touches is text an AI assistant can read and write: game fil
 
 ```powershell
 npm install
+npm run build           # bundles every extension
+npm run core:package    # writes dist/redcode-core-<version>.vsix
 npm run theme:package   # writes dist/rednode-hud-theme-<version>.vsix
-code --install-extension dist/rednode-hud-theme-0.1.0.vsix
 ```
 
 ## Roadmap

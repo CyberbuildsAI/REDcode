@@ -37,11 +37,31 @@ code --install-extension dist/rednode-hud-theme-0.1.0.vsix
 
 npm 12 blocks the install script of `@vscode/vsce-sign`, which downloads a signing binary. Packaging does not need it.
 
-## 4. REDbridge
+## 4. Building and running the extensions
 
-The extensions need a built REDbridge to do anything with game files. See [REDbridge's setup guide](https://cyberbuildsai.github.io/REDbridge/dev-setup.html). Until C1 there is nothing to run.
+```powershell
+npm run build                       # bundles every extension with esbuild
+npm run typecheck
+npm run core:package                # dist/redcode-core-<version>.vsix
+```
 
-## 5. Docs site and brand images
+Press **F5** with the repository open in VS Code to run `redcode-core` in an Extension Development Host (`.vscode/launch.json` builds first). In that window, set `redcode.bridgePath` to a built `REDbridge.exe` and, with a per-user .NET runtime, `redcode.dotnetRoot` to `%LOCALAPPDATA%\Microsoft\dotnet`.
+
+To test the bridge client without VS Code:
+
+```powershell
+cd extensions\redcode-core
+$env:DOTNET_ROOT = "$env:LOCALAPPDATA\Microsoft\dotnet"
+npm run smoke -- "<path to REDbridge.exe>" "<Cyberpunk 2077 folder>"
+```
+
+On the reference machine the smoke test indexes the game and runs search, conversion and hashing in about 8 seconds.
+
+## 5. REDbridge
+
+The extensions need a built REDbridge to do anything with game files. See [REDbridge's setup guide](https://cyberbuildsai.github.io/REDbridge/dev-setup.html). Verified on the reference machine: REDbridge at commit `0b4c865` or later.
+
+## 6. Docs site and brand images
 
 The site at https://cyberbuildsai.github.io/REDcode/ is built by `.github/workflows/pages.yml` on every push to `main`. **Settings > Pages > Source** must be **GitHub Actions**.
 
