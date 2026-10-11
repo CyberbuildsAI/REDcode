@@ -29,9 +29,28 @@ export interface FileList {
   items: GameFileInfo[];
 }
 
+export interface FolderInfo {
+  name: string;
+  path: string;
+  /** Files in this folder and every folder below it. */
+  files: number;
+}
+
+export interface TreeResult {
+  path: string;
+  folders: FolderInfo[];
+  files: GameFileInfo[];
+}
+
 export interface ExtractResult {
   file: string;
   bytes: number;
+}
+
+export interface ExtractManyResult {
+  extracted: number;
+  bytes: number;
+  failed: string[];
 }
 
 export interface JsonResult {

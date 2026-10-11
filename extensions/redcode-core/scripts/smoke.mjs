@@ -40,6 +40,17 @@ try {
   await step(`cr2w.toJson ${first.name}`, () => bridge.toJson(first.name, out));
   await step("hash.fnv1a64", () => bridge.fnv1a64(first.name));
   await step("hash.resolve", () => bridge.resolve(first.hash));
+  const root = await step("archive.tree (root)", async () => {
+    const t = await bridge.tree("");
+    return t.folders.map((f) => `${f.name}:${f.files}`).join(" ") + ` files=${t.files.length}`;
+  });
+  const sub = await step("archive.tree base\\characters", async () => {
+    const t = await bridge.tree("base\\characters");
+    return `${t.folders.length} folders, ${t.files.length} files; first ${t.folders[0]?.path}`;
+  });
+  const bin = path.join(os.tmpdir(), "redcode-smoke", "extract", ...first.name.split("\\"));
+  await step("archive.extractMany", () => bridge.extractMany([{ path: first.name, outFile: bin }]));
+  await step("cr2w.fileToJson (from disk)", async () => (await bridge.fileToJson(bin)).bytes + " bytes of JSON");
   console.log(`done in ${((Date.now() - started) / 1000).toFixed(1)}s`);
 } finally {
   bridge.stop();

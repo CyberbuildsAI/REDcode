@@ -6,7 +6,7 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { EventEmitter } from "node:events";
 import * as readline from "node:readline";
 import { createMessageConnection, StreamMessageReader, StreamMessageWriter, type MessageConnection } from "vscode-jsonrpc/node";
-import type { ArchiveInfo, BridgeInfo, ExtractResult, FileList, HashResult, JsonResult, ResolveResult } from "./types";
+import type { ArchiveInfo, BridgeInfo, ExtractManyResult, ExtractResult, FileList, HashResult, JsonResult, ResolveResult, TreeResult } from "./types";
 
 export interface BridgeOptions {
   /** Path to REDbridge.exe. */
@@ -111,12 +111,26 @@ export class BridgeClient extends EventEmitter<BridgeEvents> {
     return this.call("archive.search", { query, limit });
   }
 
+  /** One level of the archive folder tree. An empty path is the root. */
+  tree(path = ""): Promise<TreeResult> {
+    return this.call("archive.tree", { path });
+  }
+
   extract(path: string, outFile: string): Promise<ExtractResult> {
     return this.call("archive.extract", { path, outFile });
   }
 
+  extractMany(items: { path: string; outFile: string }[]): Promise<ExtractManyResult> {
+    return this.call("archive.extractMany", { items });
+  }
+
   toJson(path: string, outFile?: string): Promise<JsonResult> {
     return this.call("cr2w.toJson", outFile ? { path, outFile } : { path });
+  }
+
+  /** Converts a CR2W file on disk, for example one in a project, to JSON. */
+  fileToJson(file: string, outFile?: string): Promise<JsonResult> {
+    return this.call("cr2w.fileToJson", outFile ? { file, outFile } : { file });
   }
 
   fromJson(outFile: string, source: { json: string } | { jsonFile: string }): Promise<ExtractResult> {
