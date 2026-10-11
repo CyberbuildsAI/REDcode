@@ -3,7 +3,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as vscode from "vscode";
-import { iconFor } from "./assetBrowser";
+import { folderIcon, iconFor } from "./assetBrowser";
 import { ProjectFolders, type ProjectFolderKey, type ProjectInfo } from "./project";
 
 export type ProjectNode =
@@ -40,13 +40,13 @@ export class ProjectExplorer implements vscode.TreeDataProvider<ProjectNode> {
       const item = new vscode.TreeItem(RootLabels[node.key], vscode.TreeItemCollapsibleState.Expanded);
       item.description = `${countFiles(node.dir).toLocaleString()} files`;
       item.tooltip = `${RootHints[node.key]}\n${node.dir}`;
-      item.iconPath = new vscode.ThemeIcon(node.key === "packed" ? "package" : "folder-library");
+      item.iconPath = folderIcon(node.key === "packed" ? "package" : "folder-library");
       item.contextValue = "projectRoot";
       return item;
     }
     if (node.kind === "folder") {
       const item = new vscode.TreeItem(path.basename(node.dir), vscode.TreeItemCollapsibleState.Collapsed);
-      item.iconPath = vscode.ThemeIcon.Folder;
+      item.iconPath = folderIcon();
       item.contextValue = "projectFolder";
       item.resourceUri = vscode.Uri.file(node.dir);
       return item;

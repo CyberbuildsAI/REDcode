@@ -24,7 +24,7 @@ export class AssetBrowser implements vscode.TreeDataProvider<AssetNode> {
       const item = new vscode.TreeItem(node.name, vscode.TreeItemCollapsibleState.Collapsed);
       item.description = node.files.toLocaleString();
       item.tooltip = `${node.path}\n${node.files.toLocaleString()} files`;
-      item.iconPath = vscode.ThemeIcon.Folder;
+      item.iconPath = folderIcon();
       item.contextValue = "assetFolder";
       return item;
     }
@@ -62,6 +62,11 @@ export class AssetBrowser implements vscode.TreeDataProvider<AssetNode> {
     }
     return files;
   }
+}
+
+/** The folder icon in REDcode's views, colored by the theme's redcode.folder color. */
+export function folderIcon(id = "folder"): vscode.ThemeIcon {
+  return new vscode.ThemeIcon(id, new vscode.ThemeColor("redcode.folder"));
 }
 
 /** A VS Code icon by file type. The game has about 150 extensions; these are the common groups. */

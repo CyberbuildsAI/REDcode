@@ -6,23 +6,52 @@
   "publisher": "cyberbuildsai",
   "license": "MIT",
   "icon": "images/icon.png",
-  "galleryBanner": { "color": "#08090d", "theme": "dark" },
-  "repository": { "type": "git", "url": "https://github.com/CyberbuildsAI/REDcode", "directory": "extensions/redcode-core" },
-  "engines": { "vscode": "^1.70.0" },
-  "categories": ["Other"],
-  "keywords": ["cyberpunk", "modding", "wolvenkit", "redcode"],
+  "galleryBanner": {
+    "color": "#08090d",
+    "theme": "dark"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CyberbuildsAI/REDcode",
+    "directory": "extensions/redcode-core"
+  },
+  "engines": {
+    "vscode": "^1.70.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "cyberpunk",
+    "modding",
+    "wolvenkit",
+    "redcode"
+  ],
   "main": "./dist/extension.js",
-  "activationEvents": ["onStartupFinished", "workspaceContains:**/*.cpmodproj"],
+  "activationEvents": [
+    "onStartupFinished",
+    "workspaceContains:**/*.cpmodproj"
+  ],
   "contributes": {
     "viewsContainers": {
       "activitybar": [
-        { "id": "redcode", "title": "REDcode", "icon": "images/activity.svg" }
+        {
+          "id": "redcode",
+          "title": "REDcode",
+          "icon": "images/activity.svg"
+        }
       ]
     },
     "views": {
       "redcode": [
-        { "id": "redcode.project", "name": "Project" },
-        { "id": "redcode.assets", "name": "Game Assets" }
+        {
+          "id": "redcode.project",
+          "name": "Project"
+        },
+        {
+          "id": "redcode.assets",
+          "name": "Game Assets"
+        }
       ]
     },
     "viewsWelcome": [
@@ -37,43 +66,162 @@
       }
     ],
     "commands": [
-      { "command": "redcode.newProject", "title": "New Project", "category": "REDcode", "icon": "$(new-folder)" },
-      { "command": "redcode.openGameFileAsJson", "title": "Open game file as JSON", "category": "REDcode" },
-      { "command": "redcode.searchGameFiles", "title": "Search game files", "category": "REDcode", "icon": "$(search)" },
-      { "command": "redcode.addToProject", "title": "Add to Project", "category": "REDcode", "icon": "$(add)" },
-      { "command": "redcode.extractTo", "title": "Extract to...", "category": "REDcode" },
-      { "command": "redcode.openAssetAsJson", "title": "Open as JSON", "category": "REDcode" },
-      { "command": "redcode.copyAssetPath", "title": "Copy Game Path", "category": "REDcode" },
-      { "command": "redcode.openProjectFileAsJson", "title": "Open as JSON", "category": "REDcode" },
-      { "command": "redcode.revealInExplorer", "title": "Reveal in File Explorer", "category": "REDcode" },
-      { "command": "redcode.refreshProject", "title": "Refresh Project", "category": "REDcode", "icon": "$(refresh)" },
-      { "command": "redcode.refreshAssets", "title": "Refresh Game Assets", "category": "REDcode", "icon": "$(refresh)" },
-      { "command": "redcode.restartBridge", "title": "Restart bridge", "category": "REDcode" },
-      { "command": "redcode.showLog", "title": "Show bridge log", "category": "REDcode" }
+      {
+        "command": "redcode.newProject",
+        "title": "New Project",
+        "category": "REDcode",
+        "icon": "$(new-folder)"
+      },
+      {
+        "command": "redcode.openGameFileAsJson",
+        "title": "Open game file as JSON",
+        "category": "REDcode"
+      },
+      {
+        "command": "redcode.searchGameFiles",
+        "title": "Search game files",
+        "category": "REDcode",
+        "icon": "$(search)"
+      },
+      {
+        "command": "redcode.addToProject",
+        "title": "Add to Project",
+        "category": "REDcode",
+        "icon": "$(add)"
+      },
+      {
+        "command": "redcode.extractTo",
+        "title": "Extract to...",
+        "category": "REDcode"
+      },
+      {
+        "command": "redcode.openAssetAsJson",
+        "title": "Open as JSON",
+        "category": "REDcode"
+      },
+      {
+        "command": "redcode.copyAssetPath",
+        "title": "Copy Game Path",
+        "category": "REDcode"
+      },
+      {
+        "command": "redcode.openProjectFileAsJson",
+        "title": "Open as JSON",
+        "category": "REDcode"
+      },
+      {
+        "command": "redcode.revealInExplorer",
+        "title": "Reveal in File Explorer",
+        "category": "REDcode"
+      },
+      {
+        "command": "redcode.refreshProject",
+        "title": "Refresh Project",
+        "category": "REDcode",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "redcode.refreshAssets",
+        "title": "Refresh Game Assets",
+        "category": "REDcode",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "redcode.restartBridge",
+        "title": "Restart bridge",
+        "category": "REDcode"
+      },
+      {
+        "command": "redcode.showLog",
+        "title": "Show bridge log",
+        "category": "REDcode"
+      }
     ],
     "menus": {
       "view/title": [
-        { "command": "redcode.newProject", "when": "view == redcode.project", "group": "navigation@1" },
-        { "command": "redcode.refreshProject", "when": "view == redcode.project", "group": "navigation@2" },
-        { "command": "redcode.searchGameFiles", "when": "view == redcode.assets", "group": "navigation@1" },
-        { "command": "redcode.refreshAssets", "when": "view == redcode.assets", "group": "navigation@2" }
+        {
+          "command": "redcode.newProject",
+          "when": "view == redcode.project",
+          "group": "navigation@1"
+        },
+        {
+          "command": "redcode.refreshProject",
+          "when": "view == redcode.project",
+          "group": "navigation@2"
+        },
+        {
+          "command": "redcode.searchGameFiles",
+          "when": "view == redcode.assets",
+          "group": "navigation@1"
+        },
+        {
+          "command": "redcode.refreshAssets",
+          "when": "view == redcode.assets",
+          "group": "navigation@2"
+        }
       ],
       "view/item/context": [
-        { "command": "redcode.addToProject", "when": "view == redcode.assets && viewItem =~ /^asset/", "group": "inline@1" },
-        { "command": "redcode.addToProject", "when": "view == redcode.assets && viewItem =~ /^asset/", "group": "1_project@1" },
-        { "command": "redcode.extractTo", "when": "view == redcode.assets && viewItem =~ /^asset/", "group": "1_project@2" },
-        { "command": "redcode.openAssetAsJson", "when": "view == redcode.assets && viewItem == assetFile", "group": "2_open@1" },
-        { "command": "redcode.copyAssetPath", "when": "view == redcode.assets && viewItem =~ /^asset/", "group": "3_copy@1" },
-        { "command": "redcode.openProjectFileAsJson", "when": "view == redcode.project && viewItem == projectFile", "group": "2_open@1" },
-        { "command": "redcode.revealInExplorer", "when": "view == redcode.project && viewItem =~ /^project/", "group": "3_reveal@1" }
+        {
+          "command": "redcode.addToProject",
+          "when": "view == redcode.assets && viewItem =~ /^asset/",
+          "group": "inline@1"
+        },
+        {
+          "command": "redcode.addToProject",
+          "when": "view == redcode.assets && viewItem =~ /^asset/",
+          "group": "1_project@1"
+        },
+        {
+          "command": "redcode.extractTo",
+          "when": "view == redcode.assets && viewItem =~ /^asset/",
+          "group": "1_project@2"
+        },
+        {
+          "command": "redcode.openAssetAsJson",
+          "when": "view == redcode.assets && viewItem == assetFile",
+          "group": "2_open@1"
+        },
+        {
+          "command": "redcode.copyAssetPath",
+          "when": "view == redcode.assets && viewItem =~ /^asset/",
+          "group": "3_copy@1"
+        },
+        {
+          "command": "redcode.openProjectFileAsJson",
+          "when": "view == redcode.project && viewItem == projectFile",
+          "group": "2_open@1"
+        },
+        {
+          "command": "redcode.revealInExplorer",
+          "when": "view == redcode.project && viewItem =~ /^project/",
+          "group": "3_reveal@1"
+        }
       ],
       "commandPalette": [
-        { "command": "redcode.addToProject", "when": "false" },
-        { "command": "redcode.extractTo", "when": "false" },
-        { "command": "redcode.openAssetAsJson", "when": "false" },
-        { "command": "redcode.copyAssetPath", "when": "false" },
-        { "command": "redcode.openProjectFileAsJson", "when": "false" },
-        { "command": "redcode.revealInExplorer", "when": "false" }
+        {
+          "command": "redcode.addToProject",
+          "when": "false"
+        },
+        {
+          "command": "redcode.extractTo",
+          "when": "false"
+        },
+        {
+          "command": "redcode.openAssetAsJson",
+          "when": "false"
+        },
+        {
+          "command": "redcode.copyAssetPath",
+          "when": "false"
+        },
+        {
+          "command": "redcode.openProjectFileAsJson",
+          "when": "false"
+        },
+        {
+          "command": "redcode.revealInExplorer",
+          "when": "false"
+        }
       ]
     },
     "configuration": {
@@ -100,7 +248,19 @@
           "description": "Author name written into new projects."
         }
       }
-    }
+    },
+    "colors": [
+      {
+        "id": "redcode.folder",
+        "description": "Folder icons in the REDcode Project and Game Assets views.",
+        "defaults": {
+          "dark": "#fcee0a",
+          "light": "#8a7a00",
+          "highContrast": "#fcee0a",
+          "highContrastLight": "#8a7a00"
+        }
+      }
+    ]
   },
   "scripts": {
     "build": "node esbuild.mjs",
