@@ -10,7 +10,7 @@ Click the REDcode icon in the activity bar.
 
 | View | What it shows |
 |---|---|
-| **Project** | The open WolvenKit project: `Archive` (game files added to the project), `Raw` (exports and imports), `Resources` (scripts and tweaks copied as they are), `Packed` (build output). Click a game file to open it as JSON, a text file to edit it. Right-click: Open as JSON, Reveal in File Explorer |
+| **Project** | The open WolvenKit project: `Archive` (game files added to the project), `Raw` (exports and imports), `Resources` (scripts and tweaks copied as they are), `Packed` (build output). Click a game file to open it as JSON, a text file to edit it. Right-click: Open as JSON, Reveal in File Explorer. Edit the JSON and use **Save JSON to Project** (the icon in the editor title) to rebuild the game file from it |
 | **Game Assets** | The game archives as a folder tree, expanded on demand, with file counts. Click a file to open it as JSON. Right-click: Add to Project, Extract to..., Open as JSON, Copy Game Path. The search icon opens search-as-you-type |
 
 A project is any folder with a `.cpmodproj` file in it, opened as the workspace folder. REDcode writes the same XML WolvenKit does, so projects move between the two.
@@ -22,6 +22,7 @@ A project is any folder with a `.cpmodproj` file in it, opened as the workspace 
 | **REDcode: New Project** | Asks for a name and a parent folder, creates the project with WolvenKit's layout, and opens it |
 | **REDcode: Open game file as JSON** | Search the game archives as you type, pick a file, and it opens as WolvenKit JSON in an editor tab |
 | **REDcode: Search game files** | Same search, then Open as JSON, Add to project, or Copy path |
+| **REDcode: Save JSON to Project** | On a JSON document opened from a project file: saves the document, asks to confirm, and rebuilds the game file in `source/archive` from it through the bridge. It never runs on plain save, so a half-edited document cannot clobber the file |
 | **REDcode: Restart bridge** | Stops and restarts the bridge process |
 | **REDcode: Show bridge log** | Opens the REDcode output channel. Clicking the status bar item does the same |
 

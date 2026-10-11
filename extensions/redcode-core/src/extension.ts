@@ -46,12 +46,14 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("redcode.openProjectFile", (node: ProjectNode) => openProjectFile(node)),
     vscode.commands.registerCommand("redcode.openProjectFileAsJson", (node: ProjectNode) => withBridge((b) => openProjectFileAsJson(b, node))),
     vscode.commands.registerCommand("redcode.revealInExplorer", (node: ProjectNode) => revealInExplorer(node)),
+    vscode.commands.registerCommand("redcode.saveJsonToProject", () => withBridge(saveJsonToProject)),
     vscode.commands.registerCommand("redcode.newProject", () => newProject()),
     vscode.commands.registerCommand("redcode.refreshProject", () => detectProject()),
     vscode.commands.registerCommand("redcode.refreshAssets", () => assets.refresh()),
     vscode.commands.registerCommand("redcode.restartBridge", () => restartBridge(context)),
     vscode.commands.registerCommand("redcode.showLog", () => log.show(true)),
     vscode.workspace.onDidChangeWorkspaceFolders(() => detectProject()),
+    vscode.window.onDidChangeActiveTextEditor(() => updateJsonContext()),
     vscode.workspace.onDidChangeConfiguration((e) => {
       // Settings often change one after another; restart once they settle.
       if (e.affectsConfiguration("redcode")) {
@@ -95,6 +97,7 @@ function detectProject(): void {
   }
   explorer.refresh();
   updateStatus();
+  updateJsonContext();
 }
 
 async function newProject(): Promise<void> {
@@ -447,7 +450,79 @@ async function openProjectFileAsJson(b: BridgeClient, node: ProjectNode): Promis
     const result = await b.fileToJson(node.file, outFile);
     log.appendLine(`cr2w.fileToJson ${rel} -> ${result.file} (${result.bytes.toLocaleString()} bytes)`);
   });
+  jsonSources.set(pathKey(outFile), node.file);
   await showJson(outFile);
+  updateJsonContext();
+}
+
+// ---- commands: JSON back to the project ---------------------------------------------------
+
+/** JSON files written by openProjectFileAsJson, and the project file each one came from. */
+const jsonSources = new Map<string, string>();
+
+/** Windows paths compare without case, and VS Code lowercases drive letters. */
+function pathKey(file: string): string {
+  const normal = path.normalize(file);
+  return process.platform === "win32" ? normal.toLowerCase() : normal;
+}
+
+/** The project file a JSON document stands for, or undefined when it did not come from the open project. */
+function projectFileOfJson(jsonFile: string): string | undefined {
+  const known = jsonSources.get(pathKey(jsonFile));
+  if (known) {
+    return known;
+  }
+  // After a restart the map is empty, but the JSON file's location still says where it came from:
+  // <storage>/project-json/<project name>/<path relative to the project>.json
+  if (!project) {
+    return undefined;
+  }
+  const base = path.join(storage.fsPath, "project-json", project.name);
+  const rel = path.relative(base, jsonFile);
+  if (!rel || rel.startsWith("..") || path.isAbsolute(rel) || !rel.toLowerCase().endsWith(".json")) {
+    return undefined;
+  }
+  return path.join(project.dir, rel.slice(0, -".json".length));
+}
+
+/** Tells the editor title and context menus whether the active document can be saved back to the project. */
+function updateJsonContext(): void {
+  const doc = vscode.window.activeTextEditor?.document;
+  const editable = doc?.uri.scheme === "file" && projectFileOfJson(doc.uri.fsPath) !== undefined;
+  void vscode.commands.executeCommand("setContext", "redcode.jsonFromProject", editable);
+}
+
+/** Rebuilds the CR2W file in the project from the JSON document in the active editor. */
+async function saveJsonToProject(b: BridgeClient): Promise<void> {
+  const doc = vscode.window.activeTextEditor?.document;
+  if (!doc || doc.uri.scheme !== "file") {
+    void vscode.window.showWarningMessage("REDcode: open a JSON document that came from a project file first.");
+    return;
+  }
+  const p = requireProject();
+  const target = projectFileOfJson(doc.uri.fsPath);
+  if (!target || !fs.existsSync(target)) {
+    void vscode.window.showWarningMessage("REDcode: this JSON did not come from a file in the open project, so there is nowhere to save it.");
+    return;
+  }
+  if (doc.isDirty && !(await doc.save())) {
+    return;
+  }
+  try {
+    JSON.parse(doc.getText());
+  } catch (e) {
+    void vscode.window.showErrorMessage(`REDcode: the document is not valid JSON. ${e instanceof Error ? e.message : String(e)}`);
+    return;
+  }
+  const rel = path.relative(p.dir, target);
+  const ok = await vscode.window.showWarningMessage(`Overwrite ${rel} in ${p.name} with this JSON?`, { modal: true, detail: "The file is rebuilt from the JSON by the bridge. Keep a copy if you need the original." }, "Overwrite");
+  if (ok !== "Overwrite") {
+    return;
+  }
+  const result = await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: `Writing ${path.basename(target)}` }, () => b.fromJson(target, { jsonFile: doc.uri.fsPath }));
+  log.appendLine(`cr2w.fromJson ${doc.uri.fsPath} -> ${result.file} (${result.bytes.toLocaleString()} bytes)`);
+  explorer.refresh();
+  void vscode.window.showInformationMessage(`Saved ${rel} (${result.bytes.toLocaleString()} bytes).`);
 }
 
 async function revealInExplorer(node: ProjectNode): Promise<void> {

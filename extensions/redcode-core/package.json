@@ -2,7 +2,7 @@
   "name": "redcode-core",
   "displayName": "REDcode Core",
   "description": "Cyberpunk 2077 modding in VS Code: projects, the game asset browser, and game files as JSON, through REDbridge.",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "publisher": "cyberbuildsai",
   "license": "MIT",
   "icon": "images/icon.png",
@@ -115,6 +115,12 @@
         "category": "REDcode"
       },
       {
+        "command": "redcode.saveJsonToProject",
+        "title": "Save JSON to Project",
+        "category": "REDcode",
+        "icon": "$(save-as)"
+      },
+      {
         "command": "redcode.refreshProject",
         "title": "Refresh Project",
         "category": "REDcode",
@@ -138,6 +144,20 @@
       }
     ],
     "menus": {
+      "editor/title": [
+        {
+          "command": "redcode.saveJsonToProject",
+          "when": "redcode.jsonFromProject",
+          "group": "navigation@1"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "redcode.saveJsonToProject",
+          "when": "redcode.jsonFromProject",
+          "group": "1_redcode@1"
+        }
+      ],
       "view/title": [
         {
           "command": "redcode.newProject",
@@ -221,6 +241,10 @@
         {
           "command": "redcode.revealInExplorer",
           "when": "false"
+        },
+        {
+          "command": "redcode.saveJsonToProject",
+          "when": "redcode.jsonFromProject"
         }
       ]
     },

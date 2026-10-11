@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.0
+
+- Save JSON to Project: edit a project file as JSON and rebuild the game file from it.
+
 ## 0.2.0
 
 - Project view over WolvenKit `.cpmodproj` projects, with New Project.
