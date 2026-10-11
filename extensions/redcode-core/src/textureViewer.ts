@@ -3,6 +3,7 @@
 // Project files open through a read-only custom editor, so a double-click in the Project view or the
 // Explorer shows the texture. Archive files have no URI on disk, so they open in a webview panel instead.
 
+import * as fs from "node:fs";
 import * as path from "node:path";
 import * as vscode from "vscode";
 import type { BridgeClient } from "./bridgeClient";
@@ -73,7 +74,7 @@ export class TextureViewer implements vscode.CustomReadonlyEditorProvider<Textur
       this.log.appendLine(`texture.fileToPng ${file} -> ${result.file} (${result.bytes.toLocaleString()} bytes)`);
       const folder = vscode.workspace.getWorkspaceFolder(doc.uri);
       const subtitle = folder ? path.relative(folder.uri.fsPath, file) : file;
-      panel.webview.html = textureHtml(panel.webview, { title: path.basename(file), subtitle, png });
+      this.present(panel, { title: path.basename(file), subtitle, png });
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
       this.log.appendLine(`Error: ${message}`);
@@ -87,12 +88,33 @@ export class TextureViewer implements vscode.CustomReadonlyEditorProvider<Textur
 
   /** Shows a texture that is not a file on disk, such as one straight from the archives. */
   show(source: TextureSource): vscode.WebviewPanel {
-    const panel = vscode.window.createWebviewPanel(TextureViewType, source.title, vscode.ViewColumn.Active, {
+    // Not TextureViewType: that id is registered as the custom editor, and a free panel must not share it.
+    const panel = vscode.window.createWebviewPanel("redcode.texturePanel", source.title, vscode.ViewColumn.Active, {
       enableScripts: true,
       localResourceRoots: [this.storage],
     });
-    panel.webview.html = textureHtml(panel.webview, source);
+    this.present(panel, source);
     return panel;
+  }
+
+  /**
+   * Puts the texture page in the webview and answers its requests. The page loads the PNG through a
+   * webview resource URI; if the host refuses that (it has, with a 401, on at least one machine even
+   * though the file sits under the declared root), the page asks for the bytes and gets a data URI.
+   */
+  private present(panel: vscode.WebviewPanel, source: TextureSource): void {
+    const uri = panel.webview.asWebviewUri(vscode.Uri.file(source.png));
+    const roots = (panel.webview.options.localResourceRoots ?? []).map((r) => r.toString()).join(" ");
+    this.log.appendLine(`texture viewer: ${source.title} image ${uri} roots [${roots}] storage ${this.storage.toString()} (VS Code ${vscode.version})`);
+    const listener = panel.webview.onDidReceiveMessage((m: { type?: string }) => {
+      if (m?.type === "imageFailed") {
+        this.log.appendLine(`texture viewer: the webview could not load ${uri}; sending the PNG inline`);
+        const data = fs.readFileSync(source.png).toString("base64");
+        void panel.webview.postMessage({ type: "image", src: `data:image/png;base64,${data}` });
+      }
+    });
+    panel.onDidDispose(() => listener.dispose());
+    panel.webview.html = textureHtml(panel.webview, source);
   }
 }
 
@@ -119,7 +141,7 @@ function shellHtml(webview: vscode.Webview, n: string, body: string, script = ""
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${webview.cspSource}; style-src 'nonce-${n}'; script-src 'nonce-${n}';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${webview.cspSource} data:; style-src 'nonce-${n}'; script-src 'nonce-${n}';">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style nonce="${n}">
 :root { --accent: #fcee0a; }
@@ -165,9 +187,12 @@ function textureHtml(webview: vscode.Webview, source: TextureSource): string {
 </header>
 <main id="main" class="fit"><img id="img" src="${src}" alt="${escapeHtml(source.title)}"></main>`;
   const script = `
+const vscode = acquireVsCodeApi();
 const main = document.getElementById("main"), img = document.getElementById("img");
 const fit = document.getElementById("fit"), one = document.getElementById("one"), pixel = document.getElementById("pixel");
 img.addEventListener("load", () => { document.getElementById("dims").textContent = img.naturalWidth + " x " + img.naturalHeight; });
+img.addEventListener("error", () => vscode.postMessage({ type: "imageFailed" }), { once: true });
+window.addEventListener("message", (e) => { if (e.data && e.data.type === "image") { img.src = e.data.src; } });
 fit.addEventListener("click", () => { main.classList.add("fit"); fit.classList.add("on"); one.classList.remove("on"); });
 one.addEventListener("click", () => { main.classList.remove("fit"); one.classList.add("on"); fit.classList.remove("on"); });
 pixel.addEventListener("click", () => { pixel.classList.toggle("on"); main.classList.toggle("pixel"); });`;
