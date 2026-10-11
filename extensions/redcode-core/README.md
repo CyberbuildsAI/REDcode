@@ -27,6 +27,8 @@ A project is any folder with a `.cpmodproj` file in it, opened as the workspace 
 
 The status bar shows the open project and the bridge state: starting, the number of indexed files when ready, or what went wrong.
 
+The extension checks the bridge's version when it starts. If REDbridge is older than the extension needs, the status bar says so; run `npm run update` in the REDbridge folder, then **REDcode: Restart bridge**.
+
 ## Settings
 
 | Setting | Default | Meaning |

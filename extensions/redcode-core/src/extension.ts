@@ -9,6 +9,9 @@ import { createProject, findProject, gamePathOf, projectPathFor, type ProjectInf
 import { ProjectExplorer, type ProjectNode } from "./projectExplorer";
 import type { GameFileInfo } from "./types";
 
+/** The oldest REDbridge this extension works with: it needs archive.tree, extractMany and cr2w.fileToJson. */
+const MinBridgeVersion = "0.2.0";
+
 let bridge: BridgeClient | undefined;
 let project: ProjectInfo | undefined;
 let status: vscode.StatusBarItem;
@@ -161,6 +164,13 @@ function startBridge(context: vscode.ExtensionContext): void {
     .info()
     .then((info) => {
       if (client !== bridge) return;
+      if (compareVersions(info.version, MinBridgeVersion) < 0) {
+        setGameLoaded(false);
+        updateStatus("$(warning) REDcode: bridge is out of date", `REDbridge ${info.version} found, ${MinBridgeVersion} or later needed. Run "npm run update" in the REDbridge folder, then "REDcode: Restart bridge".`);
+        log.appendLine(`REDbridge ${info.version} is older than this extension needs (${MinBridgeVersion}). Run "npm run update" in the REDbridge folder, then restart the bridge.`);
+        void vscode.window.showWarningMessage(`REDcode: REDbridge ${info.version} is older than this extension needs (${MinBridgeVersion}). Run "npm run update" in the REDbridge folder.`, "Show log").then((pick) => pick && log.show(true));
+        return;
+      }
       if (info.gameLoaded) {
         bridgeSummary = `${info.files.toLocaleString()} files`;
         bridgeTooltip = `${info.archives} archives from ${info.gameDir}\nREDbridge ${info.version}, WolvenKit ${info.wolvenKit}`;
@@ -203,6 +213,17 @@ function resolveBridgeExe(context: vscode.ExtensionContext, configured: string):
     }
   }
   return undefined;
+}
+
+/** Compares dotted version strings numerically: negative when a is older than b. */
+function compareVersions(a: string, b: string): number {
+  const pa = a.split(".").map((n) => parseInt(n, 10) || 0);
+  const pb = b.split(".").map((n) => parseInt(n, 10) || 0);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const d = (pa[i] ?? 0) - (pb[i] ?? 0);
+    if (d !== 0) return d;
+  }
+  return 0;
 }
 
 function isFile(p: string): boolean {

@@ -55,6 +55,8 @@ Everything a modder touches is text an AI assistant can read and write: game fil
 ```powershell
 npm install
 npm run build           # bundles every extension
+npm run bridge:build    # rebuilds a REDbridge checkout next to this one (../REDbridge)
+npm run bridge:update   # pulls and rebuilds it
 npm run core:package    # writes dist/redcode-core-<version>.vsix
 npm run theme:package   # writes dist/rednode-hud-theme-<version>.vsix
 ```

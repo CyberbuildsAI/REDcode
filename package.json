@@ -9,7 +9,9 @@
     "build": "npm run build --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "theme:package": "node -e \"require('fs').mkdirSync('dist',{recursive:true})\" && cd extensions/rednode-hud-theme && vsce package --no-dependencies --out ../../dist/",
-    "core:package": "node -e \"require('fs').mkdirSync('dist',{recursive:true})\" && cd extensions/redcode-core && vsce package --no-dependencies --out ../../dist/"
+    "core:package": "node -e \"require('fs').mkdirSync('dist',{recursive:true})\" && cd extensions/redcode-core && vsce package --no-dependencies --out ../../dist/",
+    "bridge:build": "npm run build --prefix ../REDbridge",
+    "bridge:update": "npm run update --prefix ../REDbridge"
   },
   "devDependencies": {
     "@vscode/vsce": "^4.0.0"
