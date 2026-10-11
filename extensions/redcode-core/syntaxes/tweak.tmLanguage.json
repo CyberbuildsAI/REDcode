@@ -1,0 +1,176 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "TweakXL",
+  "scopeName": "source.tweak",
+  "fileTypes": ["tweak"],
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#declarations" },
+    { "include": "#group" },
+    { "include": "#body" }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.block.tweak",
+          "begin": "/\\*",
+          "end": "\\*/",
+          "captures": { "0": { "name": "punctuation.definition.comment.tweak" } }
+        },
+        {
+          "name": "comment.line.double-slash.tweak",
+          "begin": "//",
+          "end": "$",
+          "captures": { "0": { "name": "punctuation.definition.comment.tweak" } }
+        }
+      ]
+    },
+    "declarations": {
+      "comment": "package Name / using Name, Other",
+      "patterns": [
+        {
+          "match": "^\\s*(package)\\s+([A-Za-z_][A-Za-z0-9_.]*)",
+          "captures": {
+            "1": { "name": "keyword.other.package.tweak" },
+            "2": { "name": "entity.name.namespace.tweak" }
+          }
+        },
+        {
+          "begin": "^\\s*(using)\\b",
+          "end": "$",
+          "beginCaptures": { "1": { "name": "keyword.other.using.tweak" } },
+          "patterns": [
+            { "match": "[A-Za-z_][A-Za-z0-9_.]*", "name": "entity.name.namespace.tweak" },
+            { "match": ",", "name": "punctuation.separator.tweak" },
+            { "include": "#comments" }
+          ]
+        }
+      ]
+    },
+    "group": {
+      "comment": "Name { ... }, Name : Type { ... }, Name : OtherRecord { ... }, Group.flat { ... }",
+      "begin": "^\\s*([A-Za-z_][A-Za-z0-9_.]*)\\s*(?:(:)\\s*([A-Za-z_][A-Za-z0-9_.]*))?\\s*(\\{)",
+      "end": "(\\})(?:\\s*(:)\\s*([A-Za-z_][A-Za-z0-9_.]*))?",
+      "beginCaptures": {
+        "1": { "name": "entity.name.type.record.tweak" },
+        "2": { "name": "punctuation.separator.inheritance.tweak" },
+        "3": { "name": "entity.other.inherited-class.tweak" },
+        "4": { "name": "punctuation.section.block.begin.tweak" }
+      },
+      "endCaptures": {
+        "1": { "name": "punctuation.section.block.end.tweak" },
+        "2": { "name": "punctuation.separator.inheritance.tweak" },
+        "3": { "name": "entity.other.inherited-class.tweak" }
+      },
+      "patterns": [{ "include": "#body" }]
+    },
+    "body": {
+      "patterns": [
+        { "include": "#comments" },
+        { "include": "#typed-flat" },
+        { "include": "#assignment" },
+        { "include": "#inline-record" },
+        { "include": "#values" },
+        { "match": ";", "name": "punctuation.terminator.statement.tweak" },
+        { "match": ",", "name": "punctuation.separator.tweak" }
+      ]
+    },
+    "typed-flat": {
+      "comment": "CName triggerState = ..., fk<Item> item = ..., array<int> values = ...",
+      "match": "\\b(int|float|bool|string|CName|LocKey|ResRef|Quaternion|EulerAngles|Vector2|Vector3|TweakDBID)\\b(?:\\s*(<)\\s*([A-Za-z_][A-Za-z0-9_.]*)\\s*(>))?\\s*(\\[\\])?\\s+([A-Za-z_][A-Za-z0-9_]*)\\s*(=)",
+      "captures": {
+        "1": { "name": "storage.type.tweak" },
+        "2": { "name": "punctuation.definition.generic.begin.tweak" },
+        "3": { "name": "entity.name.type.tweak" },
+        "4": { "name": "punctuation.definition.generic.end.tweak" },
+        "5": { "name": "storage.type.array.tweak" },
+        "6": { "name": "variable.other.property.tweak" },
+        "7": { "name": "keyword.operator.assignment.tweak" }
+      }
+    },
+    "assignment": {
+      "comment": "name = value;  name += [ ... ];  name -= [ ... ];",
+      "match": "\\b([A-Za-z_][A-Za-z0-9_]*)\\s*(\\+=|-=|=)",
+      "captures": {
+        "1": { "name": "variable.other.property.tweak" },
+        "2": { "name": "keyword.operator.assignment.tweak" }
+      }
+    },
+    "inline-record": {
+      "comment": "{ ... } : Type inside a foreign key or array",
+      "begin": "\\{",
+      "end": "(\\})(?:\\s*(:)\\s*([A-Za-z_][A-Za-z0-9_.]*))?",
+      "beginCaptures": { "0": { "name": "punctuation.section.block.begin.tweak" } },
+      "endCaptures": {
+        "1": { "name": "punctuation.section.block.end.tweak" },
+        "2": { "name": "punctuation.separator.inheritance.tweak" },
+        "3": { "name": "entity.other.inherited-class.tweak" }
+      },
+      "patterns": [{ "include": "#body" }]
+    },
+    "values": {
+      "patterns": [
+        { "include": "#string" },
+        { "include": "#number" },
+        { "match": "\\b(true|false)\\b", "name": "constant.language.boolean.tweak" },
+        {
+          "begin": "\\[",
+          "end": "\\]",
+          "beginCaptures": { "0": { "name": "punctuation.section.array.begin.tweak" } },
+          "endCaptures": { "0": { "name": "punctuation.section.array.end.tweak" } },
+          "patterns": [{ "include": "#body" }]
+        },
+        {
+          "comment": "Structures: (x, y, z) for Vector3, EulerAngles, Quaternion, Vector2",
+          "begin": "\\(",
+          "end": "\\)",
+          "beginCaptures": { "0": { "name": "punctuation.section.parens.begin.tweak" } },
+          "endCaptures": { "0": { "name": "punctuation.section.parens.end.tweak" } },
+          "patterns": [{ "include": "#values" }, { "include": "#comments" }, { "match": ",", "name": "punctuation.separator.tweak" }]
+        },
+        {
+          "comment": "A bare record reference used as a value, for example in -= [ Items.Foo ]",
+          "match": "\\b[A-Za-z_][A-Za-z0-9_]*(?:\\.[A-Za-z_][A-Za-z0-9_]*)+\\b",
+          "name": "variable.other.constant.record.tweak"
+        }
+      ]
+    },
+    "string": {
+      "patterns": [
+        {
+          "comment": "LocKey#12345 and LocKey#mod-key",
+          "match": "\"(LocKey#)([^\"]*)\"",
+          "name": "string.quoted.double.tweak",
+          "captures": {
+            "1": { "name": "support.constant.lockey.tweak" },
+            "2": { "name": "constant.other.lockey.tweak" }
+          }
+        },
+        {
+          "comment": "Resource paths: base\\\\foo\\\\bar.mesh",
+          "match": "\"([a-z0-9_]+[\\\\/][^\"]*\\.[a-z0-9_]+)\"",
+          "name": "string.quoted.double.tweak",
+          "captures": { "1": { "name": "string.other.path.tweak" } }
+        },
+        {
+          "comment": "Dotted record references: \"Items.Preset_Nue_Default\"",
+          "match": "\"([A-Za-z_][A-Za-z0-9_]*(?:\\.[A-Za-z_][A-Za-z0-9_]*)+)\"",
+          "name": "string.quoted.double.tweak",
+          "captures": { "1": { "name": "variable.other.constant.record.tweak" } }
+        },
+        {
+          "name": "string.quoted.double.tweak",
+          "begin": "\"",
+          "end": "\"",
+          "beginCaptures": { "0": { "name": "punctuation.definition.string.begin.tweak" } },
+          "endCaptures": { "0": { "name": "punctuation.definition.string.end.tweak" } }
+        }
+      ]
+    },
+    "number": {
+      "match": "(?<![A-Za-z0-9_])-?\\d+(?:\\.\\d+)?[fF]?\\b",
+      "name": "constant.numeric.tweak"
+    }
+  }
+}

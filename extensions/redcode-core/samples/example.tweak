@@ -1,0 +1,49 @@
+// A sample TweakXL file in the RED format, written from the TweakXL wiki, to check the grammar by eye.
+// It contains no game data. Open it with F5 running and compare the colours with the comments.
+
+package MyMod
+using RootPackage, Items
+
+/* A group is a namespace for flats.
+   This one creates MyMod.MyGroup.value */
+MyGroup {
+  int value = 1;
+  float ratio = 0.5f;
+  bool enabled = true;
+  string label = "plain text";
+  CName triggerState = "Combat";
+  LocKey title = "LocKey#12345";
+  ResRef mesh = "base\\characters\\garment\\player_equipment\\torso\\t1_001__q000.mesh";
+  Vector3 offset = (0, 1.5, -2);
+  Quaternion rotation = (0, 0, 0, 1);
+}
+
+// Edit an existing flat: PreventionSystem.setup { totalEntitiesLimit = 40; }
+PreventionSystem.setup {
+  totalEntitiesLimit = 40;
+}
+
+// Create a record of a type. Unset properties get defaults.
+MyVehicle : Vehicle {
+  displayName = "LocKey#my-vehicle";
+  tags = [ "Player", "Car" ];
+}
+
+// Clone an existing record.
+MyNue : Items.Preset_Nue_Default {
+  quality = "Quality.Legendary";
+  statModifiers += [
+    {
+      statType = "BaseStats.DamagePerHit";
+      modifierType = "Additive";
+      value = 10;
+    } : ConstantStatModifier,
+  ];
+  tags -= [ "Junk" ];
+}
+
+// Foreign keys and arrays of them.
+MyModifierGroup : StatModifierGroup {
+  fk<StatModifier> primary = "MyMod.Bonus";
+  statModifiers = [ "MyMod.Bonus", "MyMod.OtherBonus", ];
+}

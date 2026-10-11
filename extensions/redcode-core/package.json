@@ -25,6 +25,7 @@
     "cyberpunk",
     "modding",
     "wolvenkit",
+    "tweakxl",
     "redcode"
   ],
   "main": "./dist/extension.js",
@@ -33,6 +34,27 @@
     "workspaceContains:**/*.cpmodproj"
   ],
   "contributes": {
+    "languages": [
+      {
+        "id": "tweak",
+        "aliases": ["TweakXL", "tweak"],
+        "extensions": [".tweak"],
+        "configuration": "./language-configuration/tweak.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "tweak",
+        "scopeName": "source.tweak",
+        "path": "./syntaxes/tweak.tmLanguage.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "tweak",
+        "path": "./snippets/tweak.json"
+      }
+    ],
     "viewsContainers": {
       "activitybar": [
         {

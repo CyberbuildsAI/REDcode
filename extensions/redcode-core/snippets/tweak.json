@@ -1,0 +1,52 @@
+{
+  "Package": {
+    "prefix": "package",
+    "body": ["package ${1:MyMod}", "using ${2:RootPackage}", "", "$0"],
+    "description": "Package and using declarations at the top of a .tweak file"
+  },
+  "New record": {
+    "prefix": "record",
+    "body": ["${1:Name} : ${2:Type} {", "\t${3:property} = ${4:value};", "\t$0", "}"],
+    "description": "Create a record of a type: Name : Type { ... }"
+  },
+  "Clone record": {
+    "prefix": "clone",
+    "body": ["${1:Name} : ${2:Items.ExistingRecord} {", "\t${3:property} = ${4:value};", "\t$0", "}"],
+    "description": "Create a record by cloning another: Name : Other { ... }"
+  },
+  "Edit record": {
+    "prefix": "edit",
+    "body": ["${1:Items.ExistingRecord} {", "\t${2:property} = ${3:value};", "\t$0", "}"],
+    "description": "Edit an existing record's properties"
+  },
+  "Typed flat": {
+    "prefix": "flat",
+    "body": ["${1|int,float,bool,string,CName,LocKey,ResRef,Quaternion,EulerAngles,Vector2,Vector3|} ${2:name} = ${3:value};"],
+    "description": "Create a flat with an explicit type"
+  },
+  "Foreign key": {
+    "prefix": "fk",
+    "body": ["fk<${1:Record}> ${2:name} = \"${3:Package.Record}\";"],
+    "description": "Create a foreign key flat"
+  },
+  "Append to array": {
+    "prefix": "append",
+    "body": ["${1:name} += [", "\t${2:value},", "];"],
+    "description": "Add elements to an existing array"
+  },
+  "Remove from array": {
+    "prefix": "remove",
+    "body": ["${1:name} -= [", "\t${2:value},", "];"],
+    "description": "Remove elements from an existing array"
+  },
+  "Inline record": {
+    "prefix": "inline",
+    "body": ["{", "\t${1:property} = ${2:value};", "} : ${3:Type}"],
+    "description": "Inline record with an explicit type, for polymorphic foreign keys"
+  },
+  "LocKey": {
+    "prefix": "lockey",
+    "body": ["\"LocKey#${1:key}\""],
+    "description": "Localization key literal"
+  }
+}

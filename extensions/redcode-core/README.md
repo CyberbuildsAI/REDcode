@@ -30,6 +30,10 @@ The status bar shows the open project and the bridge state: starting, the number
 
 The extension checks the bridge's version when it starts. If REDbridge is older than the extension needs, the status bar says so; run `npm run update` in the REDbridge folder, then **REDcode: Restart bridge**.
 
+## TweakXL files
+
+`.tweak` files get syntax highlighting, bracket matching, comment toggling and snippets (`package`, `record`, `clone`, `edit`, `flat`, `fk`, `append`, `remove`, `inline`, `lockey`). The grammar follows the RED format on the [TweakXL wiki](https://github.com/psiberx/cp2077-tweak-xl/wiki/RED-Tweaks). `samples/example.tweak` shows every construct it knows. YAML tweaks use VS Code's built-in YAML support.
+
 ## Settings
 
 | Setting | Default | Meaning |
