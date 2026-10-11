@@ -5,7 +5,7 @@ REDcode is a Cyberpunk 2077 modding IDE built on VS Code, wrapping WolvenKit's C
 ## Current status and next step
 
 - **Design:** done, as a private design document held by the owner. It is not in this repo yet. Ask the owner for it before architectural work.
-- **Decisions pending:** the license model. WolvenKit is GPL-3.0, and a bridge that links it must be GPL-3.0. Options are a split (MIT extensions here, GPL bridge in its own repo) or all GPL-3.0. Do not write the bridge until this is decided.
+- **License model (decided):** split. This repo stays MIT and holds the extensions and, later, the branded fork. The bridge lives in its own repo, REDbridge (https://github.com/CyberbuildsAI/REDbridge), under GPL-3.0 because it links WolvenKit's GPL-3.0 libraries. Extensions talk to the bridge only over stdio with JSON-RPC and never link it in-process. Keep that boundary.
 - **In the repo:** only the shared VS Code theme.
 - **Next phase (C0):** contact the WolvenKit team, confirm the Redscript IDE extension is on Open VSX, build WolvenKit's headless libraries locally (.NET 10 SDK), and start a `docs/dev-setup.md` here.
 
