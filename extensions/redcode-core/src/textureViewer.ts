@@ -31,11 +31,20 @@ interface TextureDocument extends vscode.CustomDocument {
 }
 
 export class TextureViewer implements vscode.CustomReadonlyEditorProvider<TextureDocument> {
+  /**
+   * The storage folder as a file: URI. The extension context gives it with the vscode-userdata scheme,
+   * and the webview's resource check compares schemes before paths, so a vscode-userdata root never
+   * matches the file: URIs that asWebviewUri produces and every image request gets a 401.
+   */
+  private readonly root: vscode.Uri;
+
   constructor(
     private readonly getBridge: () => BridgeClient | undefined,
     private readonly storage: vscode.Uri,
     private readonly log: vscode.OutputChannel,
-  ) {}
+  ) {
+    this.root = vscode.Uri.file(storage.fsPath);
+  }
 
   register(): vscode.Disposable {
     return vscode.window.registerCustomEditorProvider(TextureViewType, this, {
@@ -60,7 +69,7 @@ export class TextureViewer implements vscode.CustomReadonlyEditorProvider<Textur
   }
 
   async resolveCustomEditor(doc: TextureDocument, panel: vscode.WebviewPanel): Promise<void> {
-    panel.webview.options = { enableScripts: true, localResourceRoots: [this.storage] };
+    panel.webview.options = { enableScripts: true, localResourceRoots: [this.root] };
     const file = doc.uri.fsPath;
     const bridge = this.getBridge();
     if (!bridge?.running) {
@@ -91,7 +100,7 @@ export class TextureViewer implements vscode.CustomReadonlyEditorProvider<Textur
     // Not TextureViewType: that id is registered as the custom editor, and a free panel must not share it.
     const panel = vscode.window.createWebviewPanel("redcode.texturePanel", source.title, vscode.ViewColumn.Active, {
       enableScripts: true,
-      localResourceRoots: [this.storage],
+      localResourceRoots: [this.root],
     });
     this.present(panel, source);
     return panel;
