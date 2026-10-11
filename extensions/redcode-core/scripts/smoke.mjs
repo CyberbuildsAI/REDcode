@@ -51,6 +51,14 @@ try {
   const bin = path.join(os.tmpdir(), "redcode-smoke", "extract", ...first.name.split("\\"));
   await step("archive.extractMany", () => bridge.extractMany([{ path: first.name, outFile: bin }]));
   await step("cr2w.fileToJson (from disk)", async () => (await bridge.fileToJson(bin)).bytes + " bytes of JSON");
+  const tex = (await bridge.search(".xbm", 50)).items.find((f) => f.name.endsWith(".xbm"));
+  if (tex) {
+    const png = path.join(os.tmpdir(), "redcode-smoke", "png", path.basename(tex.name) + ".png");
+    await step(`texture.toPng ${tex.name}`, () => bridge.toPng(tex.name, png));
+    const xbm = path.join(os.tmpdir(), "redcode-smoke", "extract", ...tex.name.split("\\"));
+    await bridge.extract(tex.name, xbm);
+    await step("texture.fileToPng (from disk)", () => bridge.fileToPng(xbm, png.replace(/\.png$/, ".disk.png")));
+  }
   console.log(`done in ${((Date.now() - started) / 1000).toFixed(1)}s`);
 } finally {
   bridge.stop();

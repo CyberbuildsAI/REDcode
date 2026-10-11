@@ -141,6 +141,11 @@ export class BridgeClient extends EventEmitter<BridgeEvents> {
     return this.call("texture.toPng", { path, outFile });
   }
 
+  /** Converts a texture file on disk, for example one in a project, to PNG. Needs REDbridge 0.3.0. */
+  fileToPng(file: string, outFile: string): Promise<ExtractResult> {
+    return this.call("texture.fileToPng", { file, outFile });
+  }
+
   fnv1a64(value: string): Promise<HashResult> {
     return this.call("hash.fnv1a64", { value });
   }

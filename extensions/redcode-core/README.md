@@ -10,8 +10,8 @@ Click the REDcode icon in the activity bar.
 
 | View | What it shows |
 |---|---|
-| **Project** | The open WolvenKit project: `Archive` (game files added to the project), `Raw` (exports and imports), `Resources` (scripts and tweaks copied as they are), `Packed` (build output). Click a game file to open it as JSON, a text file to edit it. Right-click: Open as JSON, Reveal in File Explorer. Edit the JSON and use **Save JSON to Project** (the icon in the editor title) to rebuild the game file from it |
-| **Game Assets** | The game archives as a folder tree, expanded on demand, with file counts. Click a file to open it as JSON. Right-click: Add to Project, Extract to..., Open as JSON, Copy Game Path. The search icon opens search-as-you-type |
+| **Project** | The open WolvenKit project: `Archive` (game files added to the project), `Raw` (exports and imports), `Resources` (scripts and tweaks copied as they are), `Packed` (build output). Click a texture (`.xbm`) to view it, another game file to open it as JSON, a text file to edit it. Right-click: Open as JSON, Reveal in File Explorer. Edit the JSON and use **Save JSON to Project** (the icon in the editor title) to rebuild the game file from it |
+| **Game Assets** | The game archives as a folder tree, expanded on demand, with file counts. Click a texture to view it, another file to open it as JSON. Right-click: Add to Project, Extract to..., Open Texture, Open as JSON, Copy Game Path. The search icon opens search-as-you-type |
 
 A project is any folder with a `.cpmodproj` file in it, opened as the workspace folder. REDcode writes the same XML WolvenKit does, so projects move between the two.
 
@@ -29,6 +29,10 @@ A project is any folder with a `.cpmodproj` file in it, opened as the workspace 
 The status bar shows the open project and the bridge state: starting, the number of indexed files when ready, or what went wrong.
 
 The extension checks the bridge's version when it starts. If REDbridge is older than the extension needs, the status bar says so; run `npm run update` in the REDbridge folder, then **REDcode: Restart bridge**.
+
+## Textures
+
+`.xbm` files open in the texture viewer: the bridge converts them to PNG and the viewer shows the image over a checkerboard, with the size and Fit, 1:1 and Pixels buttons. In the Project view and the Explorer this is the default editor for `.xbm`; **Open With...** still offers the text editor. Project textures need REDbridge 0.3.0; archive textures work with 0.2.0.
 
 ## TweakXL files
 

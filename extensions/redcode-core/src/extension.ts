@@ -7,9 +7,13 @@ import { AssetBrowser, type AssetNode } from "./assetBrowser";
 import { BridgeClient } from "./bridgeClient";
 import { createProject, findProject, gamePathOf, projectPathFor, type ProjectInfo } from "./project";
 import { ProjectExplorer, type ProjectNode } from "./projectExplorer";
+import { isTexture, TextureViewer, TextureViewType } from "./textureViewer";
 import type { GameFileInfo } from "./types";
 
-/** The oldest REDbridge this extension works with: it needs archive.tree, extractMany and cr2w.fileToJson. */
+/**
+ * The oldest REDbridge this extension works with: it needs archive.tree, extractMany and cr2w.fileToJson.
+ * Project textures also need texture.fileToPng (0.3.0); the viewer says so when the bridge is older.
+ */
 const MinBridgeVersion = "0.2.0";
 
 let bridge: BridgeClient | undefined;
@@ -20,6 +24,7 @@ let storage: vscode.Uri;
 let restartTimer: NodeJS.Timeout | undefined;
 let assets: AssetBrowser;
 let explorer: ProjectExplorer;
+let textures: TextureViewer;
 let watcher: vscode.FileSystemWatcher | undefined;
 
 export function activate(context: vscode.ExtensionContext): void {
@@ -31,12 +36,15 @@ export function activate(context: vscode.ExtensionContext): void {
 
   assets = new AssetBrowser(() => bridge);
   explorer = new ProjectExplorer(() => project);
+  textures = new TextureViewer(() => bridge, storage, log);
 
   context.subscriptions.push(
     log,
     status,
     vscode.window.createTreeView("redcode.assets", { treeDataProvider: assets, showCollapseAll: true }),
     vscode.window.createTreeView("redcode.project", { treeDataProvider: explorer, showCollapseAll: true }),
+    textures.register(),
+    vscode.commands.registerCommand("redcode.openTexture", (node: AssetNode) => withBridge((b) => openTexture(b, node))),
     vscode.commands.registerCommand("redcode.openGameFileAsJson", () => withBridge(openGameFileAsJson)),
     vscode.commands.registerCommand("redcode.searchGameFiles", () => withBridge(searchGameFiles)),
     vscode.commands.registerCommand("redcode.openAssetAsJson", (node: AssetNode) => withBridge((b) => openAssetAsJson(b, node))),
@@ -418,6 +426,20 @@ async function extractTo(b: BridgeClient, node: AssetNode): Promise<void> {
   void vscode.window.showInformationMessage(`Extracted ${result.extracted.toLocaleString()} file(s) to ${root}.`);
 }
 
+/** Converts an archive texture to PNG and shows it in the viewer. */
+async function openTexture(b: BridgeClient, node: AssetNode): Promise<void> {
+  if (node.kind !== "file") {
+    return;
+  }
+  const f = node.file;
+  const png = textures.pngForGamePath(f.name);
+  await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: `Converting ${path.basename(f.name)}` }, async () => {
+    const result = await b.toPng(f.name, png);
+    log.appendLine(`texture.toPng ${f.name} -> ${result.file} (${result.bytes.toLocaleString()} bytes)`);
+  });
+  textures.show({ title: path.basename(f.name), subtitle: `${f.name}  ${f.archive}  ${f.size.toLocaleString()} bytes`, png });
+}
+
 async function copyAssetPath(node: AssetNode): Promise<void> {
   await vscode.env.clipboard.writeText(node.kind === "file" ? node.file.name : node.path);
 }
@@ -431,6 +453,10 @@ async function openProjectFile(node: ProjectNode): Promise<void> {
     return;
   }
   const ext = path.extname(node.file).toLowerCase();
+  if (isTexture(node.file)) {
+    await vscode.commands.executeCommand("vscode.openWith", vscode.Uri.file(node.file), TextureViewType);
+    return;
+  }
   const inArchive = project ? gamePathOf(project, node.file) !== undefined : false;
   if (inArchive && !TextLike.has(ext)) {
     await withBridge((b) => openProjectFileAsJson(b, node));

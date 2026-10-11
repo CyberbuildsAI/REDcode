@@ -55,6 +55,18 @@
         "path": "./snippets/tweak.json"
       }
     ],
+    "customEditors": [
+      {
+        "viewType": "redcode.texture",
+        "displayName": "REDcode Texture",
+        "selector": [
+          {
+            "filenamePattern": "*.xbm"
+          }
+        ],
+        "priority": "default"
+      }
+    ],
     "viewsContainers": {
       "activitybar": [
         {
@@ -120,6 +132,12 @@
         "command": "redcode.openAssetAsJson",
         "title": "Open as JSON",
         "category": "REDcode"
+      },
+      {
+        "command": "redcode.openTexture",
+        "title": "Open Texture",
+        "category": "REDcode",
+        "icon": "$(file-media)"
       },
       {
         "command": "redcode.copyAssetPath",
@@ -219,8 +237,13 @@
           "group": "1_project@2"
         },
         {
+          "command": "redcode.openTexture",
+          "when": "view == redcode.assets && viewItem == assetFile.texture",
+          "group": "2_open@0"
+        },
+        {
           "command": "redcode.openAssetAsJson",
-          "when": "view == redcode.assets && viewItem == assetFile",
+          "when": "view == redcode.assets && viewItem =~ /^assetFile/",
           "group": "2_open@1"
         },
         {
@@ -250,6 +273,10 @@
         },
         {
           "command": "redcode.openAssetAsJson",
+          "when": "false"
+        },
+        {
+          "command": "redcode.openTexture",
           "when": "false"
         },
         {

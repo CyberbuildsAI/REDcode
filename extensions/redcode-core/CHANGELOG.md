@@ -4,6 +4,7 @@
 
 - Save JSON to Project: edit a project file as JSON and rebuild the game file from it.
 - TweakXL: language, grammar, comments, brackets and snippets for `.tweak` files.
+- Texture viewer for `.xbm` files in the project and the archives.
 
 ## 0.2.0
 
