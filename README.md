@@ -46,7 +46,7 @@ Everything a modder touches is text an AI assistant can read and write: game fil
 | Path | Contents |
 |---|---|
 | `extensions/redcode-core/` | Bridge client, the Project and Game Assets views, project create and detect, add to project, extract, open as JSON |
-| `extensions/rednode-hud-theme/` | The REDnode HUD color theme, REDcode's default theme. Shared with REDnode |
+| `extensions/rednode-hud-theme/` | The REDnode HUD color theme, REDcode's default theme and the shared look of the whole ecosystem |
 | `docs/` | Documentation site |
 | `tools/brand/` | Generates the banner, badges and icon |
 
