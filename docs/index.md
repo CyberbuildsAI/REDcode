@@ -1,4 +1,4 @@
-# REDcode docs
+# RED<span class="y">code</span> docs
 
 REDcode is a Cyberpunk 2077 modding IDE built on VS Code. These pages track its setup and, as the extensions appear, how to use them.
 
