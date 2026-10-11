@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter">
+  <!-- HUD brackets with a chip in the middle: the REDcode activity bar icon. Monochrome, uses currentColor. -->
+  <path d="M3 8V3h5"/>
+  <path d="M21 16v5h-5"/>
+  <rect x="7" y="7" width="10" height="10"/>
+  <path d="M10 10h4v4h-4z"/>
+</svg>

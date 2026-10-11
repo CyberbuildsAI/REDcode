@@ -2,18 +2,30 @@
 
 The first REDcode extension. It runs [REDbridge](https://github.com/CyberbuildsAI/REDbridge), the local process that hosts WolvenKit's engine, and lets you open any Cyberpunk 2077 game file as JSON from VS Code.
 
-> **Status: C1.** One command, the data path proven end to end. The project explorer, asset browser and editors come in later phases.
+> **Status: C2.** Projects, the asset browser, add to project and extract. The CR2W editor and viewers come in C3.
+
+## Views
+
+Click the REDcode icon in the activity bar.
+
+| View | What it shows |
+|---|---|
+| **Project** | The open WolvenKit project: `Archive` (game files added to the project), `Raw` (exports and imports), `Resources` (scripts and tweaks copied as they are), `Packed` (build output). Click a game file to open it as JSON, a text file to edit it. Right-click: Open as JSON, Reveal in File Explorer |
+| **Game Assets** | The game archives as a folder tree, expanded on demand, with file counts. Click a file to open it as JSON. Right-click: Add to Project, Extract to..., Open as JSON, Copy Game Path. The search icon opens search-as-you-type |
+
+A project is any folder with a `.cpmodproj` file in it, opened as the workspace folder. REDcode writes the same XML WolvenKit does, so projects move between the two.
 
 ## Commands
 
 | Command | What it does |
 |---|---|
+| **REDcode: New Project** | Asks for a name and a parent folder, creates the project with WolvenKit's layout, and opens it |
 | **REDcode: Open game file as JSON** | Search the game archives as you type, pick a file, and it opens as WolvenKit JSON in an editor tab |
-| **REDcode: Search game files** | Same search, then shows the file's archive, size and hash, with copy and open actions |
+| **REDcode: Search game files** | Same search, then Open as JSON, Add to project, or Copy path |
 | **REDcode: Restart bridge** | Stops and restarts the bridge process |
 | **REDcode: Show bridge log** | Opens the REDcode output channel. Clicking the status bar item does the same |
 
-The status bar shows the bridge state: starting, the number of indexed files when ready, or what went wrong.
+The status bar shows the open project and the bridge state: starting, the number of indexed files when ready, or what went wrong.
 
 ## Settings
 
@@ -22,6 +34,7 @@ The status bar shows the bridge state: starting, the number of indexed files whe
 | `redcode.gamePath` | The default Steam folder | The Cyberpunk 2077 install, the folder containing `bin`, `archive` and `r6` |
 | `redcode.bridgePath` | empty | Path to `REDbridge.exe`. Empty means a bridge bundled with the extension, or one on `PATH` |
 | `redcode.dotnetRoot` | empty | `DOTNET_ROOT` for the bridge when the .NET 10 runtime is installed per user |
+| `redcode.author` | empty | Author name written into new projects |
 
 ## Running from source
 
