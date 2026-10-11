@@ -5,6 +5,7 @@ import * as path from "node:path";
 import * as vscode from "vscode";
 import { AssetBrowser, type AssetNode } from "./assetBrowser";
 import { BridgeClient } from "./bridgeClient";
+import { compareJson, formatDifference, type JsonComparison } from "./jsonDiff";
 import { createProject, findProject, gamePathOf, projectPathFor, type ProjectInfo } from "./project";
 import { ProjectExplorer, type ProjectNode } from "./projectExplorer";
 import { isTexture, TextureViewer, TextureViewType } from "./textureViewer";
@@ -534,21 +535,52 @@ async function saveJsonToProject(b: BridgeClient): Promise<void> {
   if (doc.isDirty && !(await doc.save())) {
     return;
   }
+  let saved: unknown;
   try {
-    JSON.parse(doc.getText());
+    saved = JSON.parse(doc.getText());
   } catch (e) {
     void vscode.window.showErrorMessage(`REDcode: the document is not valid JSON. ${e instanceof Error ? e.message : String(e)}`);
     return;
   }
   const rel = path.relative(p.dir, target);
-  const ok = await vscode.window.showWarningMessage(`Overwrite ${rel} in ${p.name} with this JSON?`, { modal: true, detail: "The file is rebuilt from the JSON by the bridge. Keep a copy if you need the original." }, "Overwrite");
+  const ok = await vscode.window.showWarningMessage(`Overwrite ${rel} in ${p.name} with this JSON?`, { modal: true, detail: "The bridge rebuilds the file from the JSON, then reads it back so the editor shows what the format kept. Keep a copy if you need the original." }, "Overwrite");
   if (ok !== "Overwrite") {
     return;
   }
-  const result = await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: `Writing ${path.basename(target)}` }, () => b.fromJson(target, { jsonFile: doc.uri.fsPath }));
-  log.appendLine(`cr2w.fromJson ${doc.uri.fsPath} -> ${result.file} (${result.bytes.toLocaleString()} bytes)`);
+  const result = await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: `Writing ${path.basename(target)}` }, async () => {
+    const written = await b.fromJson(target, { jsonFile: doc.uri.fsPath });
+    log.appendLine(`cr2w.fromJson ${doc.uri.fsPath} -> ${written.file} (${written.bytes.toLocaleString()} bytes)`);
+    // Read the file back into the same document, so the editor shows what the file really holds, and
+    // compare it with what was saved. Edits the format cannot keep (32-bit floats, compiledData rebuilt
+    // from components, see the README) are reported instead of vanishing silently.
+    await b.fileToJson(target, doc.uri.fsPath);
+    return written;
+  });
   explorer.refresh();
-  void vscode.window.showInformationMessage(`Saved ${rel} (${result.bytes.toLocaleString()} bytes).`);
+  const comparison = compareJson(saved, JSON.parse(fs.readFileSync(doc.uri.fsPath, "utf8")));
+  reportSave(rel, result.bytes, comparison);
+}
+
+/** Tells the user what the written file kept, with the details in the log. */
+function reportSave(rel: string, bytes: number, c: JsonComparison): void {
+  for (const d of c.lost) {
+    log.appendLine(`  not kept: ${formatDifference(d)}`);
+  }
+  for (const d of c.regenerated) {
+    log.appendLine(`  regenerated: ${formatDifference(d)}`);
+  }
+  const size = `${bytes.toLocaleString()} bytes`;
+  const short = (d: { path: string }) => d.path.replace(/^Data\.RootChunk\./, "");
+  if (c.lost.length > 0) {
+    const first = c.lost.slice(0, 3).map(short).join(", ") + (c.lost.length > 3 ? ", ..." : "");
+    void vscode.window
+      .showWarningMessage(`REDcode: ${rel} was written (${size}), but ${c.lost.length} value(s) did not survive: ${first}. See the log.`, "Show log")
+      .then((pick) => pick && log.show(true));
+  } else if (c.regenerated.length > 0) {
+    void vscode.window.showInformationMessage(`Saved ${rel} (${size}). compiledData was rebuilt from components, so ${c.regenerated.length} value(s) there differ from the JSON you saved. Edit components, not compiledData.`);
+  } else {
+    void vscode.window.showInformationMessage(`Saved ${rel} (${size}). The file reads back exactly as saved.`);
+  }
 }
 
 async function revealInExplorer(node: ProjectNode): Promise<void> {

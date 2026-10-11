@@ -22,13 +22,23 @@ A project is any folder with a `.cpmodproj` file in it, opened as the workspace 
 | **REDcode: New Project** | Asks for a name and a parent folder, creates the project with WolvenKit's layout, and opens it |
 | **REDcode: Open game file as JSON** | Search the game archives as you type, pick a file, and it opens as WolvenKit JSON in an editor tab |
 | **REDcode: Search game files** | Same search, then Open as JSON, Add to project, or Copy path |
-| **REDcode: Save JSON to Project** | On a JSON document opened from a project file: saves the document, asks to confirm, and rebuilds the game file in `source/archive` from it through the bridge. It never runs on plain save, so a half-edited document cannot clobber the file |
+| **REDcode: Save JSON to Project** | On a JSON document opened from a project file: saves the document, asks to confirm, rebuilds the game file in `source/archive` from it through the bridge, then reads the file back into the editor and reports any value the format did not keep. It never runs on plain save, so a half-edited document cannot clobber the file |
 | **REDcode: Restart bridge** | Stops and restarts the bridge process |
 | **REDcode: Show bridge log** | Opens the REDcode output channel. Clicking the status bar item does the same |
 
 The status bar shows the open project and the bridge state: starting, the number of indexed files when ready, or what went wrong.
 
 The extension checks the bridge's version when it starts. If REDbridge is older than the extension needs, the status bar says so; run `npm run update` in the REDbridge folder, then **REDcode: Restart bridge**.
+
+## What the file format keeps
+
+After Save JSON to Project the editor shows the JSON read back from the written file, and a notice says whether it matches what you saved. Three rules of WolvenKit's format explain almost every difference:
+
+| Rule | What you see |
+|---|---|
+| Numbers are 32-bit floats | 0.22 reads back as 0.219999999. A change below about seven significant digits, such as 0.0500000007 to 0.05, is no change at all |
+| `compiledData` is rebuilt from `components` on every write, in `.ent` and `.app` files | An edit made inside `compiledData` vanishes. Edit the same component under `components` and `compiledData` follows |
+| Properties at their default value are not stored | Setting a value back to its default makes the file smaller. Nothing is lost |
 
 ## Textures
 
