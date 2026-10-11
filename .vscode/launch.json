@@ -1,0 +1,13 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run REDcode Core",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": ["--extensionDevelopmentPath=${workspaceFolder}/extensions/redcode-core"],
+      "outFiles": ["${workspaceFolder}/extensions/redcode-core/dist/**/*.js"],
+      "preLaunchTask": "build redcode-core"
+    }
+  ]
+}

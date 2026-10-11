@@ -1,0 +1,59 @@
+{
+  "name": "redcode-core",
+  "displayName": "REDcode Core",
+  "description": "Cyberpunk 2077 modding in VS Code: connects to REDbridge and opens game files as JSON.",
+  "version": "0.1.0",
+  "publisher": "cyberbuildsai",
+  "license": "MIT",
+  "icon": "images/icon.png",
+  "galleryBanner": { "color": "#08090d", "theme": "dark" },
+  "repository": { "type": "git", "url": "https://github.com/CyberbuildsAI/REDcode", "directory": "extensions/redcode-core" },
+  "engines": { "vscode": "^1.70.0" },
+  "categories": ["Other"],
+  "keywords": ["cyberpunk", "modding", "wolvenkit", "redcode"],
+  "main": "./dist/extension.js",
+  "activationEvents": ["onStartupFinished"],
+  "contributes": {
+    "commands": [
+      { "command": "redcode.openGameFileAsJson", "title": "Open game file as JSON", "category": "REDcode" },
+      { "command": "redcode.searchGameFiles", "title": "Search game files", "category": "REDcode" },
+      { "command": "redcode.restartBridge", "title": "Restart bridge", "category": "REDcode" },
+      { "command": "redcode.showLog", "title": "Show bridge log", "category": "REDcode" }
+    ],
+    "configuration": {
+      "title": "REDcode",
+      "properties": {
+        "redcode.gamePath": {
+          "type": "string",
+          "default": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Cyberpunk 2077",
+          "description": "The Cyberpunk 2077 install folder (the one containing bin, archive and r6)."
+        },
+        "redcode.bridgePath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to REDbridge.exe. Empty means the copy bundled with the extension, or REDbridge on PATH."
+        },
+        "redcode.dotnetRoot": {
+          "type": "string",
+          "default": "",
+          "description": "DOTNET_ROOT for the bridge, when the .NET 10 runtime is installed per user rather than machine wide."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "smoke": "node scripts/smoke.mjs"
+  },
+  "dependencies": {
+    "vscode-jsonrpc": "^9.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/vscode": "1.70.0",
+    "esbuild": "^0.28.2",
+    "typescript": "~5.9.3"
+  }
+}
