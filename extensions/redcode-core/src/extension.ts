@@ -10,6 +10,7 @@ let bridge: BridgeClient | undefined;
 let status: vscode.StatusBarItem;
 let log: vscode.OutputChannel;
 let storage: vscode.Uri;
+let restartTimer: NodeJS.Timeout | undefined;
 
 export function activate(context: vscode.ExtensionContext): void {
   log = vscode.window.createOutputChannel("REDcode");
@@ -26,8 +27,10 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("redcode.restartBridge", () => restartBridge(context)),
     vscode.commands.registerCommand("redcode.showLog", () => log.show(true)),
     vscode.workspace.onDidChangeConfiguration((e) => {
+      // Settings often change one after another; restart once they settle.
       if (e.affectsConfiguration("redcode")) {
-        restartBridge(context);
+        clearTimeout(restartTimer);
+        restartTimer = setTimeout(() => restartBridge(context), 800);
       }
     }),
   );
@@ -43,18 +46,27 @@ export function deactivate(): void {
 
 function startBridge(context: vscode.ExtensionContext): void {
   const config = vscode.workspace.getConfiguration("redcode");
-  const exe = resolveBridgeExe(context, config.get<string>("bridgePath", ""));
+  const configured = config.get<string>("bridgePath", "");
+  const exe = resolveBridgeExe(context, configured);
   if (!exe) {
-    setStatus("$(warning) REDcode: bridge not found", "Set redcode.bridgePath to REDbridge.exe");
-    log.appendLine("REDbridge.exe not found. Set redcode.bridgePath in settings.");
+    const hint = configured ? `redcode.bridgePath is set to "${configured}", which is not REDbridge.exe.` : "Set redcode.bridgePath to REDbridge.exe.";
+    setStatus("$(warning) REDcode: bridge not found", hint);
+    log.appendLine(`REDbridge.exe not found. ${hint}`);
     return;
   }
   const gamePath = config.get<string>("gamePath", "");
   const dotnetRoot = config.get<string>("dotnetRoot", "") || undefined;
 
-  bridge = new BridgeClient({ exe, gamePath, dotnetRoot });
-  bridge.on("log", (line) => log.appendLine(line));
-  bridge.on("exit", (code) => {
+  const client = new BridgeClient({ exe, gamePath, dotnetRoot });
+  bridge = client;
+  client.on("log", (line) => log.appendLine(line));
+  client.on("error", (error) => {
+    if (client !== bridge) return;
+    setStatus("$(error) REDcode: bridge failed to start", error.message);
+    log.appendLine(`Could not start the bridge: ${error.message}`);
+  });
+  client.on("exit", (code) => {
+    if (client !== bridge) return;
     setStatus("$(debug-disconnect) REDcode: bridge stopped", `Exit code ${code}. Run "REDcode: Restart bridge".`);
     log.appendLine(`Bridge exited with code ${code}.`);
   });
@@ -83,10 +95,12 @@ function restartBridge(context: vscode.ExtensionContext): void {
   startBridge(context);
 }
 
-/** The configured path, else a bridge bundled under the extension, else REDbridge on PATH. */
+/** The configured path (a file, or a folder containing REDbridge.exe), else a bridge bundled under the extension, else REDbridge on PATH. */
 function resolveBridgeExe(context: vscode.ExtensionContext, configured: string): string | undefined {
   if (configured) {
-    return fs.existsSync(configured) ? configured : undefined;
+    const asFile = isFile(configured) ? configured : undefined;
+    const inFolder = path.join(configured, "REDbridge.exe");
+    return asFile ?? (isFile(inFolder) ? inFolder : undefined);
   }
   const bundled = path.join(context.extensionPath, "bridge", "REDbridge.exe");
   if (fs.existsSync(bundled)) {
@@ -99,6 +113,14 @@ function resolveBridgeExe(context: vscode.ExtensionContext, configured: string):
     }
   }
   return undefined;
+}
+
+function isFile(p: string): boolean {
+  try {
+    return fs.statSync(p).isFile();
+  } catch {
+    return false;
+  }
 }
 
 async function withBridge(action: (b: BridgeClient) => Promise<void>): Promise<void> {

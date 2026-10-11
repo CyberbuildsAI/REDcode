@@ -19,7 +19,10 @@ export interface BridgeOptions {
 
 export interface BridgeEvents {
   log: [line: string];
+  /** The process ended on its own. Not emitted after stop(). */
   exit: [code: number | null, signal: NodeJS.Signals | null];
+  /** The process could not be started, for example because the path is wrong. */
+  error: [error: Error];
 }
 
 /**
@@ -29,6 +32,7 @@ export interface BridgeEvents {
 export class BridgeClient extends EventEmitter<BridgeEvents> {
   private process: ChildProcess | undefined;
   private connection: MessageConnection | undefined;
+  private stopping = false;
 
   constructor(readonly options: BridgeOptions) {
     super();
@@ -47,14 +51,22 @@ export class BridgeClient extends EventEmitter<BridgeEvents> {
     if (this.options.dotnetRoot) {
       env.DOTNET_ROOT = this.options.dotnetRoot;
     }
+    this.stopping = false;
     const child = spawn(this.options.exe, args, { env, stdio: ["pipe", "pipe", "pipe"], windowsHide: true });
     this.process = child;
 
     readline.createInterface({ input: child.stderr! }).on("line", (line) => this.emit("log", line));
+    child.on("error", (error) => {
+      this.connection?.dispose();
+      this.connection = undefined;
+      this.emit("error", error);
+    });
     child.on("exit", (code, signal) => {
       this.connection?.dispose();
       this.connection = undefined;
-      this.emit("exit", code, signal);
+      if (!this.stopping) {
+        this.emit("exit", code, signal);
+      }
     });
 
     const connection = createMessageConnection(new StreamMessageReader(child.stdout!), new StreamMessageWriter(child.stdin!));
@@ -63,6 +75,7 @@ export class BridgeClient extends EventEmitter<BridgeEvents> {
   }
 
   stop(): void {
+    this.stopping = true;
     this.connection?.dispose();
     this.connection = undefined;
     this.process?.kill();
