@@ -14,7 +14,7 @@ The design document is not published yet. It will appear here with the first wor
 |---|---|
 | C0 Decide | Done. See the REDbridge docs for the WolvenKit build findings |
 | C1 Bridge MVP | Done. `redcode-core` opens a game file as JSON through REDbridge |
-| C2 Browse | Done. Project view over `.cpmodproj`, Game Assets tree, add to project, extract, open as JSON |
+| C2 Browse | Done. Project view over `.cpmodproj`, Game Assets tree, add to project, extract, open as JSON. Verified by hand on 2026-10-11: a project made in REDcode opens and packs in WolvenKit, and Extract To matches WolvenKit's output |
 | C3 Edit | Next: CR2W custom editor, texture viewer, TweakXL language support |
 | C4 to C7 | Not started |
 
