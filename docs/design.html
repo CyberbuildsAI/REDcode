@@ -1,0 +1,461 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>REDcode</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Rajdhani:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Layout: single-column HUD console, same tokens as the REDnode design doc. Sticky status bar, cut-corner panels, tables for inventories. */
+:root {
+  --bg: #08090d; --panel: #10131b; --panel-2: #151925; --line: #262c3d;
+  --fg: #e3e6ee; --dim: #8a93a8; --yellow: #fcee0a; --cyan: #19f3ff; --red: #ff2a52; --green: #5dffa1;
+  --display: "Chakra Petch", "Arial Narrow", sans-serif; --body: "Rajdhani", "Segoe UI", sans-serif; --mono: "JetBrains Mono", "Consolas", monospace;
+  --cut: 14px; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 18px; line-height: 1.5;
+  padding-inline: 16px; padding-block: 0 64px;
+  background-image: linear-gradient(rgba(25,243,255,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(25,243,255,.035) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+.wrap { max-width: 1040px; margin-inline: auto; }
+a { color: var(--cyan); }
+:focus-visible { outline: 2px solid var(--yellow); outline-offset: 2px; }
+.bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: rgba(8,9,13,.92); border-bottom: 1px solid var(--line); margin-inline: -16px; padding: 8px 16px; font-family: var(--mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--dim); }
+.bar .wrap { display: flex; gap: 8px 20px; flex-wrap: wrap; align-items: center; }
+.bar b { color: var(--yellow); font-weight: 500; }
+.dot { display: inline-block; width: 8px; height: 8px; background: var(--green); margin-right: 6px; }
+.bar nav { margin-left: auto; display: flex; gap: 14px; flex-wrap: wrap; }
+.bar nav a { color: var(--dim); text-decoration: none; }
+.bar nav a:hover { color: var(--cyan); }
+header.hero { padding-block: 56px 36px; }
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: .2em; text-transform: uppercase; color: var(--cyan); }
+h1 { font-family: var(--display); font-weight: 700; text-transform: uppercase; font-size: clamp(34px, 7vw, 68px); line-height: 1; letter-spacing: .02em; margin: 12px 0 16px; text-wrap: balance; }
+h1 span { color: var(--yellow); }
+.lede { max-width: 62ch; color: #c3c9d8; font-size: 21px; margin: 0; }
+.meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 22px; }
+.tag { font-family: var(--mono); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; padding: 3px 10px; border: 1px solid var(--line); color: var(--dim); clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px)); }
+.tag.y { color: var(--yellow); border-color: rgba(252,238,10,.5); } .tag.c { color: var(--cyan); border-color: rgba(25,243,255,.5); } .tag.r { color: var(--red); border-color: rgba(255,42,82,.5); } .tag.g { color: var(--green); border-color: rgba(93,255,161,.5); }
+section { margin-top: 44px; scroll-margin-top: 60px; }
+h2 { font-family: var(--display); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; font-size: 26px; margin: 0 0 6px; display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+h2 .id { font-family: var(--mono); font-size: 13px; color: var(--yellow); letter-spacing: .12em; font-weight: 400; }
+.rule { height: 2px; background: linear-gradient(90deg, var(--yellow) 0 56px, var(--line) 56px); margin-bottom: 20px; }
+h3 { font-family: var(--display); font-weight: 600; font-size: 17px; letter-spacing: .05em; text-transform: uppercase; color: var(--cyan); margin: 24px 0 8px; }
+p { margin: 0 0 14px; max-width: 72ch; }
+ul, ol { margin: 0 0 14px; padding-left: 20px; max-width: 72ch; }
+li { margin-bottom: 4px; }
+li::marker { color: var(--yellow); }
+code { font-family: var(--mono); font-size: .8em; color: var(--yellow); background: rgba(252,238,10,.08); padding: 1px 5px; }
+.panel { background: var(--panel); border: 1px solid var(--line); padding: 18px 20px; clip-path: polygon(0 0, calc(100% - var(--cut)) 0, 100% var(--cut), 100% 100%, var(--cut) 100%, 0 calc(100% - var(--cut))); }
+.panel.warn { border-color: rgba(255,42,82,.5); background: linear-gradient(180deg, rgba(255,42,82,.07), var(--panel)); }
+.panel.ok { border-color: rgba(93,255,161,.4); }
+.panel .label { font-family: var(--mono); font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: var(--dim); margin-bottom: 6px; }
+.panel.warn .label { color: var(--red); }
+.panel p:last-child, .panel ul:last-child { margin-bottom: 0; }
+.grid { display: grid; gap: 14px; }
+.g2 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); }
+.g3 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); }
+.grid > * { min-width: 0; }
+.tw { overflow-x: auto; border: 1px solid var(--line); background: var(--panel); margin-bottom: 14px; }
+table { border-collapse: collapse; width: 100%; min-width: 600px; font-size: 16px; }
+th, td { text-align: left; padding: 9px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-family: var(--mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--yellow); background: var(--panel-2); font-weight: 500; }
+tr:last-child td { border-bottom: 0; }
+td:first-child { font-weight: 600; white-space: nowrap; }
+.rec { background: rgba(252,238,10,.05); }
+.s { font-family: var(--mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; }
+.s.sm { color: var(--green); } .s.md { color: var(--cyan); } .s.lg { color: var(--yellow); } .s.xl { color: var(--red); }
+pre { margin: 0 0 16px; padding: 16px 18px; overflow-x: auto; background: #0b0d13; border: 1px solid var(--line); border-left: 3px solid var(--cyan); font-family: var(--mono); font-size: 13px; line-height: 1.6; color: #cfd6e6; }
+pre .c { color: #5d6780; } pre .k { color: var(--yellow); } pre .s { color: var(--green); font-size: inherit; letter-spacing: 0; text-transform: none; } pre .t { color: var(--cyan); }
+.diagram { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.lane { background: var(--panel); border: 1px solid var(--line); padding: 14px; min-width: 0; }
+.lane h4 { margin: 0 0 10px; font-family: var(--mono); font-size: 11px; letter-spacing: .16em; text-transform: uppercase; font-weight: 500; }
+.lane.in { border-color: rgba(252,238,10,.45); } .lane.in h4 { color: var(--yellow); }
+.lane.out { border-color: rgba(25,243,255,.45); } .lane.out h4 { color: var(--cyan); }
+.node { background: var(--panel-2); border: 1px solid var(--line); padding: 8px 12px; margin-bottom: 8px; font-size: 16px; }
+.node small { display: block; color: var(--dim); font-family: var(--mono); font-size: 11px; }
+.node.hot { border-color: var(--yellow); } .node.cool { border-color: var(--cyan); }
+.link { grid-column: 1 / -1; text-align: center; font-family: var(--mono); font-size: 12px; letter-spacing: .1em; color: var(--dim); border: 1px dashed var(--line); padding: 8px; }
+.link b { color: var(--cyan); font-weight: 500; }
+/* layout mockups */
+.mock { display: grid; gap: 4px; font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--dim); aspect-ratio: 16 / 9; max-width: 100%; }
+.mock > div { border: 1px solid var(--line); background: var(--panel-2); padding: 6px 8px; min-width: 0; overflow: hidden; }
+.mock .doc { background: var(--panel); border-color: rgba(25,243,255,.45); color: var(--cyan); }
+.mock .y { border-color: rgba(252,238,10,.5); color: var(--yellow); }
+.mock.wk { grid-template-columns: 1.1fr 3fr 1.2fr; grid-template-rows: 1.2fr 2.2fr 1.2fr 0.8fr; }
+.mock.vs { grid-template-columns: 0.25fr 1.1fr 3fr 1.2fr; grid-template-rows: 3.6fr 1.2fr 0.3fr; }
+.cap { font-family: var(--mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--dim); margin: 0 0 8px; }
+.phase { display: grid; grid-template-columns: 76px 1fr; gap: 16px; padding: 16px 0; border-bottom: 1px solid var(--line); }
+.phase:last-child { border-bottom: 0; }
+.phase .n { font-family: var(--display); font-weight: 700; font-size: 34px; color: var(--yellow); line-height: 1; }
+.phase .n small { display: block; font-family: var(--mono); font-size: 10px; letter-spacing: .16em; color: var(--dim); font-weight: 400; }
+.phase h3 { margin: 0 0 6px; }
+.phase p { margin-bottom: 6px; }
+footer { margin-top: 56px; padding-top: 16px; border-top: 1px solid var(--line); font-family: var(--mono); font-size: 12px; color: var(--dim); letter-spacing: .06em; }
+footer ul { padding-left: 18px; margin-top: 10px; max-width: none; }
+footer li { margin-bottom: 3px; letter-spacing: 0; text-transform: none; }
+@media (max-width: 640px) { body { font-size: 17px; } .diagram { grid-template-columns: 1fr; } .bar nav { margin-left: 0; } .phase { grid-template-columns: 1fr; gap: 6px; } .mock { aspect-ratio: auto; min-height: 320px; } }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+</style>
+</head>
+<body>
+<div class="bar"><div class="wrap">
+  <span><span class="dot"></span><b>REDCODE</b> / DESIGN DOC / DRAFT 0.1</span>
+  <span>BASE: WOLVENKIT 9.1.0 &middot; VS CODE</span>
+  <nav>
+    <a href="#goal">Goal</a><a href="#ai">AI-first</a><a href="#wolvenkit">WolvenKit</a><a href="#base">Base</a><a href="#engine">Engine</a><a href="#bridge">Bridge</a><a href="#map">Feature map</a><a href="#layout">Layout</a><a href="#legal">Legal</a><a href="#roadmap">Roadmap</a>
+  </nav>
+</div></div>
+
+<div class="wrap">
+
+<header class="hero">
+  <div class="eyebrow">// Research &amp; architecture</div>
+  <h1>RED<span>code</span></h1>
+  <p class="lede">A Cyberpunk 2077 modding IDE built on VS Code. It takes WolvenKit's capabilities, the archive browser, the CR2W file editors, import and export, and project packing, and delivers them as VS Code extensions, with WolvenKit's own C# engine doing the file work behind a local bridge process.</p>
+  <div class="meta">
+    <span class="tag y">Recommended: extensions first, branded fork later</span>
+    <span class="tag c">Engine: WolvenKit C# behind a JSON-RPC bridge</span>
+    <span class="tag r">Open: license model</span>
+    <span class="tag g">AI-first: JS/TS, npm, web, VS Code, Claude</span>
+    <span class="tag">Companion to REDnode</span>
+  </div>
+</header>
+
+<section id="goal">
+  <h2><span class="id">01</span>Goal and scope</h2><div class="rule"></div>
+  <div class="grid g2">
+    <div class="panel"><div class="label">In scope</div>
+      <ul>
+        <li>A VS Code based IDE for Cyberpunk 2077 asset modding that covers WolvenKit's main workflows: browse game archives, add files to a project, edit CR2W files, import and export assets, pack a mod.</li>
+        <li>WolvenKit project compatibility: open and build existing <code>.cpmodproj</code> projects.</li>
+        <li>A layout that resembles WolvenKit's, within what VS Code allows.</li>
+        <li>A path from "extension pack on stock VS Code" to "branded REDcode application".</li>
+      </ul></div>
+    <div class="panel"><div class="label">Out of scope for v1</div>
+      <ul>
+        <li>Rewriting WolvenKit's file parsers. The C# engine is reused.</li>
+        <li>Parity with every WolvenKit editor. Graph editors, ink widget preview and layered material preview come last.</li>
+        <li>Linux and macOS. WolvenKit's texture tooling is Windows-only and the game is Windows.</li>
+        <li>Script compilation and language support for redscript. The existing Redscript IDE extension covers that and is reused.</li>
+      </ul></div>
+  </div>
+  <h3>Relation to REDnode</h3>
+  <p>REDnode is runtime scripting: a Node API that talks to the running game. REDcode is build-time tooling: files, archives and projects. They share the HUD house style, and the REDnode HUD VS Code theme is REDcode's default theme. The two are meant to work as one loop: a REDnode mod is edited in REDcode, deployed to the running REDnode process without restarting the game, and the game's events and logs stream back into REDcode. A <code>redcode-rednode</code> extension carries this: project scaffolding, generated types, a run task, a deploy command and a live event view.</p>
+</section>
+
+<section id="ai">
+  <h2><span class="id">02</span>AI-first ecosystem</h2><div class="rule"></div>
+  <p>REDcode and REDnode exist to offer a modding ecosystem that works with AI assistants as well as it works with people. The stack is chosen for that: JavaScript and TypeScript, Node and npm, HTML for every view, VS Code as the shell, and Claude as the first assistant it is built with. These choices shape the design more than feature parity with existing tools does.</p>
+  <div class="grid g2">
+    <div class="panel"><div class="label">Everything is text a model can read and write</div>
+      <p>Game files as CR2W JSON, tweaks as YAML, scripts as redscript and JavaScript, projects as folders. No state lives only inside a GUI. Whatever a person can see in REDcode, an assistant can read, and whatever a person can change, an assistant can change through the same files and calls.</p></div>
+    <div class="panel"><div class="label">One API, two clients</div>
+      <p>The bridge's JSON-RPC methods serve the VS Code extensions and an MCP server alike. An assistant such as Claude Code can browse archives, convert files, query TweakDB, run scripts and pack a mod through the same calls, while REDcode stays the person's view of the same project.</p></div>
+    <div class="panel"><div class="label">npm is the package format</div>
+      <p>Mod tooling, scripts and shared code are npm packages. The <code>wkit</code>-compatible scripting API ships as a typed package, so existing community scripts become packages and new ones get completion and documentation for free, for people and for assistants.</p></div>
+    <div class="panel ok"><div class="label">The live loop with REDnode</div>
+      <p>An assistant working in REDcode edits a REDnode mod, REDcode deploys it to the REDnode process attached to the running game, the change takes effect at once, and the game's events and logs stream back into REDcode. The assistant sees the result and iterates. Tier 2 mods reload freely because they run outside the game; Tier 1 interceptors swap between frames. Asset changes that the game cannot reload while running are marked as needing a restart.</p>
+      <p>The same process is debuggable live. REDnode's Tier 2 is an ordinary Node process, so VS Code's built-in debugger attaches to it: breakpoints, stepping and watches in the TypeScript source, and a Debug Console that evaluates calls such as <code>await game.player.getHealth()</code> against the running game. Tier 1 interceptors run in QuickJS inside the game, which has no inspector, so they get tracing and replay: inputs and outputs are recorded and the interceptor is re-run in Node under the debugger.</p></div>
+    <div class="panel"><div class="label">Web views, generated references</div>
+      <p>Every viewer is HTML, so it can be reused in the docs site, in previews an assistant produces, and in the branded fork. API references for the bridge, the scripting API and the game types are generated from source and RTTI, shared with REDnode's docs site, and readable by assistants as well as people.</p></div>
+  </div>
+</section>
+
+<section id="wolvenkit">
+  <h2><span class="id">03</span>What WolvenKit is made of</h2><div class="rule"></div>
+  <p>Read from the WolvenKit repository at commit <code>4d1716b1</code> (2026-10-10, version 9.1.0). The split between headless libraries and the WPF application decides what REDcode can reuse.</p>
+  <div class="tw"><table>
+    <thead><tr><th>Project</th><th>Lines of C#</th><th>Target</th><th>Contents</th><th>Reusable by REDcode</th></tr></thead>
+    <tbody>
+      <tr><td>WolvenKit.Core</td><td>5,400</td><td>net10.0</td><td>Oodle compression, hashing, common services</td><td>Yes</td></tr>
+      <tr><td>WolvenKit.RED4</td><td>684,800</td><td>net10.0</td><td>CR2W reader and writer, every game type (mostly generated classes), archive format, TweakDB</td><td>Yes. This is the engine</td></tr>
+      <tr><td>WolvenKit.Common</td><td>20,400</td><td>net10.0</td><td>JSON serializer for CR2W, DDS and texture conversion, services</td><td>Yes</td></tr>
+      <tr><td>WolvenKit.Modkit</td><td>21,600</td><td>net10.0</td><td>Import and export: glTF meshes, textures, animations, Wwise audio, packing</td><td>Yes</td></tr>
+      <tr><td>WolvenKit.CLI</td><td>1,200</td><td>net10.0</td><td>Command-line front end over the libraries above</td><td>Yes, as a reference for the bridge</td></tr>
+      <tr><td>WolvenKit.App</td><td>88,600</td><td>net10.0-windows</td><td>View models, project model, scripting host, document logic</td><td>Partly. Project model and scripting API are the useful parts. Tied to WPF view models</td></tr>
+      <tr><td>WolvenKit</td><td>37,300</td><td>net10.0-windows</td><td>WPF views built on Syncfusion controls, HelixToolkit 3D, AvalonEdit</td><td>No. WPF plus a commercial control suite</td></tr>
+    </tbody>
+  </table></div>
+  <div class="grid g3">
+    <div class="panel"><div class="label">Native dependencies</div>
+      <ul>
+        <li><code>kraken.dll</code>: Oodle decompression. Has Windows, Linux and macOS code paths.</li>
+        <li><code>texconv.dll</code>, DirectXTexNet: texture conversion. Windows-only.</li>
+        <li><code>wwtools.dll</code>: Wwise audio.</li>
+        <li>Assimp: mesh import.</li>
+      </ul></div>
+    <div class="panel"><div class="label">CLI commands</div>
+      <p><code>archive</code>, <code>unbundle</code>, <code>uncook</code>, <code>import</code>, <code>export</code>, <code>pack</code>, <code>build</code>, <code>convert</code>, <code>conflicts</code>, <code>hash</code>, <code>oodle</code>, <code>settings</code>, <code>wwise</code>. <code>convert</code> turns CR2W files into JSON and back, and <code>--print</code> writes the JSON to stdout.</p></div>
+    <div class="panel"><div class="label">Built-in scripting</div>
+      <p>WolvenKit embeds V8 (ClearScript) and exposes a <code>wkit</code> API of about 44 functions to user scripts: load and save project files, get files from archives by path or hash, export, query TweakDB, hash strings, open documents. Five hooks: <code>onSave</code>, <code>onExport</code>, <code>onPreImport</code>, <code>onImportFromJson</code>, <code>onParsingError</code>.</p></div>
+  </div>
+  <h3>Why the scripting API matters</h3>
+  <p>WolvenKit already has a UI-independent, JSON-shaped API designed to be called from JavaScript. It is close to the contract REDcode's bridge needs, and the community has scripts written against it. The bridge should offer the same surface, so those scripts keep working. One caveat: that API lives in <code>WolvenKit.App</code> and reaches into WPF view models, so the bridge reimplements it over the headless libraries rather than referencing <code>WolvenKit.App</code>.</p>
+  <h3>Data formats</h3>
+  <ul>
+    <li><strong>CR2W JSON.</strong> <code>RedJsonSerializer</code> writes <code>{ Header, Data: { RootChunk, EmbeddedFiles } }</code>. Every editor in REDcode works on this shape.</li>
+    <li><strong>Project.</strong> A <code>.cpmodproj</code> file next to <code>source/archive</code>, <code>source/raw</code>, <code>source/resources</code> and <code>packed/</code>. Per-project <code>layout.xml</code> stores WolvenKit's panel layout.</li>
+    <li><strong>File types.</strong> About 150 extensions in <code>ERedExtension</code>, from <code>mesh</code>, <code>xbm</code>, <code>ent</code> and <code>app</code> to <code>streamingsector</code>, <code>scene</code> and <code>inkwidget</code>.</li>
+  </ul>
+</section>
+
+<section id="base">
+  <h2><span class="id">04</span>Decision 1: how much of VS Code to fork</h2><div class="rule"></div>
+  <div class="tw"><table>
+    <thead><tr><th>Option</th><th>What it is</th><th>Strengths</th><th>Weaknesses</th></tr></thead>
+    <tbody>
+      <tr><td>A. Extension pack</td><td>REDcode is a set of extensions installed into stock VS Code.</td><td>No build infrastructure. Marketplace distribution and auto-updates. Fastest to ship.</td><td>No branding. Layout is a suggestion, not a default. The .NET bridge must be downloaded on first run.</td></tr>
+      <tr class="rec"><td>B. Minimal fork</td><td>A Code - OSS build with a custom <code>product.json</code>: name, icon, default theme, bundled extensions, Open VSX as the extension registry. No changes to workbench source. This is the VSCodium pattern.</td><td>A branded REDcode application. The bridge, theme and layout ship in the installer. Upstream VS Code merges are trivial because nothing in the source changes.</td><td>Build, signing and release pipeline to run. Cannot use the Microsoft Marketplace, so every dependency (including Redscript IDE) must be on Open VSX or bundled. Monthly upstream rebases.</td></tr>
+      <tr><td>C. Deep fork</td><td>Modify the VS Code workbench itself.</td><td>Anything is possible.</td><td>Every upstream release becomes a merge. Not needed: everything in the feature map is reachable from the extension API.</td></tr>
+    </tbody>
+  </table></div>
+  <div class="panel ok"><div class="label">Recommendation</div>
+    <p>Build everything as extensions (A) and treat the branded fork (B) as a packaging step at the end. B is A plus a <code>product.json</code> and a build pipeline. Nothing in the extensions changes between the two, so the fork can wait until the extensions are worth shipping.</p></div>
+  <h3>Marketplace rule</h3>
+  <p>Microsoft's Marketplace terms limit its use to Microsoft's own products. Forks such as VSCodium and Cursor point at Open VSX instead. A REDcode fork would do the same, and the REDcode extensions would be published to both registries. The exact wording of the current terms was reported second-hand in research and should be read directly before the fork ships. Checked on 2026-10-11: the Redscript IDE extension (<code>jac3km4.redscript-ide-vscode</code>) is on the Marketplace only, not on Open VSX, so the fork must bundle it with its author's permission or depend on it being published there.</p>
+</section>
+
+<section id="engine">
+  <h2><span class="id">05</span>Decision 2: port or wrap</h2><div class="rule"></div>
+  <div class="tw"><table>
+    <thead><tr><th>Option</th><th>Approach</th><th>Strengths</th><th>Weaknesses</th></tr></thead>
+    <tbody>
+      <tr><td>Port</td><td>Rewrite the parsers and tools in TypeScript.</td><td>Single language. No .NET runtime to ship. Could run anywhere VS Code runs.</td><td>685,000 lines in RED4 alone, most of it generated type definitions that would need regenerating from the game's RTTI. Oodle, DirectXTex and Wwise are native and would need WebAssembly or native Node modules. Years of work before parity. Translating GPL source is a derivative work.</td></tr>
+      <tr class="rec"><td>Wrap</td><td>Run WolvenKit's headless libraries in a separate .NET process. Extensions send requests and render the results.</td><td>All format support on day one, and it tracks WolvenKit's updates. The UI is the only thing to build, which is true in every option because the WPF layer is not reusable.</td><td>Ships a .NET runtime (about 80 to 100 MB self-contained). Windows-only until the native libraries are. WolvenKit has no stable public API, so the bridge pins a version.</td></tr>
+      <tr><td>Hybrid</td><td>Wrap for formats, port what is cheap and benefits from being native in VS Code.</td><td colspan="2">This is what "wrap" becomes in practice. The project model, hashing, YAML and redscript editing, file watching and all UI live in TypeScript. CR2W, archives, Oodle, textures, meshes, audio and TweakDB stay in C#.</td></tr>
+    </tbody>
+  </table></div>
+  <div class="panel"><div class="label">Key observation</div>
+    <p>Whether REDcode ports or wraps, the UI is rebuilt. WolvenKit's views are WPF on a commercial control suite (Syncfusion) and a WPF 3D engine. None of that transfers to a web-based editor. The port-or-wrap question is only about the engine, and wrapping keeps 730,000 lines of working, maintained code.</p></div>
+</section>
+
+<section id="bridge">
+  <h2><span class="id">06</span>Architecture</h2><div class="rule"></div>
+  <div class="diagram" role="img" aria-label="Diagram: VS Code runs the REDcode extensions, which spawn a .NET bridge process. They exchange JSON-RPC over stdio. Large outputs go through a cache folder on disk.">
+    <div class="lane out">
+      <h4>VS Code (TypeScript, MIT)</h4>
+      <div class="node cool">redcode-core<small>bridge client, project model, settings, log</small></div>
+      <div class="node cool">redcode-explorer<small>project tree, asset browser, TweakDB and LocKey views</small></div>
+      <div class="node cool">redcode-editors<small>CR2W custom editor, texture, mesh, audio viewers (webviews)</small></div>
+      <div class="node cool">redcode-tools<small>import, export, pack, hash, wscript runner</small></div>
+      <div class="node">redcode-pack<small>extension pack: the above + Redscript IDE + REDnode HUD theme</small></div>
+    </div>
+    <div class="lane in">
+      <h4>REDcode.Bridge (.NET 10, GPL-3.0)</h4>
+      <div class="node hot">JSON-RPC server over stdio<small>one process per VS Code window</small></div>
+      <div class="node">WolvenKit.RED4 + Common + Core<small>CR2W, archives, Oodle, JSON, TweakDB</small></div>
+      <div class="node">WolvenKit.Modkit<small>import, export, pack</small></div>
+      <div class="node">wkit-compatible script host<small>ClearScript V8, same API as WolvenKit scripts</small></div>
+    </div>
+    <div class="link">EXTENSIONS <b>&#8644;</b> BRIDGE &middot; JSON-RPC 2.0 over stdio (vscode-jsonrpc, the same library LSP uses) &middot; big outputs (PNG, glTF, WAV) written to a cache folder, paths returned</div>
+  </div>
+
+  <h3>Bridge protocol</h3>
+  <div class="tw"><table>
+    <thead><tr><th>Method group</th><th>Examples</th><th>Backed by</th></tr></thead>
+    <tbody>
+      <tr><td>archive</td><td><code>archive.list</code>, <code>archive.search</code>, <code>archive.extract</code>, <code>archive.conflicts</code></td><td>RED4 archive manager</td></tr>
+      <tr><td>cr2w</td><td><code>cr2w.toJson</code>, <code>cr2w.fromJson</code>, <code>cr2w.getChunk</code>, <code>cr2w.patch</code>, <code>cr2w.createInstance</code></td><td>CR2W reader and writer, RedJsonSerializer</td></tr>
+      <tr><td>convert</td><td><code>texture.toPng</code>, <code>mesh.toGltf</code>, <code>audio.toWav</code></td><td>Common (texconv), Modkit, wwtools</td></tr>
+      <tr><td>modkit</td><td><code>import.run</code>, <code>export.run</code>, <code>pack.run</code>, <code>build.run</code></td><td>Modkit</td></tr>
+      <tr><td>tweakdb</td><td><code>tweakdb.records</code>, <code>tweakdb.record</code>, <code>tweakdb.flats</code>, <code>tweakdb.query</code></td><td>TweakDB service</td></tr>
+      <tr><td>hash</td><td><code>hash.fnv1a64</code>, <code>hash.resolve</code></td><td>Core</td></tr>
+      <tr><td>script</td><td><code>script.run</code> with the <code>wkit</code> API routed back over RPC</td><td>ClearScript V8</td></tr>
+      <tr><td>mcp</td><td>The same methods exposed as an MCP server for assistants such as Claude Code</td><td>Bridge, shared with the extensions</td></tr>
+      <tr><td>progress</td><td><code>$/progress</code> notifications and cancellation on every long call</td><td>vscode-jsonrpc</td></tr>
+    </tbody>
+  </table></div>
+  <h3>Design rules</h3>
+  <ul>
+    <li><strong>Partial reads for big files.</strong> A streaming sector can produce hundreds of megabytes of JSON. The CR2W editor loads the chunk tree lazily with <code>cr2w.getChunk</code> and sends edits as patches, rather than round-tripping whole documents.</li>
+    <li><strong>Files for bulk data.</strong> Decoded textures, glTF meshes and WAV audio go to a per-workspace cache folder. RPC carries paths, not bytes.</li>
+    <li><strong>Game path once.</strong> The bridge loads the archive index at start from the configured game folder, the same setting the Redscript IDE extension uses.</li>
+    <li><strong>Crash isolation.</strong> If the bridge dies, the extension restarts it and the editors reconnect. VS Code never freezes on a bad file.</li>
+    <li><strong>Distribution.</strong> The bridge is published self-contained for win-x64. The extension pack downloads it on first run and verifies a checksum. The branded fork bundles it.</li>
+  </ul>
+</section>
+
+<section id="map">
+  <h2><span class="id">07</span>Feature map</h2><div class="rule"></div>
+  <p>Every WolvenKit panel and document type, its VS Code counterpart, and a rough size. Sizes are relative: <span class="s sm">S</span> days, <span class="s md">M</span> weeks, <span class="s lg">L</span> a month or more, <span class="s xl">XL</span> a quarter or more.</p>
+  <h3>Panels</h3>
+  <div class="tw"><table>
+    <thead><tr><th>WolvenKit</th><th>In REDcode</th><th>How</th><th>Size</th></tr></thead>
+    <tbody>
+      <tr><td>Project Explorer</td><td>Tree view in the REDcode sidebar</td><td>TypeScript. Reads <code>.cpmodproj</code> and the source folders. File watcher for changes.</td><td><span class="s sm">S</span></td></tr>
+      <tr><td>Asset Browser</td><td>Tree view with search, "add to project" and "open" actions</td><td>Lazy tree over <code>archive.list</code> and <code>archive.search</code>.</td><td><span class="s md">M</span></td></tr>
+      <tr><td>Properties</td><td>Side pane inside the CR2W editor, plus a Properties view in the secondary sidebar</td><td>Webview. Follows the selected chunk.</td><td><span class="s md">M</span></td></tr>
+      <tr><td>Log</td><td>Output channel "REDcode"</td><td>Bridge log messages forwarded.</td><td><span class="s sm">S</span></td></tr>
+      <tr><td>Tweak Browser, LocKey Browser</td><td>Tree views with search</td><td>Over <code>tweakdb.*</code> and the localization lookups WolvenKit already exposes to scripts.</td><td><span class="s sm">S</span></td></tr>
+      <tr><td>Import, Export</td><td>Commands, a settings webview and tasks</td><td>Over <code>import.run</code> and <code>export.run</code>. Progress in the status bar.</td><td><span class="s md">M</span></td></tr>
+      <tr><td>Hash tool</td><td>Command with quick pick</td><td>Over <code>hash.*</code>.</td><td><span class="s sm">S</span></td></tr>
+      <tr><td>Audio player</td><td>Webview with an <code>&lt;audio&gt;</code> element</td><td><code>audio.toWav</code>, then play from the cache.</td><td><span class="s sm">S</span></td></tr>
+      <tr><td>(new) REDnode console</td><td>Live events and logs from the running REDnode process, deploy status</td><td>Over REDnode's development endpoint. Output channel plus a tree of recent events.</td><td><span class="s md">M</span></td></tr>
+      <tr><td>(new) REDnode debugger</td><td>Attach VS Code's debugger to the running REDnode process; Debug Console against the live game</td><td>Launch configuration over the Node inspector with source maps. Tier 1 interceptors: trace and replay in Node.</td><td><span class="s sm">S</span> attach, <span class="s md">M</span> replay</td></tr>
+      <tr><td>Home page</td><td>Walkthrough and welcome view</td><td>VS Code walkthrough contribution. Recent projects, new project, docs links.</td><td><span class="s sm">S</span></td></tr>
+    </tbody>
+  </table></div>
+  <h3>Document editors</h3>
+  <div class="tw"><table>
+    <thead><tr><th>WolvenKit</th><th>In REDcode</th><th>How</th><th>Size</th></tr></thead>
+    <tbody>
+      <tr><td>RedDocument (CR2W chunk editor)</td><td>Custom editor: chunk tree, property grid, raw JSON tab</td><td>Webview over <code>cr2w.getChunk</code> and <code>cr2w.patch</code>. Undo and redo through the custom editor API. This is the core of REDcode and the largest single piece.</td><td><span class="s xl">XL</span></td></tr>
+      <tr><td>RDTTexture (xbm, dds, cubemaps)</td><td>Image viewer with mip, channel and zoom controls</td><td><code>texture.toPng</code>, webview.</td><td><span class="s md">M</span></td></tr>
+      <tr><td>RDTMesh (3D preview)</td><td>3D viewer</td><td><code>mesh.toGltf</code>, three.js in a webview. Material parity with WolvenKit's renderer is a later step.</td><td><span class="s md">M</span> viewer, <span class="s lg">L</span> materials</td></tr>
+      <tr><td>RDTInkTextureAtlas</td><td>Atlas viewer with slot overlay</td><td>PNG plus the atlas JSON.</td><td><span class="s sm">S</span></td></tr>
+      <tr><td>RDTText, RDTData, JSON</td><td>Built-in text editor</td><td>Nothing to build.</td><td><span class="s sm">S</span></td></tr>
+      <tr><td>TweakXLDocument (yaml, tweak)</td><td>Language support: syntax, completion from TweakDB, validation</td><td>Check for an existing community extension first.</td><td><span class="s md">M</span></td></tr>
+      <tr><td>WScriptDocument</td><td>Built-in JavaScript editor plus <code>wkit</code> typings and a Run command</td><td><code>script.run</code> in the bridge, so existing community scripts work.</td><td><span class="s md">M</span></td></tr>
+      <tr><td>RDTGraph (quest, scene, behavior graphs)</td><td>Node graph editor</td><td>Webview with a graph library over the JSON. Each graph type has its own node set.</td><td><span class="s xl">XL</span></td></tr>
+      <tr><td>RDTWidget (ink UI preview)</td><td>Widget renderer</td><td>Reimplements WolvenKit's ink layout in a webview. Defer.</td><td><span class="s xl">XL</span></td></tr>
+      <tr><td>RDTLayeredPreview (mlsetup materials)</td><td>Material preview</td><td>Needs the 3D viewer with materials first. Defer.</td><td><span class="s lg">L</span></td></tr>
+      <tr><td>redscript</td><td>Redscript IDE extension</td><td>Reused as a dependency of the pack. Not rebuilt.</td><td><span class="s sm">S</span></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="layout">
+  <h2><span class="id">08</span>Layout</h2><div class="rule"></div>
+  <p>WolvenKit's default layout, from its <code>DockStatesDefault.xml</code>, and the closest VS Code arrangement. VS Code has fixed slots: a primary sidebar, a secondary sidebar, a bottom panel and the editor area. Views can be dragged between slots and VS Code remembers where they go.</p>
+  <div class="grid g2">
+    <div>
+      <div class="cap">WolvenKit default</div>
+      <div class="mock wk" role="img" aria-label="WolvenKit layout: asset browser strip across the top, project explorer and properties stacked on the left, documents in the center, import and export on the right, log across the bottom.">
+        <div style="grid-column:1/-1">Asset Browser (full width, 396px tall)</div>
+        <div class="y">Project Explorer</div>
+        <div class="doc" style="grid-row:2/4">Documents</div>
+        <div style="grid-row:2/4">Export / Import<br>(Tweak and LocKey browsers auto-hidden)</div>
+        <div class="y">Properties</div>
+        <div style="grid-column:1/-1">Log (224px tall)</div>
+      </div>
+    </div>
+    <div>
+      <div class="cap">REDcode in VS Code</div>
+      <div class="mock vs" role="img" aria-label="VS Code layout: activity bar, primary sidebar with project explorer and properties, editor area in the center, secondary sidebar with asset browser and import/export, bottom panel with log.">
+        <div style="grid-row:1/3">Activity<br>bar</div>
+        <div class="y" style="grid-row:1/3">Primary sidebar<br><br>Project Explorer<br>Properties</div>
+        <div class="doc">Editor area: custom editors in tabs and split groups</div>
+        <div style="grid-row:1/3">Secondary sidebar<br><br>Asset Browser<br>Import / Export<br>Tweak Browser<br>LocKey Browser</div>
+        <div>Panel: Log (Output), Terminal, Problems</div>
+        <div style="grid-column:1/-1">Status bar: bridge state, game version, progress</div>
+      </div>
+    </div>
+  </div>
+  <div class="tw" style="margin-top:14px"><table>
+    <thead><tr><th>WolvenKit slot</th><th>VS Code slot</th><th>Note</th></tr></thead>
+    <tbody>
+      <tr><td>Left: Project Explorer over Properties</td><td>Primary sidebar, REDcode view container</td><td>Same shape.</td></tr>
+      <tr><td>Top strip: Asset Browser</td><td>Secondary sidebar, top view</td><td>VS Code has no slot above the editors. The Asset Browser can also live as a tab in the bottom panel, which is closer to a wide strip. The user decides, VS Code remembers.</td></tr>
+      <tr><td>Right: Import, Export, auto-hidden Tweak and LocKey browsers</td><td>Secondary sidebar, collapsed views</td><td>Same shape.</td></tr>
+      <tr><td>Bottom: Log</td><td>Panel, Output channel</td><td>Same shape.</td></tr>
+      <tr><td>Per-project <code>layout.xml</code></td><td>Workspace state</td><td>VS Code stores view placement per workspace on its own. A "REDcode: Reset layout" command restores the default.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="legal">
+  <h2><span class="id">09</span>Licensing and the name</h2><div class="rule"></div>
+  <div class="panel warn"><div class="label">Not legal advice</div>
+    <p>These are the known constraints and the usual readings of them. Have someone qualified confirm before a public release, and talk to the WolvenKit team early. The modding community is small and a tool seen as a hostile clone would struggle.</p></div>
+  <div class="grid g2" style="margin-top:14px">
+    <div class="panel"><div class="label">WolvenKit is GPL-3.0</div>
+      <ul>
+        <li>A bridge process that links WolvenKit's assemblies is a derivative work and must be GPL-3.0.</li>
+        <li>A VS Code extension that only talks to that process over stdio, exchanging data, is usually treated as a separate program and can keep its own license.</li>
+        <li>Porting by reading and translating WolvenKit source produces a derivative too. Only a clean-room port from the game's RTTI and public format documentation could be MIT.</li>
+      </ul></div>
+    <div class="panel"><div class="label">Two license models</div>
+      <ul>
+        <li><strong>Split.</strong> Bridge in its own GPL-3.0 repository. Extensions and fork in the MIT REDcode repository. Clean, but two repos and a boundary to police.</li>
+        <li><strong>All GPL-3.0.</strong> One repository, no boundary, and goodwill with upstream. Costs nothing unless REDcode must be MIT for another reason.</li>
+      </ul></div>
+    <div class="panel"><div class="label">Other components</div>
+      <ul>
+        <li>Syncfusion controls: commercial, community-licensed to WolvenKit. Not reused, so irrelevant.</li>
+        <li><code>kraken.dll</code> (Oodle): WolvenKit redistributes it. Its origin and license need checking before REDcode redistributes it too.</li>
+        <li>No game files or data extracted from them go in any repository. Same rule as REDnode.</li>
+      </ul></div>
+    <div class="panel ok"><div class="label">The name</div>
+      <p>REDcode is RED for REDengine and code for VS Code, the editor it is built on. It was chosen on 2026-10-11 after checking three places. CD Projekt RED uses REDengine, REDmod, REDlauncher and REDcode, not REDcode. No Cyberpunk modding tool uses it. Outside modding, RED Digital Cinema's REDCODE RAW video codec and Core War's Redcode language share the spelling; both are different products in different fields and were accepted. A trademark search by someone qualified is still worth doing before the branded fork ships.</p></div>
+  </div>
+</section>
+
+<section id="risks">
+  <h2><span class="id">10</span>Risks</h2><div class="rule"></div>
+  <div class="tw"><table>
+    <thead><tr><th>Risk</th><th>Impact</th><th>Mitigation</th></tr></thead>
+    <tbody>
+      <tr><td>UI effort underestimated</td><td>WolvenKit's UI is 126,000 lines of WPF and view models. The CR2W editor alone is months.</td><td>Ship the browse-extract-pack loop first. Add editors by what modders use most.</td></tr>
+      <tr><td>WolvenKit internal API churn</td><td>The bridge breaks on upstream updates.</td><td>Pin a WolvenKit version. Keep the bridge thin. Upstream patches that make the libraries easier to host benefit both projects.</td></tr>
+      <tr><td>Huge documents over JSON</td><td>Stalls and memory spikes on sectors and big meshes.</td><td>Lazy chunk reads and patches. Bulk data via files.</td></tr>
+      <tr><td>Windows-only natives</td><td>No Linux or macOS.</td><td>Accept for v1. Oodle already has non-Windows paths; texture conversion is the blocker.</td></tr>
+      <tr><td>Registry split</td><td>Fork users cannot install from the Microsoft Marketplace.</td><td>Publish REDcode extensions to Open VSX and the Marketplace. Bundle dependencies in the fork.</td></tr>
+      <tr><td>Upstream VS Code tracking</td><td>Fork falls behind.</td><td>No source changes, only <code>product.json</code> and bundled extensions. Rebase monthly in CI.</td></tr>
+      <tr><td>Community reception</td><td>Seen as a competitor to WolvenKit.</td><td>Position as a front end for WolvenKit's engine. Contribute bridge-friendly changes upstream. Credit prominently.</td></tr>
+      <tr><td>Name overlap outside modding</td><td>REDCODE RAW (a video codec) and Redcode (Core War) share the spelling.</td><td>Checked and accepted. Trademark search before the fork ships. See section 08.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="roadmap">
+  <h2><span class="id">11</span>Roadmap</h2><div class="rule"></div>
+  <div class="panel">
+    <div class="phase"><div class="n">C0<small>DECIDE</small></div><div>
+      <h3>Decisions and groundwork</h3>
+      <p>Name and license model: done (REDcode, split model with REDbridge under GPL-3.0). Redscript IDE on Open VSX: checked, it is not. Remaining: build WolvenKit's headless libraries locally and confirm Code - OSS builds on the reference machine. The WolvenKit team is contacted once a working proof of concept exists.</p></div></div>
+    <div class="phase"><div class="n">C1<small>BRIDGE</small></div><div>
+      <h3>Bridge MVP</h3>
+      <p>A .NET bridge with <code>archive.list</code>, <code>cr2w.toJson</code>, <code>cr2w.fromJson</code>, <code>texture.toPng</code> and <code>hash.*</code>. A VS Code extension that spawns it and offers "Open game file as JSON". Proves the data path end to end.</p></div></div>
+    <div class="phase"><div class="n">C2<small>BROWSE</small></div><div>
+      <h3>Project and asset browser</h3>
+      <p>Open a <code>.cpmodproj</code>. Project Explorer, Asset Browser with search, add to project, extract, Log channel, status bar. REDcode becomes useful for browsing and extracting.</p></div></div>
+    <div class="phase"><div class="n">C3<small>EDIT</small></div><div>
+      <h3>Core editors</h3>
+      <p>The CR2W custom editor with chunk tree, properties and patches. Texture viewer. TweakXL language support. Undo, redo, dirty state and save back to CR2W.</p></div></div>
+    <div class="phase"><div class="n">C4<small>SHIP</small></div><div>
+      <h3>Import, export, pack</h3>
+      <p>Import and export over Modkit with a settings webview. Pack and build tasks. First mod built start to finish inside REDcode. Publish the extension pack.</p></div></div>
+    <div class="phase"><div class="n">C5<small>VIEW</small></div><div>
+      <h3>Mesh, audio, TweakDB, scripts</h3>
+      <p>3D viewer over glTF. Audio player. Tweak and LocKey browsers. <code>wkit</code>-compatible script runner with typings, published as an npm package. MCP server over the bridge, so assistants can work a project alongside REDcode. REDnode integration: scaffold, generated types, deploy to the running REDnode process, events and logs streamed back, debugger attached with a live Debug Console, trace and replay for interceptors.</p></div></div>
+    <div class="phase"><div class="n">C6<small>PARITY</small></div><div>
+      <h3>Graphs and previews</h3>
+      <p>Graph editors for quest, scene and behavior files. Ink widget preview. Layered material preview. Ordered by what modders ask for.</p></div></div>
+    <div class="phase"><div class="n">C7<small>BRAND</small></div><div>
+      <h3>Branded fork</h3>
+      <p>Code - OSS build with <code>product.json</code>: REDcode name and icon, REDnode HUD theme as default, bundled extensions and bridge, Open VSX registry. Installer and release pipeline.</p></div></div>
+  </div>
+</section>
+
+<section id="questions">
+  <h2><span class="id">12</span>Open questions</h2><div class="rule"></div>
+  <ul>
+        <li>License model: split (MIT extensions, GPL bridge) or all GPL-3.0?</li>
+    <li>Which file types do you mod most? That orders C3 to C6.</li>
+    <li>Is Windows-only acceptable for v1?</li>
+    <li>Should the bridge be a hosted copy of WolvenKit's libraries, or should the bridge host be contributed upstream so WolvenKit ships it?</li>
+    <li>Should REDcode also carry REDnode project support (scaffold, types, run task), or stay purely asset tooling?</li>
+  </ul>
+</section>
+
+<footer>
+  SOURCES: WOLVENKIT REPOSITORY AT 4D1716B1 (PROJECTS, CLI, SCRIPTING, DOCKSTATESDEFAULT.XML) &middot; LOCAL RESEARCH 2026-10-11
+  <ul>
+    <li><a href="https://github.com/WolvenKit/WolvenKit">WolvenKit on GitHub</a> (GPL-3.0)</li>
+    <li><a href="https://wiki.redmodding.org/redscript/getting-started/setup-for-vscode">Redscript IDE setup for VS Code</a> (REDmodding wiki)</li>
+    <li><a href="https://wiki.redmodding.org/cyberpunk-2077-modding/for-mod-creators/core-mods-explained">Core mods explained</a> (REDmodding wiki)</li>
+    <li><a href="https://devclass.com/?p=5743">Marketplace terms and Open VSX</a> (DevClass)</li>
+    <li><a href="https://hackernoon.com/openvsx-cursor-and-the-fight-for-an-open-development-future">Open VSX, Cursor and the Marketplace terms</a> (HackerNoon)</li>
+    <li><a href="https://wiki.archlinux.org/title/VSCode">VS Code and Code - OSS, product.json</a> (Arch Wiki)</li>
+  </ul>
+</footer>
+
+</div>
+</body>
+</html>
