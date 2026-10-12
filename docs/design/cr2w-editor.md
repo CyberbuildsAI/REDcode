@@ -54,8 +54,8 @@ The editor opens for every CR2W extension in the project (the roughly 150 in Wol
 
 | View | Opens for | What it adds | Reuses |
 |---|---|---|---|
-| Table | `localizationPersistenceOnScreenEntries` and `...SubtitleEntries` roots | A virtual table over `root.Data.entries`: columns for the keys and the two variants, type-to-filter by key or text, add and delete rows, inline edit. Paged through the bridge 200 rows at a time | The same node and patch calls as the tree |
-| Atlas | `inkTextureAtlas` | The texture (through `texture.toPng` of the referenced `.xbm`) with every part's clipping rectangle drawn over it; click a rectangle to select the part; drag its edges to edit `clippingRectInPixels`, with the UV rectangle recomputed from the texture size | The texture viewer's image page |
+| Table | `localizationPersistenceOnScreenEntries` (the LocKey files such as `onscreens.json`, a few big ones) and `localizationPersistenceSubtitleEntries` (about 300 small files, one per quest or scene) | A virtual table over `root.Data.entries`: the key columns from the row type (`primaryKey` and `secondaryKey` for on-screens, `stringId` for subtitles), then the female and male variants; type-to-filter by key or text, add and delete rows, inline edit. Paged through the bridge 200 rows at a time | The same node and patch calls as the tree |
+| Atlas | `inkTextureAtlas` | The texture (through `texture.toPng` of the referenced `.xbm`) with every part's clipping rectangle drawn over it. Click a rectangle to select the part, then edit `clippingRectInPixels` in the grid; the UV rectangle is recomputed from the texture size. Dragging the rectangle's edges is deferred | The texture viewer's image page |
 | Texture | `CBitmapTexture` | The properties grid beside the existing viewer: setup fields only | The texture viewer |
 
 Each view is a mode of the same webview page, chosen from the root chunk's `$type`. The tree is always reachable from the header, so nothing is hidden.
@@ -121,9 +121,9 @@ Each is one or two commits and ends with a hand test on the owner's files plus a
 | Step | Bridge | Extension | Test file |
 |---|---|---|---|
 | E1 | `open`, `getNode`, `patch`, `save`, `close`, with a document session table and a smoke step that patches a value and reads it back | Client wrappers only | `.ent` |
-| E2 | `describeType`, `createInstance` | The custom editor: tree, property grid, undo and redo, save, backup and replay | `.ent`, then `.mesh` |
-| E3 | `search` | Footer search. The table view | `onscreens.json` |
-| E4 | | The atlas view | `.inkatlas` |
+| E2 | `describeType`, `createInstance` | The custom editor: tree, property grid, undo and redo, save, backup and replay | `.ent` and `.app`, then `.mesh` |
+| E3 | `search` | Footer search. The table view | `onscreens.json`, then a subtitles file |
+| E4 | | The atlas view, click to select | `.inkatlas` |
 | E5 | | Texture properties beside the viewer. The Properties sidebar view. Read-only open from Game Assets | `.xbm` |
 
 Bridge 0.5.0 carries E1 and E2 and `MinBridgeVersion` moves to 0.5.0 when the editor ships, since the editor cannot work without them.
@@ -136,8 +136,10 @@ Bridge 0.5.0 carries E1 and E2 and `MinBridgeVersion` moves to 0.5.0 when the ed
 - Diff against the game's copy. Useful, cheap once `open` accepts a game path, and not needed to ship.
 - Graph file types (`.quest`, `.scene`), which get their own editors in C6.
 
-## Open questions
+## Decisions
 
-1. Should the editor also open `.app` appearance files first class? They share the `compiledData` rule and the components tree, so the entity work covers them, but the test list above does not include one.
-2. Subtitle localization files (`subtitles.json`) have the same shape as on-screens with more columns. Same table, or wait until asked?
-3. For the atlas view, dragging rectangles is the costly part. Is click-to-select plus numeric editing enough for the first version?
+Agreed with the owner on 2026-10-12:
+
+1. `.app` appearance files are in the first test list with `.ent`. They share the `compiledData` rule and the components tree.
+2. The table view opens subtitle files as well as on-screens from the start. The only difference is the key columns, which come from the row type.
+3. The atlas view ships with click-to-select and numeric editing of the rectangle. Dragging edges is deferred.
