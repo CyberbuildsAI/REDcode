@@ -30,6 +30,10 @@ The status bar shows the open project and the bridge state: starting, the number
 
 The extension checks the bridge's version when it starts. If REDbridge is older than the extension needs, the status bar says so; run `npm run update` in the REDbridge folder, then **REDcode: Restart bridge**.
 
+## The CR2W editor
+
+Game files in the project (`.ent`, `.app`, `.mesh`, `.inkatlas`, materials, animations, scenes and the other CR2W types) open in the CR2W editor: a tree of the file's chunks on the left, the selected node's properties on the right. The bridge keeps the parsed file and the editor reads one node at a time, so a 21 MB localization file opens in under half a second and pages its rows 200 at a time. Edits go to the bridge as patches: numbers are committed as the 32-bit value the file will hold, names and paths edit their text, enums are dropdowns, booleans are checkboxes, arrays get add, remove and move, empty handles get create. Ctrl+Z and Ctrl+Y work through VS Code, the tab shows the dirty state, Ctrl+S writes the file through WolvenKit's writer and refreshes the view, and unsaved edits are backed up and restored if VS Code restarts. The JSON button opens the same file as text. `compiledData` is shown but read-only, because WolvenKit rebuilds it from `components` on save. Needs REDbridge 0.5.0. Open With still offers the text editor, and `.xbm`, `.json` and `.csv` files offer the editor under Open With.
+
 ## What the file format keeps
 
 After Save JSON to Project the editor shows the JSON read back from the written file, and a notice says whether it matches what you saved. Three rules of WolvenKit's format explain almost every difference:

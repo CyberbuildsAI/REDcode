@@ -57,6 +57,31 @@
     ],
     "customEditors": [
       {
+        "viewType": "redcode.cr2w",
+        "displayName": "REDcode CR2W Editor",
+        "selector": [
+          { "filenamePattern": "*.ent" }, { "filenamePattern": "*.app" }, { "filenamePattern": "*.mesh" }, { "filenamePattern": "*.inkatlas" },
+          { "filenamePattern": "*.mi" }, { "filenamePattern": "*.mt" }, { "filenamePattern": "*.mlsetup" }, { "filenamePattern": "*.mltemplate" },
+          { "filenamePattern": "*.mlmask" }, { "filenamePattern": "*.anims" }, { "filenamePattern": "*.animgraph" }, { "filenamePattern": "*.rig" },
+          { "filenamePattern": "*.morphtarget" }, { "filenamePattern": "*.inkwidget" }, { "filenamePattern": "*.inkmenu" }, { "filenamePattern": "*.inkstyle" },
+          { "filenamePattern": "*.scene" }, { "filenamePattern": "*.quest" }, { "filenamePattern": "*.questphase" }, { "filenamePattern": "*.streamingsector" },
+          { "filenamePattern": "*.streamingblock" }, { "filenamePattern": "*.physicalscene" }, { "filenamePattern": "*.workspot" }, { "filenamePattern": "*.cubemap" },
+          { "filenamePattern": "*.texarray" }, { "filenamePattern": "*.envprobe" }, { "filenamePattern": "*.es" }, { "filenamePattern": "*.gamedef" },
+          { "filenamePattern": "*.lipmap" }, { "filenamePattern": "*.fp" }, { "filenamePattern": "*.cminimap" }, { "filenamePattern": "*.inkanim" },
+          { "filenamePattern": "*.inkfontfamily" }, { "filenamePattern": "*.inkcharcustomization" }, { "filenamePattern": "*.garmentlayerparams" },
+          { "filenamePattern": "*.behavior" }, { "filenamePattern": "*.effect" }, { "filenamePattern": "*.particle" }, { "filenamePattern": "*.w2mesh" }
+        ],
+        "priority": "default"
+      },
+      {
+        "viewType": "redcode.cr2w",
+        "displayName": "REDcode CR2W Editor",
+        "selector": [
+          { "filenamePattern": "*.xbm" }, { "filenamePattern": "*.json" }, { "filenamePattern": "*.csv" }
+        ],
+        "priority": "option"
+      },
+      {
         "viewType": "redcode.texture",
         "displayName": "REDcode Texture",
         "selector": [

@@ -6,7 +6,7 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { EventEmitter } from "node:events";
 import * as readline from "node:readline";
 import { createMessageConnection, StreamMessageReader, StreamMessageWriter, type MessageConnection } from "vscode-jsonrpc/node";
-import type { ArchiveInfo, BridgeInfo, DocumentInfo, ExtractManyResult, ExtractResult, FileList, HashResult, JsonResult, NodeInfo, PatchOp, PatchResult, ResolveResult, TreeResult } from "./types";
+import type { ArchiveInfo, BridgeInfo, DocumentInfo, ExtractManyResult, ExtractResult, FileList, HashResult, JsonResult, NodeInfo, PatchOp, PatchResult, ResolveResult, TreeResult, TypeDescription } from "./types";
 
 export interface BridgeOptions {
   /** Path to REDbridge.exe. */
@@ -169,6 +169,16 @@ export class BridgeClient extends EventEmitter<BridgeEvents> {
   /** Applies the operations atomically and returns the inverse, for undo. */
   patch(doc: string, ops: PatchOp[]): Promise<PatchResult> {
     return this.call("cr2w.patch", { doc, ops });
+  }
+
+  /** What a RED type is made of: properties with types and defaults, enum values, element types. Cached by the bridge. */
+  describeType(type: string): Promise<TypeDescription> {
+    return this.call("cr2w.describeType", { type });
+  }
+
+  /** A default instance of a RED type in WolvenKit JSON form, for adding array items and filling handles. */
+  createInstance(type: string): Promise<unknown> {
+    return this.call("cr2w.createInstance", { type });
   }
 
   /** Writes the document through WolvenKit's writer, to its own file or outFile. */

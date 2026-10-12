@@ -2,7 +2,8 @@
 
 ## Unreleased
 
-- Bridge client: cr2w document sessions (open, getNode, patch, save, close) for the CR2W editor, with a smoke step. Needs REDbridge 0.5.0.
+- Bridge client: cr2w document sessions (open, getNode, patch, save, close, describeType, createInstance) for the CR2W editor, with a smoke step. Needs REDbridge 0.5.0.
+- The CR2W editor: tree and property grid over a bridge document session, with undo, redo, save, backup and replay. Default for the CR2W file types in a project.
 
 ## 0.3.1
 

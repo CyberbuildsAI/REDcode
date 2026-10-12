@@ -1,0 +1,66 @@
+/* The CR2W editor page. VS Code theme colours for surfaces, the HUD yellow and cyan for accents. */
+:root {
+  --accent: #fcee0a;
+  --cyan: #19f3ff;
+  --red: #ff2a52;
+  --line: var(--vscode-panel-border, #262c3d);
+  --dim: var(--vscode-descriptionForeground, #8a93a8);
+  --mono: var(--vscode-editor-font-family, "JetBrains Mono", Consolas, monospace);
+}
+html, body { height: 100%; margin: 0; }
+body {
+  display: flex; flex-direction: column;
+  background: var(--vscode-editor-background); color: var(--vscode-foreground);
+  font-family: var(--vscode-font-family); font-size: var(--vscode-font-size);
+}
+header, footer { display: flex; align-items: center; gap: 14px; padding: 6px 12px; border-bottom: 1px solid var(--line); font-family: var(--mono); white-space: nowrap; }
+footer { border-bottom: 0; border-top: 1px solid var(--line); font-size: 12px; min-height: 18px; }
+.name { color: var(--accent); font-weight: 600; }
+.meta, .dim { color: var(--dim); overflow: hidden; text-overflow: ellipsis; }
+.spacer { flex: 1; }
+button { background: transparent; color: var(--vscode-foreground); border: 1px solid var(--line); padding: 2px 9px; cursor: pointer; font: inherit; }
+button:hover { border-color: var(--accent); color: var(--accent); }
+button:disabled { opacity: .4; cursor: default; }
+button.link { border: 0; color: var(--cyan); padding: 0 6px; }
+button.link:hover { text-decoration: underline; }
+button.icon { padding: 0 6px; }
+button.more { margin: 8px 0; }
+#body { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(220px, 34%) 1fr; }
+aside, main { min-width: 0; overflow: auto; }
+aside { border-right: 1px solid var(--line); }
+.label { font-family: var(--mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--dim); padding: 8px 12px 4px; position: sticky; top: 0; background: var(--vscode-editor-background); z-index: 1; }
+#propsLabel { color: var(--accent); }
+
+/* tree */
+ul.tree { list-style: none; margin: 0; padding-left: 14px; }
+#treeRoot { padding-left: 6px; padding-bottom: 12px; }
+.row { display: flex; gap: 6px; align-items: baseline; padding: 1px 6px; cursor: pointer; white-space: nowrap; border-left: 2px solid transparent; }
+.row:hover { background: var(--vscode-list-hoverBackground); }
+.row.selected { background: var(--vscode-list-activeSelectionBackground); color: var(--vscode-list-activeSelectionForeground, inherit); border-left-color: var(--accent); }
+.row.compiled .name { opacity: .6; }
+.toggle { width: 12px; color: var(--dim); font-size: 11px; flex: none; }
+.row .name { color: inherit; font-weight: 500; }
+.row .preview { color: var(--dim); font-family: var(--mono); font-size: 12px; overflow: hidden; text-overflow: ellipsis; }
+li.loading, li.more { color: var(--dim); font-size: 12px; padding: 1px 6px 1px 20px; }
+li.more { color: var(--cyan); cursor: pointer; }
+
+/* grid */
+#grid { padding: 4px 12px 16px; }
+.prow { display: grid; grid-template-columns: minmax(140px, 28%) minmax(90px, 18%) 1fr auto; gap: 10px; align-items: start; padding: 4px 0; border-bottom: 1px solid var(--line); }
+.pname { font-weight: 500; overflow: hidden; text-overflow: ellipsis; }
+.ptype { font-family: var(--mono); font-size: 11px; color: var(--dim); overflow: hidden; text-overflow: ellipsis; padding-top: 3px; }
+.pvalue { min-width: 0; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.tools { display: flex; gap: 4px; }
+.struct { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; width: 100%; }
+.srow { display: contents; }
+.sname { font-family: var(--mono); font-size: 12px; color: var(--dim); padding-top: 3px; }
+.leaf input[type=text], .leaf select { width: 100%; min-width: 120px; box-sizing: border-box; background: var(--vscode-input-background); color: var(--vscode-input-foreground); border: 1px solid var(--vscode-input-border, var(--line)); padding: 2px 6px; font: inherit; font-family: var(--mono); font-size: 12px; }
+.leaf input.num { max-width: 200px; }
+.leaf input:focus, .leaf select:focus { outline: 1px solid var(--accent); border-color: var(--accent); }
+.leaf input.bad { border-color: var(--red); }
+.leaf input:disabled, .leaf select:disabled { opacity: .55; }
+.leaf { display: flex; gap: 6px; align-items: center; flex: 1; }
+.toolbar { display: flex; gap: 10px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.banner { margin: 6px 0 10px; padding: 8px 12px; border: 1px solid rgba(252, 238, 10, .5); color: var(--accent); background: rgba(252, 238, 10, .06); font-size: 12px; }
+.error { color: var(--red); padding: 8px 0; }
+#status.error { color: var(--red); }

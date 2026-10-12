@@ -111,6 +111,26 @@ export interface PatchOp {
   from?: string;
 }
 
+export interface PropertyDescription {
+  name: string;
+  type: string;
+  kind: NodeKind | "enum" | "flags";
+  /** The default value in WolvenKit JSON form, or null when the type has none to offer. */
+  default: unknown;
+  enumValues: string[] | null;
+  /** For arrays and handles: the element or inner type. */
+  elementType: string | null;
+}
+
+export interface TypeDescription {
+  type: string;
+  kind: NodeKind | "enum" | "flags";
+  baseType: string | null;
+  properties: PropertyDescription[] | null;
+  enumValues: string[] | null;
+  elementType: string | null;
+}
+
 export interface PatchResult {
   applied: number;
   /** The operations that undo the patch, in the order to apply them. */

@@ -5,6 +5,7 @@ import * as path from "node:path";
 import * as vscode from "vscode";
 import { AssetBrowser, type AssetNode } from "./assetBrowser";
 import { BridgeClient } from "./bridgeClient";
+import { Cr2wEditorProvider, Cr2wViewType, opensInCr2wEditor } from "./cr2wEditor";
 import { compareJson, formatDifference, type JsonComparison } from "./jsonDiff";
 import { createProject, findProject, gamePathOf, projectPathFor, type ProjectInfo } from "./project";
 import { ProjectExplorer, type ProjectNode } from "./projectExplorer";
@@ -38,6 +39,7 @@ export function activate(context: vscode.ExtensionContext): void {
   assets = new AssetBrowser(() => bridge);
   explorer = new ProjectExplorer(() => project);
   textures = new TextureViewer(() => bridge, storage, log);
+  const cr2w = new Cr2wEditorProvider(context, () => bridge, log, (file) => void withBridge((b) => openProjectFileAsJson(b, { kind: "file", file })));
 
   context.subscriptions.push(
     log,
@@ -45,6 +47,7 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.window.createTreeView("redcode.assets", { treeDataProvider: assets, showCollapseAll: true }),
     vscode.window.createTreeView("redcode.project", { treeDataProvider: explorer, showCollapseAll: true }),
     textures.register(),
+    cr2w.register(),
     vscode.commands.registerCommand("redcode.openTexture", (node: AssetNode) => withBridge((b) => openTexture(b, node))),
     vscode.commands.registerCommand("redcode.openGameFileAsJson", () => withBridge(openGameFileAsJson)),
     vscode.commands.registerCommand("redcode.searchGameFiles", () => withBridge(searchGameFiles)),
@@ -456,6 +459,10 @@ async function openProjectFile(node: ProjectNode): Promise<void> {
   const ext = path.extname(node.file).toLowerCase();
   if (isTexture(node.file)) {
     await vscode.commands.executeCommand("vscode.openWith", vscode.Uri.file(node.file), TextureViewType);
+    return;
+  }
+  if (opensInCr2wEditor(node.file)) {
+    await vscode.commands.executeCommand("vscode.openWith", vscode.Uri.file(node.file), Cr2wViewType);
     return;
   }
   const inArchive = project ? gamePathOf(project, node.file) !== undefined : false;
