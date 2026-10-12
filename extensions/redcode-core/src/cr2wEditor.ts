@@ -39,6 +39,14 @@ export class Cr2wDocument implements vscode.CustomDocument {
   /** The forward operations since the last save. Replayed from a backup or after the bridge restarts. */
   log: PatchOp[] = [];
   private openedOn: BridgeClient | undefined;
+  /** Edits, saves and reverts run one after another, so a save never overlaps an edit on the bridge. */
+  private chain: Promise<unknown> = Promise.resolve();
+
+  private enqueue<T>(work: () => Promise<T>): Promise<T> {
+    const next = this.chain.then(work, work);
+    this.chain = next.catch(() => undefined);
+    return next;
+  }
 
   constructor(
     readonly uri: vscode.Uri,
@@ -66,46 +74,54 @@ export class Cr2wDocument implements vscode.CustomDocument {
     return this.info;
   }
 
-  async edit(bridge: BridgeClient, ops: PatchOp[], label: string): Promise<PatchResult> {
-    await this.ensureOpen(bridge);
-    const result = await bridge.patch(this.doc, ops);
-    this.log.push(...ops);
-    this.changed.fire({
-      document: this,
-      label,
-      undo: async () => {
-        await this.ensureOpen(bridge);
-        await bridge.patch(this.doc, result.inverse);
-        this.log.push(...result.inverse);
-        this.reloaded.fire("undo");
-      },
-      redo: async () => {
-        await this.ensureOpen(bridge);
-        await bridge.patch(this.doc, ops);
-        this.log.push(...ops);
-        this.reloaded.fire("redo");
-      },
+  edit(bridge: BridgeClient, ops: PatchOp[], label: string): Promise<PatchResult> {
+    return this.enqueue(async () => {
+      await this.ensureOpen(bridge);
+      const result = await bridge.patch(this.doc, ops);
+      this.log.push(...ops);
+      this.changed.fire({
+        document: this,
+        label,
+        undo: () =>
+          this.enqueue(async () => {
+            await this.ensureOpen(bridge);
+            await bridge.patch(this.doc, result.inverse);
+            this.log.push(...result.inverse);
+            this.reloaded.fire("undo");
+          }),
+        redo: () =>
+          this.enqueue(async () => {
+            await this.ensureOpen(bridge);
+            await bridge.patch(this.doc, ops);
+            this.log.push(...ops);
+            this.reloaded.fire("redo");
+          }),
+      });
+      return result;
     });
-    return result;
   }
 
-  async save(bridge: BridgeClient, outFile?: string): Promise<void> {
-    await this.ensureOpen(bridge);
-    const result = await bridge.saveDocument(this.doc, outFile);
-    this.logChannel.appendLine(`cr2w.save ${this.doc} -> ${result.file} (${result.bytes.toLocaleString()} bytes)`);
-    this.log = [];
-    this.reloaded.fire("save");
+  save(bridge: BridgeClient, outFile?: string): Promise<void> {
+    return this.enqueue(async () => {
+      await this.ensureOpen(bridge);
+      const result = await bridge.saveDocument(this.doc, outFile);
+      this.logChannel.appendLine(`cr2w.save ${this.doc} -> ${result.file} (${result.bytes.toLocaleString()} bytes)`);
+      this.log = [];
+      this.reloaded.fire("save");
+    });
   }
 
-  async revert(bridge: BridgeClient): Promise<void> {
-    if (this.info && this.openedOn === bridge) {
-      await bridge.closeDocument(this.doc).catch(() => undefined);
-    }
-    this.info = undefined;
-    this.openedOn = undefined;
-    this.log = [];
-    await this.ensureOpen(bridge);
-    this.reloaded.fire("revert");
+  revert(bridge: BridgeClient): Promise<void> {
+    return this.enqueue(async () => {
+      if (this.info && this.openedOn === bridge) {
+        await bridge.closeDocument(this.doc).catch(() => undefined);
+      }
+      this.info = undefined;
+      this.openedOn = undefined;
+      this.log = [];
+      await this.ensureOpen(bridge);
+      this.reloaded.fire("revert");
+    });
   }
 
   dispose(): void {
@@ -132,6 +148,36 @@ interface Request {
 export class Cr2wEditorProvider implements vscode.CustomEditorProvider<Cr2wDocument> {
   private readonly changed = new vscode.EventEmitter<vscode.CustomDocumentEditEvent<Cr2wDocument>>();
   readonly onDidChangeCustomDocument = this.changed.event;
+  /** The open pages per document, so a save can ask them to commit any input still being edited. */
+  private readonly panels = new Map<Cr2wDocument, Set<vscode.WebviewPanel>>();
+  private readonly flushes = new Map<number, () => void>();
+  private nextFlush = 1;
+
+  /**
+   * Asks every page of the document to commit the input that has focus and to let its in-flight
+   * patches land, then returns. Ctrl+S with the cursor still in an input would otherwise commit the
+   * edit as the save starts, and the file would be written without it.
+   */
+  private async flush(document: Cr2wDocument): Promise<void> {
+    const pages = [...(this.panels.get(document) ?? [])];
+    await Promise.all(
+      pages.map(
+        (panel) =>
+          new Promise<void>((resolve) => {
+            const id = this.nextFlush++;
+            const timer = setTimeout(() => {
+              this.flushes.delete(id);
+              resolve();
+            }, 1500);
+            this.flushes.set(id, () => {
+              clearTimeout(timer);
+              resolve();
+            });
+            void panel.webview.postMessage({ type: "flush", id });
+          }),
+      ),
+    );
+  }
 
   constructor(
     private readonly context: vscode.ExtensionContext,
@@ -188,10 +234,23 @@ export class Cr2wEditorProvider implements vscode.CustomEditorProvider<Cr2wDocum
       post(id === undefined ? { type: "error", error: message } : { type: "reply", id, ok: false, error: message });
     };
 
+    if (!this.panels.has(document)) {
+      this.panels.set(document, new Set());
+    }
+    this.panels.get(document)!.add(panel);
+
     const reload = document.onDidReload((reason) => post({ type: "reload", reason }));
     const messages = panel.webview.onDidReceiveMessage(async (m: Request) => {
       try {
         switch (m.type) {
+          case "flushed": {
+            const done = m.id === undefined ? undefined : this.flushes.get(m.id);
+            if (done && m.id !== undefined) {
+              this.flushes.delete(m.id);
+              done();
+            }
+            return;
+          }
           case "ready": {
             const info = await document.ensureOpen(this.requireBridge());
             post({ type: "document", info, file: path.basename(document.uri.fsPath), dirty: document.log.length > 0 });
@@ -222,14 +281,17 @@ export class Cr2wEditorProvider implements vscode.CustomEditorProvider<Cr2wDocum
     panel.onDidDispose(() => {
       reload.dispose();
       messages.dispose();
+      this.panels.get(document)?.delete(panel);
     });
   }
 
   async saveCustomDocument(document: Cr2wDocument): Promise<void> {
+    await this.flush(document);
     await document.save(this.requireBridge());
   }
 
   async saveCustomDocumentAs(document: Cr2wDocument, destination: vscode.Uri): Promise<void> {
+    await this.flush(document);
     await document.save(this.requireBridge(), destination.fsPath);
   }
 

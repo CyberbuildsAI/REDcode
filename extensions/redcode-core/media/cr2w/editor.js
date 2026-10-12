@@ -9,12 +9,26 @@
   // ---- extension messaging ------------------------------------------------------------------
   let nextId = 1;
   const pending = new Map();
+  const inflight = new Set();
   function request(type, params = {}) {
-    return new Promise((resolve, reject) => {
+    const p = new Promise((resolve, reject) => {
       const id = nextId++;
       pending.set(id, { resolve, reject });
       vscode.postMessage({ type, id, ...params });
     });
+    inflight.add(p);
+    p.finally(() => inflight.delete(p)).catch(() => undefined);
+    return p;
+  }
+
+  /** Before a save: commit the input being edited (blur fires its change) and let in-flight patches land. */
+  async function flush(id) {
+    const active = document.activeElement;
+    if (active && active !== document.body && $("grid").contains(active)) {
+      active.blur();
+    }
+    await Promise.allSettled([...inflight]);
+    vscode.postMessage({ type: "flushed", id });
   }
   window.addEventListener("message", (e) => {
     const m = e.data;
@@ -27,6 +41,8 @@
       onDocument(m);
     } else if (m.type === "reload") {
       reloadAll(m.reason);
+    } else if (m.type === "flush") {
+      void flush(m.id);
     } else if (m.type === "error") {
       $("file").textContent = "Could not open the file";
       status(m.error, "error");
@@ -166,46 +182,53 @@
     await renderGrid();
   }
 
+  // Renders are built off-screen and swapped in at the end. A render that was overtaken by a newer one
+  // (an edit landing while a save reloads, for example) throws its rows away instead of appending them.
+  let renderSeq = 0;
   async function renderGrid() {
+    const seq = ++renderSeq;
     const grid = $("grid");
-    grid.replaceChildren();
+    const rows = [];
     let n;
-    try { n = await fetchNode(selected); } catch (e) { grid.appendChild(el("div", "error", e.message)); return; }
-    $("propsLabel").textContent = selected ? `${selected}  ·  ${n.type}` : `${n.type}`;
-    if (isCompiled(selected)) {
-      grid.appendChild(el("div", "banner", "compiledData is rebuilt from components when the file is saved. Edits here do not survive; edit the matching component under components."));
-    }
+    try { n = await fetchNode(selected); } catch (e) { if (seq === renderSeq) grid.replaceChildren(el("div", "error", e.message)); return; }
+    if (seq !== renderSeq) return;
     const readOnly = isCompiled(selected);
+    if (readOnly) {
+      rows.push(el("div", "banner", "compiledData is rebuilt from components when the file is saved. Edits here do not survive; edit the matching component under components."));
+    }
     switch (n.kind) {
       case "class": {
         const desc = await typeOf(n.type).catch(() => null);
-        for (const c of n.children) grid.appendChild(await propertyRow(selected, c, desc?.properties?.find((p) => p.name === c.name), readOnly));
+        for (const c of n.children) rows.push(await propertyRow(selected, c, desc?.properties?.find((p) => p.name === c.name), readOnly));
         break;
       }
       case "array": {
         const desc = await typeOf(n.type).catch(() => null);
-        grid.appendChild(arrayToolbar(selected, n, desc, readOnly));
-        for (const c of n.children) grid.appendChild(await arrayRow(selected, c, n, readOnly));
+        rows.push(arrayToolbar(selected, n, desc, readOnly));
+        for (const c of n.children) rows.push(await arrayRow(selected, c, n, readOnly));
         if (n.total !== null && n.children.length < n.total) {
           const more = el("button", "more", `Load ${Math.min(200, n.total - n.children.length)} more of ${n.total.toLocaleString()}`);
           more.addEventListener("click", async () => { await fetchNode(selected, true); await renderGrid(); });
-          grid.appendChild(more);
+          rows.push(more);
         }
         break;
       }
       case "handle":
       case "buffer":
       case "package":
-        for (const c of n.children) grid.appendChild(await propertyRow(selected, c, null, readOnly));
-        if (n.kind === "handle" && n.children.length === 0 && !readOnly) grid.appendChild(await handleCreateRow(selected, n));
+        for (const c of n.children) rows.push(await propertyRow(selected, c, null, readOnly));
+        if (n.kind === "handle" && n.children.length === 0 && !readOnly) rows.push(await handleCreateRow(selected, n));
         break;
       default: {
         const row = el("div", "prow");
         row.append(el("span", "pname", "value"), el("span", "ptype", n.type));
         row.appendChild(await leafEditor(selected, n.type, n.value, readOnly));
-        grid.appendChild(row);
+        rows.push(row);
       }
     }
+    if (seq !== renderSeq) return;
+    $("propsLabel").textContent = selected ? `${selected}  ·  ${n.type}` : `${n.type}`;
+    grid.replaceChildren(...rows);
   }
 
   async function propertyRow(parentPath, c, pdesc, readOnly) {
@@ -396,17 +419,13 @@
   }
 
   // ---- applying edits ------------------------------------------------------------------------
-  async function apply(ops, label, refreshPath, keepGrid = false) {
+  async function apply(ops, label, refreshPath) {
     try {
       status("…");
       await patch(ops, label);
       status(label);
       nodes.delete(refreshPath);
-      if (!keepGrid) {
-        await renderGrid();
-      } else {
-        await renderGrid();
-      }
+      await renderGrid();
       await refreshTreeFrom(refreshPath || ops[0].path);
     } catch (e) {
       status(e.message, "error");
