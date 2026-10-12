@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Bridge client: cr2w document sessions (open, getNode, patch, save, close) for the CR2W editor, with a smoke step. Needs REDbridge 0.5.0.
+
 ## 0.3.1
 
 - Publisher is now `edgemodders`, following the move to the Edgemodders organization. The extension id changes from `cyberbuildsai.redcode-core` to `edgemodders.redcode-core`, so VS Code sees a new extension: uninstall the old one after installing this version.

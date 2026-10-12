@@ -6,7 +6,7 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { EventEmitter } from "node:events";
 import * as readline from "node:readline";
 import { createMessageConnection, StreamMessageReader, StreamMessageWriter, type MessageConnection } from "vscode-jsonrpc/node";
-import type { ArchiveInfo, BridgeInfo, ExtractManyResult, ExtractResult, FileList, HashResult, JsonResult, ResolveResult, TreeResult } from "./types";
+import type { ArchiveInfo, BridgeInfo, DocumentInfo, ExtractManyResult, ExtractResult, FileList, HashResult, JsonResult, NodeInfo, PatchOp, PatchResult, ResolveResult, TreeResult } from "./types";
 
 export interface BridgeOptions {
   /** Path to REDbridge.exe. */
@@ -144,6 +144,36 @@ export class BridgeClient extends EventEmitter<BridgeEvents> {
   /** Converts a texture file on disk, for example one in a project, to PNG. Needs REDbridge 0.3.0. */
   fileToPng(file: string, outFile: string): Promise<ExtractResult> {
     return this.call("texture.fileToPng", { file, outFile });
+  }
+
+  // ---- cr2w document sessions (bridge 0.5.0) -------------------------------------------
+
+  /** Parses a file once and keeps it open in the bridge. A game path opens read-only. */
+  openDocument(source: { file: string } | { path: string }): Promise<DocumentInfo> {
+    return this.call("cr2w.open", source);
+  }
+
+  closeDocument(doc: string): Promise<void> {
+    return this.call("cr2w.close", { doc });
+  }
+
+  documents(): Promise<DocumentInfo[]> {
+    return this.call("cr2w.documents");
+  }
+
+  /** One node by dotted path from the root chunk; an empty path is the root. Arrays page from offset. */
+  getNode(doc: string, path = "", offset = 0, limit = 200): Promise<NodeInfo> {
+    return this.call("cr2w.getNode", { doc, path, offset, limit });
+  }
+
+  /** Applies the operations atomically and returns the inverse, for undo. */
+  patch(doc: string, ops: PatchOp[]): Promise<PatchResult> {
+    return this.call("cr2w.patch", { doc, ops });
+  }
+
+  /** Writes the document through WolvenKit's writer, to its own file or outFile. */
+  saveDocument(doc: string, outFile?: string): Promise<ExtractResult> {
+    return this.call("cr2w.save", outFile ? { doc, outFile } : { doc });
   }
 
   fnv1a64(value: string): Promise<HashResult> {
