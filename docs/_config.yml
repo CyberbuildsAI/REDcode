@@ -26,3 +26,5 @@ nav:
     url: /dev-setup.html
   - title: Design
     url: /design.html
+  - title: CR2W editor
+    url: /design/cr2w-editor.html
