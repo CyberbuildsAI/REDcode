@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.1
+
+- Publisher is now `edgemodders`, following the move to the Edgemodders organization. The extension id changes from `cyberbuildsai.rednode-hud-theme` to `edgemodders.rednode-hud-theme`, so VS Code sees a new extension: uninstall the old one after installing this version.
+
 ## 0.3.0
 
 - Yellow folder icons in the REDcode views (`redcode.folder`) and for folder symbols in outlines and breadcrumbs.
