@@ -1,6 +1,6 @@
 # REDnode HUD
 
-A dark VS Code color theme in the [REDnode](https://github.com/CyberbuildsAI/REDnode) house style: near-black HUD panels, yellow for focus and active elements, cyan for links and types. Syntax colors match the code blocks on the [REDnode docs site](https://cyberbuildsai.github.io/REDnode/).
+A dark VS Code color theme in the [REDnode](https://github.com/Edgemodders/REDnode) house style: near-black HUD panels, yellow for focus and active elements, cyan for links and types. Syntax colors match the code blocks on the [REDnode docs site](https://edgemodders.github.io/REDnode/).
 
 It covers the workbench, editor, terminal, diffs, Git decorations and syntax highlighting, including semantic highlighting for TypeScript, C++ and other languages with a language server.
 

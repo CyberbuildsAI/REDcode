@@ -19,12 +19,12 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/CyberbuildsAI/REDcode",
+    "url": "https://github.com/Edgemodders/REDcode",
     "directory": "extensions/rednode-hud-theme"
   },
-  "homepage": "https://github.com/CyberbuildsAI/REDcode/tree/main/extensions/rednode-hud-theme",
+  "homepage": "https://github.com/Edgemodders/REDcode/tree/main/extensions/rednode-hud-theme",
   "bugs": {
-    "url": "https://github.com/CyberbuildsAI/REDcode/issues"
+    "url": "https://github.com/Edgemodders/REDcode/issues"
   },
   "engines": {
     "vscode": "^1.70.0"

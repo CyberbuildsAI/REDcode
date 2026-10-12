@@ -1,6 +1,6 @@
 # Builds the docs site and deploys it to GitHub Pages.
 #   Jekyll renders docs/ with the HUD layout; the result is deployed to
-#   https://cyberbuildsai.github.io/REDcode/
+#   https://edgemodders.github.io/REDcode/
 # Requires Settings > Pages > Source: GitHub Actions.
 
 name: Docs site

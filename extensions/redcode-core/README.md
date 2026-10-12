@@ -1,6 +1,6 @@
 # REDcode Core
 
-The first REDcode extension. It runs [REDbridge](https://github.com/CyberbuildsAI/REDbridge), the local process that hosts WolvenKit's engine, and lets you open any Cyberpunk 2077 game file as JSON from VS Code.
+The first REDcode extension. It runs [REDbridge](https://github.com/Edgemodders/REDbridge), the local process that hosts WolvenKit's engine, and lets you open any Cyberpunk 2077 game file as JSON from VS Code.
 
 > **Status: C2.** Projects, the asset browser, add to project and extract. The CR2W editor and viewers come in C3.
 

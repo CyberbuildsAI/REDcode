@@ -1,11 +1,11 @@
 # REDcode: notes for Claude sessions
 
-REDcode is a Cyberpunk 2077 modding IDE built on VS Code, wrapping WolvenKit's C# engine behind a local JSON-RPC bridge. It is the build-time half of the ecosystem; REDnode (https://github.com/CyberbuildsAI/REDnode) is the runtime half. The same person owns both, and REDnode's `CLAUDE.md` and `docs/dev-setup.md` set the conventions used here too.
+REDcode is a Cyberpunk 2077 modding IDE built on VS Code, wrapping WolvenKit's C# engine behind a local JSON-RPC bridge. It is the build-time half of the ecosystem; REDnode (https://github.com/Edgemodders/REDnode) is the runtime half. The same person owns both, and REDnode's `CLAUDE.md` and `docs/dev-setup.md` set the conventions used here too.
 
 ## Current status and next step
 
-- **Design:** `docs/design.html` (draft 0.1, checked in 2026-10-11, also published at https://cyberbuildsai.github.io/REDcode/design.html). It is the architecture document: decisions, bridge protocol, feature map, layout, roadmap. It fixes the shape of each feature in a line or two; anything bigger than a command, such as the CR2W editor, gets its own short design page under `docs/design/` agreed in chat before code.
-- **License model (decided):** split. This repo stays MIT and holds the extensions and, later, the branded fork. The bridge lives in its own repo, REDbridge (https://github.com/CyberbuildsAI/REDbridge), under GPL-3.0 because it links WolvenKit's GPL-3.0 libraries. Extensions talk to the bridge only over stdio with JSON-RPC and never link it in-process. Keep that boundary.
+- **Design:** `docs/design.html` (draft 0.1, checked in 2026-10-11, also published at https://edgemodders.github.io/REDcode/design.html). It is the architecture document: decisions, bridge protocol, feature map, layout, roadmap. It fixes the shape of each feature in a line or two; anything bigger than a command, such as the CR2W editor, gets its own short design page under `docs/design/` agreed in chat before code.
+- **License model (decided):** split. This repo stays MIT and holds the extensions and, later, the branded fork. The bridge lives in its own repo, REDbridge (https://github.com/Edgemodders/REDbridge), under GPL-3.0 because it links WolvenKit's GPL-3.0 libraries. Extensions talk to the bridge only over stdio with JSON-RPC and never link it in-process. Keep that boundary.
 - **In the repo:** `extensions/redcode-core` (C2 done: the REDcode activity bar container with a Project view over WolvenKit `.cpmodproj` projects and a Game Assets tree over the archives; new project, add to project, extract to, open game or project files as JSON) and the shared theme. F5 runs the extension; `npm run smoke` in `extensions/redcode-core` drives the bridge client without VS Code. Project files are WolvenKit's XML (`CP77Mod`) with the `source/archive`, `source/raw`, `source/resources`, `packed` layout; keep them byte-compatible.
 - **C3 so far (2026-10-11):** Save JSON to Project (edit a project file as JSON, rebuild it through `cr2w.fromJson`), the texture viewer (`.xbm` custom editor and panel over `texture.toPng` and `texture.fileToPng`, bridge 0.3.0), and TweakXL language support (`.tweak` grammar, configuration, snippets, `samples/example.tweak`). Core is 0.3.0; `MinBridgeVersion` stays 0.2.0 and the viewer explains itself on an older bridge.
 - **Next (C3):** the CR2W custom editor (chunk tree, properties, patches back to CR2W). It is architectural: ask the owner for the design document first. Needs bridge methods for partial reads (`cr2w.getChunk`) and patches. Keep `bridgeClient.ts` free of VS Code imports.
@@ -24,7 +24,7 @@ REDcode is a Cyberpunk 2077 modding IDE built on VS Code, wrapping WolvenKit's C
 
 ## Docs site
 
-- `docs/` is published by GitHub Pages at https://cyberbuildsai.github.io/REDcode/ through `.github/workflows/pages.yml`. Settings > Pages > Source must be GitHub Actions.
+- `docs/` is published by GitHub Pages at https://edgemodders.github.io/REDcode/ through `.github/workflows/pages.yml`. Settings > Pages > Source must be GitHub Actions.
 - Write docs as markdown in `docs/`. Jekyll renders them with the HUD layout (`docs/_layouts/default.html`, `docs/assets/css/hud.css`). Add every new page to `nav` in `docs/_config.yml`.
 - `tools/brand/render.ps1` regenerates the banner, social preview, icon and badges. Re-run it when versions in the badges change.
 - When the first extension has TypeScript, add TypeDoc to the Pages workflow the way REDnode does, so the API reference is generated.

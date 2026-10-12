@@ -1,6 +1,6 @@
 # Development setup
 
-Everything needed to work on REDcode, in order. A fresh machine should be able to follow this top to bottom. The shared tools are the same as in [REDnode's setup guide](https://cyberbuildsai.github.io/REDnode/dev-setup.html).
+Everything needed to work on REDcode, in order. A fresh machine should be able to follow this top to bottom. The shared tools are the same as in [REDnode's setup guide](https://edgemodders.github.io/REDnode/dev-setup.html).
 
 Reference machine: Windows 11 Home (build 26200), 16 GB RAM.
 
@@ -17,7 +17,7 @@ Reference machine: Windows 11 Home (build 26200), 16 GB RAM.
 ## 2. Repository and GitHub
 
 ```powershell
-git clone https://github.com/CyberbuildsAI/REDcode.git
+git clone https://github.com/Edgemodders/REDcode.git
 cd REDcode
 git config user.name  "CyberbuildsAI"
 git config user.email "340969962+CyberbuildsAI@users.noreply.github.com"
@@ -59,11 +59,11 @@ On the reference machine the smoke test indexes the game and runs search, conver
 
 ## 5. REDbridge
 
-The extensions need a built REDbridge to do anything with game files. See [REDbridge's setup guide](https://cyberbuildsai.github.io/REDbridge/dev-setup.html). Verified on the reference machine: REDbridge at commit `0b4c865` or later.
+The extensions need a built REDbridge to do anything with game files. See [REDbridge's setup guide](https://edgemodders.github.io/REDbridge/dev-setup.html). Verified on the reference machine: REDbridge at commit `0b4c865` or later.
 
 ## 6. Docs site and brand images
 
-The site at https://cyberbuildsai.github.io/REDcode/ is built by `.github/workflows/pages.yml` on every push to `main`. **Settings > Pages > Source** must be **GitHub Actions**.
+The site at https://edgemodders.github.io/REDcode/ is built by `.github/workflows/pages.yml` on every push to `main`. **Settings > Pages > Source** must be **GitHub Actions**.
 
 ```powershell
 .\tools\brand\render.ps1   # banner, social preview, icon, badges

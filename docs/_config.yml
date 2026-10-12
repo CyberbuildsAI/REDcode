@@ -3,9 +3,9 @@
 # Built and deployed by .github/workflows/pages.yml.
 
 title: REDcode
-url: https://cyberbuildsai.github.io
+url: https://edgemodders.github.io
 baseurl: /REDcode
-repo: https://github.com/CyberbuildsAI/REDcode
+repo: https://github.com/Edgemodders/REDcode
 
 markdown: kramdown
 kramdown:

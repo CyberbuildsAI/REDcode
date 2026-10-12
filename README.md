@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <a href="https://cyberbuildsai.github.io/REDcode/"><img src="docs/assets/brand/badges/docs.svg" alt="docs: read the docs"></a>
+  <a href="https://edgemodders.github.io/REDcode/"><img src="docs/assets/brand/badges/docs.svg" alt="docs: read the docs"></a>
   <img src="docs/assets/brand/badges/status.svg" alt="status: design phase">
   <img src="docs/assets/brand/badges/vscode.svg" alt="VS Code: 1.70+">
   <img src="docs/assets/brand/badges/node.svg" alt="Node: 24">
@@ -12,11 +12,11 @@
 
 A Cyberpunk 2077 modding IDE built on VS Code.
 
-REDcode brings the workflows of [WolvenKit](https://github.com/WolvenKit/WolvenKit), browsing game archives, editing game files, importing and exporting assets, packing mods, into VS Code as extensions. WolvenKit's own C# engine does the file work inside [REDbridge](https://github.com/CyberbuildsAI/REDbridge), a local process the extensions talk to. The name is RED for REDengine and code for VS Code.
+REDcode brings the workflows of [WolvenKit](https://github.com/WolvenKit/WolvenKit), browsing game archives, editing game files, importing and exporting assets, packing mods, into VS Code as extensions. WolvenKit's own C# engine does the file work inside [REDbridge](https://github.com/Edgemodders/REDbridge), a local process the extensions talk to. The name is RED for REDengine and code for VS Code.
 
-REDcode is the build-time half of an AI-first, Node-based modding ecosystem; [REDnode](https://github.com/CyberbuildsAI/REDnode) is the runtime half. A REDnode mod is edited in REDcode, deployed to the running game without a restart, debugged live, and its events stream back.
+REDcode is the build-time half of an AI-first, Node-based modding ecosystem; [REDnode](https://github.com/Edgemodders/REDnode) is the runtime half. A REDnode mod is edited in REDcode, deployed to the running game without a restart, debugged live, and its events stream back.
 
-**[Read the docs](https://cyberbuildsai.github.io/REDcode/)** &middot; [REDbridge](https://github.com/CyberbuildsAI/REDbridge) &middot; [REDnode](https://github.com/CyberbuildsAI/REDnode)
+**[Read the docs](https://edgemodders.github.io/REDcode/)** &middot; [REDbridge](https://github.com/Edgemodders/REDbridge) &middot; [REDnode](https://github.com/Edgemodders/REDnode)
 
 > [!NOTE]
 > **Status: C2 works end to end.** `redcode-core` opens WolvenKit projects, browses the game archives folder by folder, adds files or whole folders to a project, extracts them anywhere, and opens game files or project files as JSON. Next: the CR2W editor, texture viewer and TweakXL support (C3).
