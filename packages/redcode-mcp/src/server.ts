@@ -9,7 +9,7 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { McpServer, type ToolCallback } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z, type ZodRawShape } from "zod";
@@ -91,17 +91,20 @@ const server = new McpServer({ name: "redcode", version: Version });
 
 /** Registers a tool whose handler returns JSON; errors come back as isError results with the bridge's message. */
 function tool<T extends ZodRawShape>(name: string, description: string, shape: T, run: (args: z.infer<z.ZodObject<T>>, b: BridgeClient) => Promise<unknown>): void {
-  server.registerTool(name, { description, inputSchema: shape }, async (args): Promise<CallToolResult> => {
+  const callback = async (args: z.infer<z.ZodObject<T>>): Promise<CallToolResult> => {
     try {
       const b = await getBridge();
-      const result = await run(args as unknown as z.infer<z.ZodObject<T>>, b);
+      const result = await run(args, b);
       return { content: [{ type: "text", text: typeof result === "string" ? result : JSON.stringify(result, null, 2) }] };
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
       log(`${name}: ${message}`);
       return { isError: true, content: [{ type: "text", text: message }] };
     }
-  });
+  };
+  // The SDK types the callback through a conditional on the shape, which stays unresolved for a
+  // generic T; the runtime contract is the same, so the cast only settles the types.
+  server.registerTool(name, { description, inputSchema: shape }, callback as unknown as ToolCallback<T>);
 }
 
 const PathRules = `Paths are dotted from the root chunk and match WolvenKit's JSON: property names, array indices, "Data" under a handle or a buffer, "Chunks" under a package (for example components.3.name, compiledData.Data.Chunks.1.radius, root.Data.entries.41023.femaleVariant).`;
