@@ -27,6 +27,7 @@ let storage: vscode.Uri;
 let restartTimer: NodeJS.Timeout | undefined;
 let assets: AssetBrowser;
 let explorer: ProjectExplorer;
+let projectView: vscode.TreeView<ProjectNode>;
 let textures: TextureViewer;
 let watcher: vscode.FileSystemWatcher | undefined;
 /** The last bridge.info from the running bridge, for version comparisons. */
@@ -54,7 +55,7 @@ export function activate(context: vscode.ExtensionContext): void {
     log,
     status,
     vscode.window.createTreeView("redcode.assets", { treeDataProvider: assets, showCollapseAll: true }),
-    vscode.window.createTreeView("redcode.project", { treeDataProvider: explorer, showCollapseAll: true }),
+    (projectView = vscode.window.createTreeView("redcode.project", { treeDataProvider: explorer, showCollapseAll: true })),
     textures.register(),
     cr2w.register(),
     vscode.commands.registerCommand("redcode.openTexture", (node: AssetNode) => withBridge((b) => openTexture(b, node))),
@@ -567,6 +568,11 @@ async function addToProject(b: BridgeClient, node: AssetNode): Promise<void> {
   const result = await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: `Adding ${items.length.toLocaleString()} file(s) to ${p.name}` }, () => b.extractMany(items));
   log.appendLine(`Added ${result.extracted} file(s), ${result.bytes.toLocaleString()} bytes, to ${p.name}${result.failed.length ? `; failed: ${result.failed.join(", ")}` : ""}`);
   explorer.refresh();
+  // Show what was added in the Project view, expanded down to it: editing it is the likely next step.
+  const added = explorer.nodeFor(node.kind === "folder" ? projectPathFor(p, node.path) : items[0]?.outFile ?? "");
+  if (added && result.extracted > 0) {
+    await projectView.reveal(added, { select: true, focus: false, expand: node.kind === "folder" }).then(undefined, (e) => log.appendLine(`Could not reveal ${JSON.stringify(added)}: ${e}`));
+  }
   if (result.failed.length) {
     void vscode.window.showWarningMessage(`REDcode: ${result.failed.length} file(s) could not be added. See the log.`);
   } else if (node.kind === "folder") {
