@@ -5,12 +5,13 @@ import * as path from "node:path";
 import * as vscode from "vscode";
 import { AssetBrowser, type AssetNode } from "./assetBrowser";
 import { BridgeClient } from "./bridgeClient";
+import { checkDotnetRuntime, DotnetDownloadUrl, DotnetInstallCommand, findCheckout, installRelease, latestRelease, managedDir, updateCheckout } from "./bridgeUpdater";
 import { Cr2wEditorProvider, Cr2wViewType, opensInCr2wEditor } from "./cr2wEditor";
 import { compareJson, formatDifference, type JsonComparison } from "./jsonDiff";
 import { createProject, findProject, gamePathOf, projectPathFor, type ProjectInfo } from "./project";
 import { ProjectExplorer, type ProjectNode } from "./projectExplorer";
 import { isTexture, TextureViewer, TextureViewType } from "./textureViewer";
-import type { GameFileInfo } from "./types";
+import type { BridgeInfo, GameFileInfo } from "./types";
 
 /**
  * The oldest REDbridge this extension works with: it needs archive.tree, extractMany and cr2w.fileToJson.
@@ -28,6 +29,14 @@ let assets: AssetBrowser;
 let explorer: ProjectExplorer;
 let textures: TextureViewer;
 let watcher: vscode.FileSystemWatcher | undefined;
+/** The last bridge.info from the running bridge, for version comparisons. */
+let lastInfo: BridgeInfo | undefined;
+/** True while Update bridge owns the bridge process, so a settings change does not restart it underneath. */
+let updating = false;
+/** Prompts shown once per session. */
+let offeredInstall = false;
+let offeredUpdate = false;
+let offeredDotnet = false;
 
 export function activate(context: vscode.ExtensionContext): void {
   log = vscode.window.createOutputChannel("REDcode");
@@ -63,12 +72,14 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("redcode.refreshProject", () => detectProject()),
     vscode.commands.registerCommand("redcode.refreshAssets", () => assets.refresh()),
     vscode.commands.registerCommand("redcode.restartBridge", () => restartBridge(context)),
+    vscode.commands.registerCommand("redcode.updateBridge", () => updateBridge(context, false)),
+    vscode.commands.registerCommand("redcode.installBridge", () => updateBridge(context, true)),
     vscode.commands.registerCommand("redcode.showLog", () => log.show(true)),
     vscode.workspace.onDidChangeWorkspaceFolders(() => detectProject()),
     vscode.window.onDidChangeActiveTextEditor(() => updateJsonContext()),
     vscode.workspace.onDidChangeConfiguration((e) => {
       // Settings often change one after another; restart once they settle.
-      if (e.affectsConfiguration("redcode")) {
+      if (e.affectsConfiguration("redcode") && !updating) {
         clearTimeout(restartTimer);
         restartTimer = setTimeout(() => restartBridge(context), 800);
       }
@@ -141,15 +152,25 @@ function requireProject(): ProjectInfo {
 
 // ---- bridge lifecycle ---------------------------------------------------------------------
 
-function startBridge(context: vscode.ExtensionContext): void {
+/** Starts the bridge from the settings. onReady runs once bridge.info has answered and the version is acceptable. */
+function startBridge(context: vscode.ExtensionContext, onReady?: (info: BridgeInfo) => void): void {
   const config = vscode.workspace.getConfiguration("redcode");
   const configured = config.get<string>("bridgePath", "");
   const exe = resolveBridgeExe(context, configured);
   if (!exe) {
-    const hint = configured ? `redcode.bridgePath is set to "${configured}", which is not REDbridge.exe.` : "Set redcode.bridgePath to REDbridge.exe.";
+    const hint = configured ? `redcode.bridgePath is set to "${configured}", which is not REDbridge.exe.` : "Run REDcode: Install bridge, or set redcode.bridgePath to REDbridge.exe.";
     setGameLoaded(false);
     updateStatus("$(warning) REDcode: bridge not found", hint);
     log.appendLine(`REDbridge.exe not found. ${hint}`);
+    if (!offeredInstall) {
+      offeredInstall = true;
+      void vscode.window
+        .showInformationMessage("REDcode needs REDbridge, the local process that hosts WolvenKit's engine. Install the latest release?", "Install bridge", "Show log")
+        .then((pick) => {
+          if (pick === "Install bridge") void updateBridge(context, true);
+          else if (pick === "Show log") log.show(true);
+        });
+    }
     return;
   }
   const gamePath = config.get<string>("gamePath", "");
@@ -163,12 +184,14 @@ function startBridge(context: vscode.ExtensionContext): void {
     setGameLoaded(false);
     updateStatus("$(error) REDcode: bridge failed to start", error.message);
     log.appendLine(`Could not start the bridge: ${error.message}`);
+    void explainStartFailure(dotnetRoot);
   });
   client.on("exit", (code) => {
     if (client !== bridge) return;
     setGameLoaded(false);
     updateStatus("$(debug-disconnect) REDcode: bridge stopped", `Exit code ${code}. Run "REDcode: Restart bridge".`);
     log.appendLine(`Bridge exited with code ${code}.`);
+    if (code !== 0) void explainStartFailure(dotnetRoot);
   });
   setGameLoaded(false);
   updateStatus("$(sync~spin) REDcode: starting bridge", exe);
@@ -183,9 +206,17 @@ function startBridge(context: vscode.ExtensionContext): void {
         setGameLoaded(false);
         updateStatus("$(warning) REDcode: bridge is out of date", `REDbridge ${info.version} found, ${MinBridgeVersion} or later needed. Run "npm run update" in the REDbridge folder, then "REDcode: Restart bridge".`);
         log.appendLine(`REDbridge ${info.version} is older than this extension needs (${MinBridgeVersion}). Run "npm run update" in the REDbridge folder, then restart the bridge.`);
-        void vscode.window.showWarningMessage(`REDcode: REDbridge ${info.version} is older than this extension needs (${MinBridgeVersion}). Run "npm run update" in the REDbridge folder.`, "Show log").then((pick) => pick && log.show(true));
+        void vscode.window
+          .showWarningMessage(`REDcode: REDbridge ${info.version} is older than this extension needs (${MinBridgeVersion}).`, "Update bridge", "Show log")
+          .then((pick) => {
+            if (pick === "Update bridge") void updateBridge(context, false);
+            else if (pick === "Show log") log.show(true);
+          });
         return;
       }
+      lastInfo = info;
+      onReady?.(info);
+      void checkForNewerRelease(exe, info.version);
       if (info.gameLoaded) {
         bridgeSummary = `${info.files.toLocaleString()} files`;
         bridgeTooltip = `${info.archives} archives from ${info.gameDir}\nREDbridge ${info.version}, WolvenKit ${info.wolvenKit}`;
@@ -204,10 +235,136 @@ function startBridge(context: vscode.ExtensionContext): void {
     });
 }
 
-function restartBridge(context: vscode.ExtensionContext): void {
+function restartBridge(context: vscode.ExtensionContext, onReady?: (info: BridgeInfo) => void): void {
   bridge?.stop();
   bridge = undefined;
-  startBridge(context);
+  lastInfo = undefined;
+  startBridge(context, onReady);
+}
+
+/** Stops the bridge and waits for the process to go, so its exe can be replaced. */
+async function stopBridgeAndWait(): Promise<void> {
+  const client = bridge;
+  bridge = undefined;
+  lastInfo = undefined;
+  setGameLoaded(false);
+  if (client) {
+    await client.stopAndWait();
+  }
+}
+
+// ---- bridge update and install --------------------------------------------------------------
+
+/**
+ * Update bridge and Install bridge. Stops the bridge, replaces it, starts it again and reports the
+ * versions. A bridge that runs from a git checkout is pulled and rebuilt there, which is the
+ * developer's path; forceRelease skips that. Anything else gets the latest GitHub release unpacked
+ * under the extension's storage, with redcode.bridgePath pointed at it, so nobody types a path.
+ */
+async function updateBridge(context: vscode.ExtensionContext, forceRelease: boolean): Promise<void> {
+  if (updating) {
+    void vscode.window.showInformationMessage("REDcode: a bridge update is already running.");
+    return;
+  }
+  updating = true;
+  clearTimeout(restartTimer);
+  const config = vscode.workspace.getConfiguration("redcode");
+  const exe = resolveBridgeExe(context, config.get<string>("bridgePath", ""));
+  const checkout = exe && !forceRelease ? findCheckout(exe) : undefined;
+  const before = lastInfo?.version;
+  const appendLine = (line: string) => log.appendLine(line);
+  let stopped = false;
+  try {
+    await vscode.window.withProgress(
+      { location: vscode.ProgressLocation.Notification, title: checkout ? "REDcode: updating the bridge from its checkout" : "REDcode: installing REDbridge" },
+      async (progress) => {
+        let shown = 0;
+        const report = (message: string, fraction?: number) => {
+          const pct = fraction === undefined ? undefined : Math.round(fraction * 100);
+          progress.report({ message, increment: pct === undefined ? undefined : pct - shown });
+          if (pct !== undefined) shown = pct;
+        };
+        if (checkout) {
+          report("stopping the bridge");
+          await stopBridgeAndWait();
+          stopped = true;
+          updateStatus("$(sync~spin) REDcode: updating bridge", checkout);
+          log.appendLine(`Updating the bridge checkout at ${checkout} (npm run update)`);
+          await updateCheckout(checkout, appendLine, report);
+          return;
+        }
+        report("asking GitHub for the latest release");
+        const release = await latestRelease(config.get<string>("bridgeRepository", "Edgemodders/REDbridge"));
+        if (!forceRelease && before && compareVersions(release.version, before) <= 0) {
+          log.appendLine(`REDbridge ${before} is the latest release (${release.tag}).`);
+          void vscode.window.showInformationMessage(`REDcode: REDbridge ${before} is already the latest release.`);
+          return;
+        }
+        await stopBridgeAndWait();
+        stopped = true;
+        updateStatus("$(sync~spin) REDcode: installing bridge", release.url);
+        const installed = await installRelease(release, managedDir(storage.fsPath, release.version), appendLine, report);
+        await config.update("bridgePath", installed, vscode.ConfigurationTarget.Global);
+      },
+    );
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    log.appendLine(`Bridge update failed: ${message}`);
+    void vscode.window.showErrorMessage(`REDcode: the bridge update failed. ${message}`, "Show log").then((pick) => pick && log.show(true));
+  }
+  if (stopped) {
+    restartBridge(context, (info) => {
+      const text = before && before !== info.version ? `REDcode: REDbridge ${before} → ${info.version}.` : `REDcode: REDbridge ${info.version} is running.`;
+      log.appendLine(text);
+      void vscode.window.showInformationMessage(text);
+    });
+  }
+  // The settings change above fires its event before update() resolves, but a late one must not restart the bridge twice.
+  setTimeout(() => (updating = false), 1000);
+}
+
+/** Once per session, asks GitHub whether a newer release exists than the running bridge. Not for checkouts, which are usually ahead. */
+async function checkForNewerRelease(exe: string, current: string): Promise<void> {
+  const config = vscode.workspace.getConfiguration("redcode");
+  if (offeredUpdate || !config.get<boolean>("bridgeUpdateCheck", true) || findCheckout(exe)) {
+    return;
+  }
+  offeredUpdate = true;
+  try {
+    const release = await latestRelease(config.get<string>("bridgeRepository", "Edgemodders/REDbridge"));
+    if (compareVersions(release.version, current) > 0) {
+      log.appendLine(`REDbridge ${release.version} is available; ${current} is running.`);
+      const pick = await vscode.window.showInformationMessage(`REDcode: REDbridge ${release.version} is available; ${current} is running.`, "Update bridge", "Release notes");
+      if (pick === "Update bridge") void vscode.commands.executeCommand("redcode.updateBridge");
+      else if (pick === "Release notes") void vscode.env.openExternal(vscode.Uri.parse(release.url));
+    }
+  } catch (e) {
+    log.appendLine(`Update check skipped: ${e instanceof Error ? e.message : String(e)}`);
+  }
+}
+
+/** After the bridge fails to start: when no .NET 10 runtime is installed, say so and offer the install. */
+async function explainStartFailure(dotnetRoot: string | undefined): Promise<void> {
+  if (offeredDotnet) {
+    return;
+  }
+  const check = await checkDotnetRuntime(dotnetRoot);
+  if (check.ok) {
+    return;
+  }
+  offeredDotnet = true;
+  log.appendLine(`No .NET 10 runtime found through ${check.dotnet}${check.runtimes.length ? `; installed: ${check.runtimes.join("; ")}` : ""}.`);
+  const pick = await vscode.window.showErrorMessage("REDcode: the bridge needs the .NET 10 runtime, which is not installed.", "Install with winget", "Download page", "Show log");
+  if (pick === "Install with winget") {
+    const terminal = vscode.window.createTerminal("REDcode: install .NET 10");
+    terminal.show();
+    terminal.sendText(DotnetInstallCommand, true);
+    void vscode.window.showInformationMessage("REDcode: when winget has finished, run REDcode: Restart bridge.");
+  } else if (pick === "Download page") {
+    void vscode.env.openExternal(vscode.Uri.parse(DotnetDownloadUrl));
+  } else if (pick === "Show log") {
+    log.show(true);
+  }
 }
 
 /** The configured path (a file, or a folder containing REDbridge.exe), else a bridge bundled under the extension, else REDbridge on PATH. */

@@ -203,6 +203,16 @@
         "category": "REDcode"
       },
       {
+        "command": "redcode.updateBridge",
+        "title": "Update bridge",
+        "category": "REDcode"
+      },
+      {
+        "command": "redcode.installBridge",
+        "title": "Install bridge",
+        "category": "REDcode"
+      },
+      {
         "command": "redcode.showLog",
         "title": "Show bridge log",
         "category": "REDcode"
@@ -344,6 +354,16 @@
           "type": "string",
           "default": "",
           "description": "Author name written into new projects."
+        },
+        "redcode.bridgeRepository": {
+          "type": "string",
+          "default": "Edgemodders/REDbridge",
+          "description": "The GitHub repository whose releases Update bridge and Install bridge download, as owner/name."
+        },
+        "redcode.bridgeUpdateCheck": {
+          "type": "boolean",
+          "default": true,
+          "description": "When the bridge starts, ask GitHub once per session whether a newer REDbridge release exists and offer to install it. Skipped when the bridge runs from a git checkout."
         }
       }
     },

@@ -82,6 +82,22 @@ export class BridgeClient extends EventEmitter<BridgeEvents> {
     this.process = undefined;
   }
 
+  /** Stops the process and resolves once it has exited, so the files it held (its own exe) can be replaced. */
+  stopAndWait(timeoutMs = 5000): Promise<void> {
+    const child = this.process;
+    this.stop();
+    if (!child || child.exitCode !== null) {
+      return Promise.resolve();
+    }
+    return new Promise((resolve) => {
+      const timer = setTimeout(resolve, timeoutMs);
+      child.once("exit", () => {
+        clearTimeout(timer);
+        resolve();
+      });
+    });
+  }
+
   private call<T>(method: string, params?: Record<string, unknown>): Promise<T> {
     if (!this.connection) {
       return Promise.reject(new Error("The bridge is not running."));
