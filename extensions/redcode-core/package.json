@@ -180,6 +180,11 @@
         "category": "REDcode"
       },
       {
+        "command": "redcode.openProjectFileInEditor",
+        "title": "Open in CR2W Editor",
+        "category": "REDcode"
+      },
+      {
         "command": "redcode.openProjectFileAsJson",
         "title": "Open as JSON",
         "category": "REDcode"
@@ -309,6 +314,11 @@
           "group": "3_copy@1"
         },
         {
+          "command": "redcode.openProjectFileInEditor",
+          "when": "view == redcode.project && viewItem == projectFile",
+          "group": "2_open@0"
+        },
+        {
           "command": "redcode.openProjectFileAsJson",
           "when": "view == redcode.project && viewItem == projectFile",
           "group": "2_open@1"
@@ -361,6 +371,10 @@
         },
         {
           "command": "redcode.openProjectFileAsJson",
+          "when": "false"
+        },
+        {
+          "command": "redcode.openProjectFileInEditor",
           "when": "false"
         },
         {
