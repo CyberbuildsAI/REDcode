@@ -650,7 +650,7 @@ async function openProjectFile(node: ProjectNode): Promise<void> {
     return;
   }
   if (opensInCr2wEditor(node.file)) {
-    await vscode.commands.executeCommand("vscode.openWith", vscode.Uri.file(node.file), Cr2wViewType);
+    await vscode.commands.executeCommand("vscode.openWith", vscode.Uri.file(node.file), cr2wViewTypeFor(node.file));
     return;
   }
   const ext = path.extname(node.file).toLowerCase();
