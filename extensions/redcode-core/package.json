@@ -2,7 +2,7 @@
   "name": "redcode-core",
   "displayName": "REDcode Core",
   "description": "Cyberpunk 2077 modding in VS Code: projects, the game asset browser, and game files as JSON, through REDbridge.",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "publisher": "edgemodders",
   "license": "MIT",
   "icon": "images/icon.png",

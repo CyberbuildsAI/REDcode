@@ -15,10 +15,10 @@ import { isTexture, TextureViewer, TextureViewType } from "./textureViewer";
 import type { BridgeInfo, GameFileInfo } from "./types";
 
 /**
- * The oldest REDbridge this extension works with: it needs archive.tree, extractMany and cr2w.fileToJson.
- * Project textures also need texture.fileToPng (0.3.0); the viewer says so when the bridge is older.
+ * The oldest REDbridge this extension works with. The CR2W editor needs the document session methods
+ * (0.5.0) and textures the right way up (0.5.1), so an older bridge is refused with Update bridge offered.
  */
-const MinBridgeVersion = "0.2.0";
+const MinBridgeVersion = "0.5.1";
 
 let bridge: BridgeClient | undefined;
 let project: ProjectInfo | undefined;

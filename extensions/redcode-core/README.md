@@ -48,7 +48,7 @@ After Save JSON to Project the editor shows the JSON read back from the written 
 
 ## Textures
 
-`.xbm` files open in the texture viewer: the bridge converts them to PNG and the viewer shows the image over a checkerboard, with the size and Fit, 1:1 and Pixels buttons. In the Project view and the Explorer this is the default editor for `.xbm`; **Open With...** still offers the text editor. Project textures need REDbridge 0.3.0; archive textures work with 0.2.0.
+`.xbm` files open in the texture viewer: the bridge converts them to PNG and the viewer shows the image over a checkerboard, with the size and Fit, 1:1 and Pixels buttons. In the Project view and the Explorer this is the default editor for `.xbm`; **Open With...** still offers the text editor. The extension needs REDbridge 0.5.1 or newer, which writes textures the right way up.
 
 ## TweakXL files
 
