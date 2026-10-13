@@ -232,11 +232,12 @@ async function packCommand(): Promise<void> {
   if (shown) {
     await projectView.reveal(shown, { select: true, focus: false, expand: true }).then(undefined, () => undefined);
   }
-  if (summary.warnings.length > 0) {
-    const pick = await vscode.window.showWarningMessage(
-      `REDcode: packed, but ${summary.warnings.length} path(s) have capital letters or spaces, which the game may not resolve.`,
-      "Show log",
-    );
+  const problems = [
+    summary.warnings.length ? `${summary.warnings.length} path(s) have capital letters or spaces, which the game may not resolve` : "",
+    summary.misplacedTweaks.length ? `${summary.misplacedTweaks.map((t) => path.basename(t)).join(", ")} ${summary.misplacedTweaks.length === 1 ? "is" : "are"} not under r6\\tweaks, so TweakXL will not load ${summary.misplacedTweaks.length === 1 ? "it" : "them"}` : "",
+  ].filter(Boolean);
+  if (problems.length > 0) {
+    const pick = await vscode.window.showWarningMessage(`REDcode: packed, but ${problems.join("; and ")}.`, "Show log");
     if (pick) log.show(true);
     return;
   }
@@ -285,6 +286,7 @@ function packTerminal(): vscode.Pseudoterminal {
         (summary) => {
           explorer.refresh();
           if (summary.warnings.length > 0) line(`${summary.warnings.length} path(s) with capital letters or spaces; see above.`);
+          if (summary.misplacedTweaks.length > 0) line(`${summary.misplacedTweaks.length} tweak file(s) outside r6\\tweaks; see above.`);
           done.fire(0);
         },
         (e) => {
@@ -387,7 +389,7 @@ function startBridge(context: vscode.ExtensionContext, onReady?: (info: BridgeIn
       onReady?.(info);
       void checkForNewerRelease(exe, info.version);
       if (info.gameLoaded) {
-        bridgeSummary = `${info.files.toLocaleString()} files`;
+        bridgeSummary = `${info.files.toLocaleString()} files  $(server-process) REDbridge ${info.version}`;
         bridgeTooltip = `${info.archives} archives from ${info.gameDir}\nREDbridge ${info.version}, WolvenKit ${info.wolvenKit}`;
         setGameLoaded(true);
         updateStatus();

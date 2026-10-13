@@ -25,6 +25,8 @@ export interface PackSummary {
   archiveXl: string[];
   /** Other resource files copied into packed, relative to source/resources. */
   resources: string[];
+  /** Tweak files (.tweak, .yaml, .yml) outside r6/tweaks, which TweakXL does not read. */
+  misplacedTweaks: string[];
   packedDir: string;
   /** Where the archive and the ArchiveXL files went. */
   archiveDir: string;
@@ -44,10 +46,10 @@ export async function packProject(bridge: BridgeClient, project: ProjectInfo, op
   const source = path.join(project.dir, ProjectFolders.archive);
   const resources = path.join(project.dir, ProjectFolders.resources);
   const archiveDir = packedArchiveDir(project, options.redmod);
-  const summary: PackSummary = { archiveBytes: 0, archiveFiles: 0, warnings: [], archiveXl: [], resources: [], packedDir: packed, archiveDir };
+  const summary: PackSummary = { archiveBytes: 0, archiveFiles: 0, warnings: [], archiveXl: [], resources: [], misplacedTweaks: [], packedDir: packed, archiveDir };
 
   if (options.clean && fs.existsSync(packed)) {
-    fs.rmSync(packed, { recursive: true, force: true });
+    emptyFolder(packed);
     log(`Cleaned ${packed}`);
   }
   fs.mkdirSync(packed, { recursive: true });
@@ -86,10 +88,16 @@ export async function packProject(bridge: BridgeClient, project: ProjectInfo, op
     } else {
       copy(file, path.join(packed, rel));
       summary.resources.push(rel);
+      if (TweakExtensions.has(ext) && !isUnder(rel, "r6", "tweaks")) {
+        summary.misplacedTweaks.push(rel);
+      }
     }
   }
   if (summary.archiveXl.length) log(`Copied ${summary.archiveXl.length} ArchiveXL file(s) to ${archiveDir}`);
   if (summary.resources.length) log(`Copied ${summary.resources.length} resource file(s) under ${packed}`);
+  for (const t of summary.misplacedTweaks) {
+    log(`  warning: ${t} is not under r6\\tweaks, so TweakXL will not load it; move it to source\\resources\\r6\\tweaks`);
+  }
 
   // A REDmod needs its manifest; the project's own info.json under resources wins when it exists.
   if (options.redmod) {
@@ -106,9 +114,59 @@ export async function packProject(bridge: BridgeClient, project: ProjectInfo, op
   return summary;
 }
 
-function isUnder(rel: string, folder: string): boolean {
-  const first = rel.split(/[\\/]/)[0]?.toLowerCase();
-  return first === folder;
+/** Tweak sources TweakXL reads from r6/tweaks. */
+const TweakExtensions = new Set([".tweak", ".yaml", ".yml"]);
+
+/** True when rel starts with the given folders, compared without case. */
+function isUnder(rel: string, ...folders: string[]): boolean {
+  const parts = rel.split(/[\\/]/).map((p) => p.toLowerCase());
+  return parts.length > folders.length && folders.every((f, i) => parts[i] === f);
+}
+
+/**
+ * Deletes every file under dir and then the empty folders, keeping dir itself. A folder that
+ * something has open (a File Explorer window, a terminal) cannot be removed on Windows, but its
+ * files can, and an empty folder left behind does no harm. A file that is in use is an error.
+ */
+function emptyFolder(dir: string): void {
+  for (const file of walk(dir)) {
+    try {
+      fs.rmSync(file, { force: true, maxRetries: 5, retryDelay: 200 });
+    } catch (e) {
+      const code = (e as NodeJS.ErrnoException).code ?? "";
+      throw new Error(`Could not empty ${dir}: ${file} is in use (${code}). Close what has it open, such as the game or another tool, then pack again, or turn off redcode.pack.clean.`);
+    }
+  }
+  for (const sub of folders(dir).reverse()) {
+    try {
+      fs.rmdirSync(sub);
+    } catch {
+      // Held open by something, or not empty: left in place.
+    }
+  }
+}
+
+/** Every folder under dir, parents before children. */
+function folders(dir: string): string[] {
+  const out: string[] = [];
+  const pending = [dir];
+  while (pending.length > 0) {
+    const current = pending.shift()!;
+    let entries: fs.Dirent[];
+    try {
+      entries = fs.readdirSync(current, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+    for (const e of entries) {
+      if (e.isDirectory()) {
+        const full = path.join(current, e.name);
+        out.push(full);
+        pending.push(full);
+      }
+    }
+  }
+  return out;
 }
 
 function copy(from: string, to: string): void {
