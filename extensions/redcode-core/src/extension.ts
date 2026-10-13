@@ -112,7 +112,7 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.window.onDidChangeActiveTextEditor(() => updateJsonContext()),
     vscode.workspace.onDidChangeConfiguration((e) => {
       // Settings often change one after another; restart once they settle.
-      if (e.affectsConfiguration("redcode") && !updating) {
+      if (["redcode.gamePath", "redcode.bridgePath", "redcode.dotnetRoot"].some((s) => e.affectsConfiguration(s)) && !updating) {
         clearTimeout(restartTimer);
         restartTimer = setTimeout(() => restartBridge(context), 800);
       }
