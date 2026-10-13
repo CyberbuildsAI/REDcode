@@ -74,7 +74,7 @@
         "priority": "default"
       },
       {
-        "viewType": "redcode.cr2w",
+        "viewType": "redcode.cr2wOption",
         "displayName": "REDcode CR2W Editor",
         "selector": [
           { "filenamePattern": "*.xbm" }, { "filenamePattern": "*.json" }, { "filenamePattern": "*.csv" }

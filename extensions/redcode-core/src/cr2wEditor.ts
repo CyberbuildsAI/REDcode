@@ -14,6 +14,16 @@ import type { TextureViewer } from "./textureViewer";
 import type { DocumentInfo, PatchOp, PatchResult } from "./types";
 
 export const Cr2wViewType = "redcode.cr2w";
+/**
+ * The same editor under a second view type, offered under Open With for .xbm, .json and .csv. VS Code
+ * keeps one manifest entry per view type, so a default and an option registration need two names.
+ */
+export const Cr2wOptionViewType = "redcode.cr2wOption";
+
+/** The view type to open a file with: the default one for the editor's own types, else the option one. */
+export function cr2wViewTypeFor(file: string): string {
+  return Cr2wExtensions.has(path.extname(file).toLowerCase()) ? Cr2wViewType : Cr2wOptionViewType;
+}
 
 /** File types the CR2W editor opens by default. Others get it through Open With. */
 export const Cr2wExtensions = new Set([
@@ -278,10 +288,11 @@ export class Cr2wEditorProvider implements vscode.CustomEditorProvider<Cr2wDocum
   }
 
   register(): vscode.Disposable {
-    return vscode.window.registerCustomEditorProvider(Cr2wViewType, this, {
-      webviewOptions: { retainContextWhenHidden: true },
-      supportsMultipleEditorsPerDocument: false,
-    });
+    const options = { webviewOptions: { retainContextWhenHidden: true }, supportsMultipleEditorsPerDocument: false };
+    return vscode.Disposable.from(
+      vscode.window.registerCustomEditorProvider(Cr2wViewType, this, options),
+      vscode.window.registerCustomEditorProvider(Cr2wOptionViewType, this, options),
+    );
   }
 
   private requireBridge(): BridgeClient {
@@ -540,7 +551,7 @@ export class Cr2wPropertiesView implements vscode.WebviewViewProvider {
 
   private activeDocument(): Cr2wDocument | undefined {
     const input = vscode.window.tabGroups.activeTabGroup.activeTab?.input;
-    return input instanceof vscode.TabInputCustom && input.viewType === Cr2wViewType ? this.editor.documentFor(input.uri) : undefined;
+    return input instanceof vscode.TabInputCustom && (input.viewType === Cr2wViewType || input.viewType === Cr2wOptionViewType) ? this.editor.documentFor(input.uri) : undefined;
   }
 
   private follow(): void {

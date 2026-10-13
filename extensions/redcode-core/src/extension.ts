@@ -6,7 +6,7 @@ import * as vscode from "vscode";
 import { AssetBrowser, type AssetNode } from "./assetBrowser";
 import { BridgeClient } from "./bridgeClient";
 import { checkDotnetRuntime, DotnetDownloadUrl, DotnetInstallCommand, findCheckout, installRelease, latestRelease, managedDir, updateCheckout } from "./bridgeUpdater";
-import { Cr2wEditorProvider, Cr2wPropertiesView, Cr2wViewType, opensInCr2wEditor } from "./cr2wEditor";
+import { Cr2wEditorProvider, Cr2wPropertiesView, Cr2wViewType, cr2wViewTypeFor, opensInCr2wEditor } from "./cr2wEditor";
 import { GameFileSystem, gameUri } from "./gameFs";
 import { compareJson, formatDifference, type JsonComparison } from "./jsonDiff";
 import { createProject, findProject, gamePathOf, projectPathFor, type ProjectInfo } from "./project";
@@ -79,7 +79,7 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("redcode.copyAssetPath", (node: AssetNode) => copyAssetPath(node)),
     vscode.commands.registerCommand("redcode.openProjectFile", (node: ProjectNode) => openProjectFile(node)),
     vscode.commands.registerCommand("redcode.openProjectFileAsJson", (node: ProjectNode) => withBridge((b) => openProjectFileAsJson(b, node))),
-    vscode.commands.registerCommand("redcode.openProjectFileInEditor", (node: ProjectNode) => node.kind === "file" && vscode.commands.executeCommand("vscode.openWith", vscode.Uri.file(node.file), Cr2wViewType)),
+    vscode.commands.registerCommand("redcode.openProjectFileInEditor", (node: ProjectNode) => node.kind === "file" && vscode.commands.executeCommand("vscode.openWith", vscode.Uri.file(node.file), cr2wViewTypeFor(node.file))),
     vscode.commands.registerCommand("redcode.revealInExplorer", (node: ProjectNode) => revealInExplorer(node)),
     vscode.commands.registerCommand("redcode.deleteProjectFile", (node: ProjectNode) => deleteProjectFile(node)),
     vscode.commands.registerCommand("redcode.saveJsonToProject", () => withBridge(saveJsonToProject)),
@@ -547,7 +547,7 @@ async function openAssetInEditor(node: AssetNode): Promise<void> {
     await withBridge(async () => undefined);
     return;
   }
-  await vscode.commands.executeCommand("vscode.openWith", gameUri(node.file.name), Cr2wViewType);
+  await vscode.commands.executeCommand("vscode.openWith", gameUri(node.file.name), cr2wViewTypeFor(node.file.name));
 }
 
 async function openAssetAsJson(b: BridgeClient, node: AssetNode): Promise<void> {
