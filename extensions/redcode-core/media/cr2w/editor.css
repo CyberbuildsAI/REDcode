@@ -126,3 +126,8 @@ body.atlas-mode #parts { display: block; }
 .rectform .uv { font-family: var(--mono); font-size: 12px; color: var(--dim); }
 .stage svg text { display: none; }
 .stage svg.labels text { display: block; }
+
+/* texture mode: the image above the grid */
+.texwrap { margin-bottom: 8px; border-bottom: 1px solid var(--line); }
+.texwrap .stage { max-height: 60vh; overflow: auto; }
+.texwrap .stage.fit img { max-height: 60vh; width: auto; }

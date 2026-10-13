@@ -68,6 +68,8 @@
   let mode = "tree";
   let table = null;             // { path, type, entryType, keys } when the file is a localization table
   let atlas = null;             // { slots, slot, parts, image } when the file is an inkTextureAtlas (see the atlas section)
+  // "table" and "atlas" replace the tree; "texture" is the tree with the image above the grid.
+  const isSpecial = () => mode === "table" || mode === "atlas";
 
   const status = (text, kind = "") => { const s = $("status"); s.textContent = text; s.className = kind; };
   const join = (a, b) => (a ? `${a}.${b}` : b);
@@ -99,6 +101,11 @@
     if (table || atlas) {
       mode = table ? "table" : "atlas";
       $("view").hidden = false;
+    } else if (info.type === "CBitmapTexture") {
+      // A texture: the image above the grid, and the setup fields selected, since they are what gets edited.
+      mode = "texture";
+      selected = "setup";
+      expanded.add("setup");
     }
     await reloadAll("open");
   }
@@ -119,6 +126,7 @@
 
   async function reloadAll(reason) {
     nodes.clear();
+    if (reason === "save" || reason === "revert") textureEl = null;
     try {
       await fetchNode("");
       renderTree();
@@ -133,7 +141,7 @@
   async function render(force = false) {
     document.body.classList.toggle("table-mode", mode === "table");
     document.body.classList.toggle("atlas-mode", mode === "atlas");
-    $("view").textContent = mode !== "tree" ? "Tree" : table ? "Table" : "Atlas";
+    $("view").textContent = isSpecial() ? "Tree" : table ? "Table" : "Atlas";
     if (mode === "table") {
       await renderTable();
     } else if (mode === "atlas") {
@@ -278,8 +286,47 @@
       }
     }
     if (seq !== renderSeq) return;
+    if (mode === "texture") rows.unshift(textureStage());
     $("propsLabel").textContent = selected ? `${selected}  ·  ${n.type}` : `${n.type}`;
     grid.replaceChildren(...rows);
+  }
+
+  // ---- texture view (CBitmapTexture) --------------------------------------------------------------
+  // The image sits above whatever the grid shows. It is built once and reused across renders, and
+  // thrown away after a save so the file's new pixels show.
+  let textureEl = null;
+  let textureFit = true;
+  let texturePixel = false;
+
+  function textureStage() {
+    if (textureEl) return textureEl;
+    const wrap = el("div", "texwrap");
+    const bar = el("div", "toolbar");
+    const stage = el("div", "stage" + (textureFit ? " fit" : "") + (texturePixel ? " pixel" : ""));
+    const dims = el("span", "dim");
+    const fit = el("button", textureFit ? "on" : "", "Fit");
+    const one = el("button", textureFit ? "" : "on", "1:1");
+    const pixel = el("button", texturePixel ? "on" : "", "Pixels");
+    fit.addEventListener("click", () => { textureFit = true; stage.classList.add("fit"); fit.classList.add("on"); one.classList.remove("on"); });
+    one.addEventListener("click", () => { textureFit = false; stage.classList.remove("fit"); one.classList.add("on"); fit.classList.remove("on"); });
+    pixel.addEventListener("click", () => { texturePixel = !texturePixel; stage.classList.toggle("pixel", texturePixel); pixel.classList.toggle("on", texturePixel); });
+    bar.append(fit, one, pixel, dims);
+    stage.appendChild(el("div", "note", "Converting the texture…"));
+    wrap.append(bar, stage);
+    textureEl = wrap;
+    request("documentTexture").then((r) => {
+      const img = el("img");
+      img.alt = $("file").textContent;
+      let retried = false;
+      img.addEventListener("load", () => { dims.textContent = `${img.naturalWidth} × ${img.naturalHeight}`; });
+      img.addEventListener("error", async () => {
+        if (!retried && r.png) { retried = true; try { img.src = await request("textureData", { png: r.png }); return; } catch (e) { stage.replaceChildren(el("div", "note", e.message)); return; } }
+        stage.replaceChildren(el("div", "note", `The page could not load ${r.png}`));
+      });
+      img.src = r.src;
+      stage.replaceChildren(img);
+    }).catch((e) => stage.replaceChildren(el("div", "note", `Could not convert the texture: ${e.message}`)));
+    return wrap;
   }
 
   async function propertyRow(parentPath, c, pdesc, readOnly) {
@@ -474,7 +521,7 @@
       nodes.delete(refreshPath);
       if (after) {
         await after();
-      } else if (mode !== "tree") {
+      } else if (isSpecial()) {
         await rerender();
       } else {
         await renderGrid();
@@ -501,7 +548,7 @@
         const row = el("div", "result" + (isCompiled(h.path) ? " compiled" : ""));
         row.title = h.path;
         row.append(el("span", "rpath", h.path), el("span", "rtype", h.type), el("span", "rpreview", h.preview));
-        row.addEventListener("click", () => { if (mode !== "tree") { mode = "tree"; void render(); } expandTo(h.path); void select(h.path, true); });
+        row.addEventListener("click", () => { if (isSpecial()) { mode = "tree"; void render(); } expandTo(h.path); void select(h.path, true); });
         list.appendChild(row);
       }
       grid.replaceChildren(list);
@@ -1010,7 +1057,7 @@
   // ---- wiring ----------------------------------------------------------------------------------
   $("json").addEventListener("click", () => vscode.postMessage({ type: "openAsJson" }));
   $("view").addEventListener("click", () => {
-    mode = mode !== "tree" ? "tree" : table ? "table" : "atlas";
+    mode = isSpecial() ? "tree" : table ? "table" : "atlas";
     if (mode === "tree" && selected) expandTo(selected);
     void render(true);
   });

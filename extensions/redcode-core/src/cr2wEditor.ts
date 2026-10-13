@@ -325,6 +325,13 @@ export class Cr2wEditorProvider implements vscode.CustomEditorProvider<Cr2wDocum
             const png = await this.texturePng(this.requireBridge(), document.uri.fsPath, m.depot ?? "");
             return reply(m.id, { png, src: panel.webview.asWebviewUri(vscode.Uri.file(png)).toString() });
           }
+          case "documentTexture": {
+            // The open file itself, for the texture view.
+            const bridge = this.requireBridge();
+            const png = this.textures.pngForFile(document.uri.fsPath);
+            await bridge.fileToPng(document.uri.fsPath, png);
+            return reply(m.id, { png, src: panel.webview.asWebviewUri(vscode.Uri.file(png)).toString() });
+          }
           case "textureData": {
             // The resource URI was refused (it has been, with a 401, on one machine): send the bytes inline.
             const png = path.resolve(m.png ?? "");
