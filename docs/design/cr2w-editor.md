@@ -122,7 +122,7 @@ Each is one or two commits and ends with a hand test on the owner's files plus a
 |---|---|---|---|
 | E1 | `open`, `getNode`, `patch`, `save`, `close`, with a document session table and a smoke step that patches a value and reads it back | Client wrappers only | `.ent` |
 | E2 | `describeType`, `createInstance` | The custom editor: tree, property grid, undo and redo, save, backup and replay | `.ent` and `.app`, then `.mesh` |
-| E3 | `search` | Footer search. The table view | `onscreens.json`, then a subtitles file |
+| E3 | `search`, `getNodes`, inline values for small array elements | Footer search. The table view. CR2W detection for `.json` and `.csv` by magic | `onscreens.json`, then a subtitles file |
 | E4 | | The atlas view, click to select | `.inkatlas` |
 | E5 | | Texture properties beside the viewer. The Properties sidebar view. Read-only open from Game Assets | `.xbm` |
 
@@ -143,3 +143,5 @@ Agreed with the owner on 2026-10-12:
 1. `.app` appearance files are in the first test list with `.ent`. They share the `compiledData` rule and the components tree.
 2. The table view opens subtitle files as well as on-screens from the start. The only difference is the key columns, which come from the row type.
 3. The atlas view ships with click-to-select and numeric editing of the rectangle. Dragging edges is deferred.
+
+Found during E3, 2026-10-12: after the bridge parses an entity, a component and its chunk in `compiledData` are the same object, so a patch through either path changes both. The JSON round trip behaves differently because deserialising makes separate objects. The editor keeps `compiledData` read-only so every edit is made once, and its banner says that the block mirrors `components`. The search walks both paths and reports both, with the `compiledData` hit dimmed.

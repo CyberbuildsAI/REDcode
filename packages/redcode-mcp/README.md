@@ -38,7 +38,7 @@ Any other MCP client takes the same command. The bridge starts on the first tool
 | `cr2w_from_json` | Write a CR2W file from WolvenKit JSON |
 | `texture_to_png`, `texture_file_to_png` | Decode an `.xbm` to PNG |
 | `hash_fnv1a64`, `hash_resolve` | Hash a string; look a hash up |
-| `cr2w_open`, `cr2w_get_node`, `cr2w_patch`, `cr2w_save`, `cr2w_close`, `cr2w_documents` | A document session: parse once, read one node at a time with arrays paged, apply JSON Patch operations atomically with inverse operations returned, write through WolvenKit's writer |
+| `cr2w_open`, `cr2w_get_node`, `cr2w_get_nodes`, `cr2w_search`, `cr2w_patch`, `cr2w_save`, `cr2w_close`, `cr2w_documents` | A document session: parse once, read one node or several at a time with arrays paged, search values and property names below a path, apply JSON Patch operations atomically with inverse operations returned, write through WolvenKit's writer |
 | `cr2w_describe_type`, `cr2w_create_instance` | A type's properties, defaults and enum values; a default instance to add |
 | `cr2w_read` | Open, read several paths, close, in one call |
 | `cr2w_edit_file` | Open, patch, save, close, in one call. With a game path and `outFile`, a modified copy; the archives are never changed |

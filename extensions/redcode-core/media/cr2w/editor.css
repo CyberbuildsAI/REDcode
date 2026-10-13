@@ -64,3 +64,27 @@ li.more { color: var(--cyan); cursor: pointer; }
 .banner { margin: 6px 0 10px; padding: 8px 12px; border: 1px solid rgba(252, 238, 10, .5); color: var(--accent); background: rgba(252, 238, 10, .06); font-size: 12px; }
 .error { color: var(--red); padding: 8px 0; }
 #status.error { color: var(--red); }
+
+/* footer search */
+#search, #filter { background: var(--vscode-input-background); color: var(--vscode-input-foreground); border: 1px solid var(--vscode-input-border, var(--line)); padding: 2px 8px; font: inherit; font-family: var(--mono); font-size: 12px; min-width: 220px; }
+#search:focus, #filter:focus { outline: 1px solid var(--accent); border-color: var(--accent); }
+.results { display: flex; flex-direction: column; }
+.result { display: grid; grid-template-columns: minmax(200px, 40%) minmax(80px, 15%) 1fr; gap: 10px; padding: 3px 0; border-bottom: 1px solid var(--line); cursor: pointer; font-family: var(--mono); font-size: 12px; }
+.result:hover { background: var(--vscode-list-hoverBackground); }
+.result.compiled { opacity: .6; }
+.rpath { color: var(--cyan); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rtype { color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rpreview { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* table mode: the tree pane folds away and the rows take the width */
+body.table-mode #body { grid-template-columns: 1fr; }
+body.table-mode aside { display: none; }
+table.rows { border-collapse: collapse; width: 100%; font-size: 12px; }
+table.rows th { text-align: left; font-family: var(--mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); padding: 4px 6px; border-bottom: 1px solid var(--line); position: sticky; top: 28px; background: var(--vscode-editor-background); }
+table.rows td { padding: 2px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+table.rows td.idx { color: var(--dim); font-family: var(--mono); white-space: nowrap; }
+table.rows td.key { width: 1%; white-space: nowrap; }
+table.rows td.key .leaf input { min-width: 90px; width: 100%; }
+table.rows td.text .leaf input { min-width: 240px; }
+table.rows td.tools { width: 1%; }
+.pager { display: flex; gap: 12px; align-items: center; padding: 8px 0; }

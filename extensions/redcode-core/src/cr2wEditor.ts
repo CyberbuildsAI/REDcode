@@ -20,8 +20,29 @@ export const Cr2wExtensions = new Set([
   ".inkanim", ".inkfontfamily", ".inkcharcustomization", ".garmentlayerparams", ".behavior", ".effect", ".particle", ".w2mesh",
 ]);
 
+/**
+ * True for the file types the editor owns, and for a .json or .csv that is a CR2W file inside (the
+ * localization and C2dArray resources), which the first four bytes tell apart from plain text.
+ */
 export function opensInCr2wEditor(file: string): boolean {
-  return Cr2wExtensions.has(path.extname(file).toLowerCase());
+  const ext = path.extname(file).toLowerCase();
+  if (Cr2wExtensions.has(ext)) {
+    return true;
+  }
+  if (ext === ".json" || ext === ".csv") {
+    try {
+      const fd = fs.openSync(file, "r");
+      try {
+        const head = Buffer.alloc(4);
+        return fs.readSync(fd, head, 0, 4, 0) === 4 && head.toString("latin1") === "CR2W";
+      } finally {
+        fs.closeSync(fd);
+      }
+    } catch {
+      return false;
+    }
+  }
+  return false;
 }
 
 interface Backup {
@@ -138,9 +159,11 @@ interface Request {
   type: string;
   id?: number;
   path?: string;
+  paths?: string[];
   offset?: number;
   limit?: number;
   name?: string;
+  query?: string;
   ops?: PatchOp[];
   label?: string;
 }
@@ -258,6 +281,10 @@ export class Cr2wEditorProvider implements vscode.CustomEditorProvider<Cr2wDocum
           }
           case "getNode":
             return reply(m.id, await this.requireBridge().getNode(document.doc, m.path ?? "", m.offset ?? 0, m.limit ?? 200));
+          case "getNodes":
+            return reply(m.id, await this.requireBridge().getNodes(document.doc, m.paths ?? [], m.limit ?? 200));
+          case "search":
+            return reply(m.id, await this.requireBridge().searchDocument(document.doc, m.query ?? "", m.path ?? "", m.limit ?? 200));
           case "describeType":
             return reply(m.id, await this.requireBridge().describeType(m.name ?? ""));
           case "createInstance":
@@ -334,13 +361,19 @@ export class Cr2wEditorProvider implements vscode.CustomEditorProvider<Cr2wDocum
   <span class="meta" id="type"></span>
   <span class="meta" id="size"></span>
   <span class="spacer"></span>
+  <button id="view" hidden title="Switch between the table and the tree">Tree</button>
   <button id="json" title="Open this file as WolvenKit JSON in a text editor">JSON</button>
 </header>
 <div id="body">
   <aside id="tree"><div class="label">Tree</div><ul id="treeRoot" class="tree"></ul></aside>
   <main id="props"><div class="label" id="propsLabel">Properties</div><div id="grid"></div></main>
 </div>
-<footer id="footer"><span id="status"></span><span class="spacer"></span><span id="selected" class="meta"></span></footer>
+<footer id="footer">
+  <span id="status"></span>
+  <span class="spacer"></span>
+  <span id="selected" class="meta"></span>
+  <input id="search" type="search" placeholder="search values and names" title="Finds values and property names anywhere in the file. Enter to search, Esc to clear.">
+</footer>
 <script nonce="${nonce}" src="${script}"></script>
 </body>
 </html>`;

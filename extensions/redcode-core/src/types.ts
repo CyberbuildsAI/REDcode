@@ -89,6 +89,21 @@ export interface NodeChild {
   preview: string;
   /** Item count, for arrays. */
   count: number | null;
+  /** The value in WolvenKit JSON form, for leaves and small structs such as a table row; null otherwise. */
+  value: unknown;
+}
+
+export interface SearchHit {
+  path: string;
+  type: string;
+  preview: string;
+}
+
+export interface SearchResult {
+  /** Every match, counted; hits holds the first limit of them. */
+  total: number;
+  truncated: boolean;
+  hits: SearchHit[];
 }
 
 export interface NodeInfo {

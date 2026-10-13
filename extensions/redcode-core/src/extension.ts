@@ -456,7 +456,6 @@ async function openProjectFile(node: ProjectNode): Promise<void> {
   if (node.kind !== "file") {
     return;
   }
-  const ext = path.extname(node.file).toLowerCase();
   if (isTexture(node.file)) {
     await vscode.commands.executeCommand("vscode.openWith", vscode.Uri.file(node.file), TextureViewType);
     return;
@@ -465,6 +464,7 @@ async function openProjectFile(node: ProjectNode): Promise<void> {
     await vscode.commands.executeCommand("vscode.openWith", vscode.Uri.file(node.file), Cr2wViewType);
     return;
   }
+  const ext = path.extname(node.file).toLowerCase();
   const inArchive = project ? gamePathOf(project, node.file) !== undefined : false;
   if (inArchive && !TextLike.has(ext)) {
     await withBridge((b) => openProjectFileAsJson(b, node));

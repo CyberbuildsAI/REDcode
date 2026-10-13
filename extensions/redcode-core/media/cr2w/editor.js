@@ -1,5 +1,6 @@
 // The CR2W editor page. Talks only to the extension (see cr2wEditor.ts), which forwards to the bridge.
-// State: nodes fetched so far, the selected path, and the types described so far.
+// State: nodes fetched so far, the selected path, the types described so far, and the view mode:
+// "tree" (tree and property grid) or "table" (localization rows).
 "use strict";
 (() => {
   const vscode = acquireVsCodeApi();
@@ -24,12 +25,13 @@
   /** Before a save: commit the input being edited (blur fires its change) and let in-flight patches land. */
   async function flush(id) {
     const active = document.activeElement;
-    if (active && active !== document.body && $("grid").contains(active)) {
+    if (active && active !== document.body && (active.tagName === "INPUT" || active.tagName === "SELECT") && active.id !== "search" && active.id !== "filter") {
       active.blur();
     }
     await Promise.allSettled([...inflight]);
     vscode.postMessage({ type: "flushed", id });
   }
+
   window.addEventListener("message", (e) => {
     const m = e.data;
     if (m.type === "reply") {
@@ -51,9 +53,11 @@
   });
 
   const getNode = (path, offset = 0, limit = 200) => request("getNode", { path, offset, limit });
+  const getNodes = (paths) => request("getNodes", { paths });
   const describeType = (name) => request("describeType", { name });
   const createInstance = (name) => request("createInstance", { name });
   const patch = (ops, label) => request("patch", { ops, label });
+  const search = (query, path = "", limit = 200) => request("search", { query, path, limit });
 
   // ---- state -------------------------------------------------------------------------------
   const nodes = new Map();      // path -> NodeInfo (arrays: children of the pages loaded so far)
@@ -61,6 +65,8 @@
   let info = null;
   let selected = "";
   const expanded = new Set([""]);
+  let mode = "tree";
+  let table = null;             // { path, type, entryType, keys } when the file is a localization table
 
   const status = (text, kind = "") => { const s = $("status"); s.textContent = text; s.className = kind; };
   const join = (a, b) => (a ? `${a}.${b}` : b);
@@ -87,7 +93,26 @@
     $("type").textContent = m.info.type;
     $("size").textContent = `${m.info.bytes.toLocaleString()} B` + (m.info.embeddedFiles ? `, ${m.info.embeddedFiles} embedded` : "");
     document.title = m.file;
+    table = await detectTable().catch(() => null);
+    if (table) {
+      mode = "table";
+      $("view").hidden = false;
+    }
     await reloadAll("open");
+  }
+
+  /** A JsonResource whose root.Data is a localization entries class gets the table view. */
+  async function detectTable() {
+    if (info.type !== "JsonResource") return null;
+    const data = await getNode("root.Data");
+    if (!/^localizationPersistence\w*Entries$/.test(data.type)) return null;
+    const entries = await getNode("root.Data.entries", 0, 1);
+    const desc = await typeOf(entries.type);
+    const entryType = desc.elementType;
+    const entryDesc = entryType ? await typeOf(entryType) : null;
+    const fields = (entryDesc?.properties ?? []).map((p) => p.name);
+    const keys = fields.filter((f) => f !== "femaleVariant" && f !== "maleVariant");
+    return { path: "root.Data.entries", type: data.type, entryType, keys, fields };
   }
 
   async function reloadAll(reason) {
@@ -95,10 +120,21 @@
     try {
       await fetchNode("");
       renderTree();
-      await select(selected, true);
+      await render(true);
       status(reason === "open" ? "" : `Reloaded after ${reason}`);
     } catch (e) {
       status(e.message, "error");
+    }
+  }
+
+  /** Draws the main pane for the current mode. */
+  async function render(force = false) {
+    document.body.classList.toggle("table-mode", mode === "table");
+    $("view").textContent = mode === "table" ? "Tree" : "Table";
+    if (mode === "table") {
+      await renderTable();
+    } else {
+      await select(selected, force);
     }
   }
 
@@ -127,7 +163,7 @@
       e.stopPropagation();
       if (!canExpand) return;
       if (expanded.has(path)) { expanded.delete(path); } else { expanded.add(path); }
-      await refreshTreeRow(li, parentPath, child);
+      li.replaceWith(treeRow(parentPath, child));
     });
     li.appendChild(row);
     if (canExpand && expanded.has(path)) {
@@ -146,15 +182,11 @@
     }
     for (const c of n.children ?? []) ul.appendChild(treeRow(path, c));
     if (n.total !== null && n.children.length < n.total) {
-      const more = el("li", "more", `${n.total - n.children.length} more`);
+      const more = el("li", "more", `${(n.total - n.children.length).toLocaleString()} more`);
       more.addEventListener("click", async (e) => { e.stopPropagation(); await fetchNode(path, true); const li = ul.parentElement; if (li) li.replaceChild(childList(path), ul); });
       ul.appendChild(more);
     }
     return ul;
-  }
-
-  async function refreshTreeRow(li, parentPath, child) {
-    li.replaceWith(treeRow(parentPath, child));
   }
 
   /** Re-renders the subtree containing a path after an edit, keeping expansion. */
@@ -169,6 +201,13 @@
     const gn = nodes.get(grand);
     const child = gn?.children?.find((c) => join(grand, c.name) === parent);
     if (child) li.replaceWith(treeRow(grand, child)); else renderTree();
+  }
+
+  function expandTo(path) {
+    const parts = path.split(".");
+    let p = "";
+    for (const part of parts) { p = join(p, part); expanded.add(p); }
+    renderTree();
   }
 
   // ---- selection and the property grid -------------------------------------------------------
@@ -194,7 +233,7 @@
     if (seq !== renderSeq) return;
     const readOnly = isCompiled(selected);
     if (readOnly) {
-      rows.push(el("div", "banner", "compiledData is rebuilt from components when the file is saved. Edits here do not survive; edit the matching component under components."));
+      rows.push(el("div", "banner", "compiledData mirrors components: after parsing they are the same objects, and WolvenKit rebuilds this block from components on save. It is read-only here; edit the component under components."));
     }
     switch (n.kind) {
       case "class": {
@@ -239,22 +278,21 @@
     row.appendChild(cell);
     const open = () => { const b = el("button", "link", "open"); b.addEventListener("click", () => { expandTo(path); void select(path); }); return b; };
     switch (c.kind) {
-      case "value": {
-        const n = await fetchNode(path);
-        cell.appendChild(await leafEditor(path, c.type, n.value, readOnly, pdesc));
+      case "value":
+        cell.appendChild(await leafEditor(path, c.type, c.value, readOnly, pdesc));
         break;
-      }
       case "null":
         cell.appendChild(el("span", "dim", "null"));
         break;
       case "class": {
-        const n = await fetchNode(path);
-        if (n.value && typeof n.value === "object" && n.children.every((x) => x.kind === "value" || x.kind === "null")) {
+        if (c.value && typeof c.value === "object") {
+          // A small struct: its fields inline, each edited at its own path.
+          const n = await fetchNode(path);
           const sub = el("div", "struct");
           for (const x of n.children) {
             const srow = el("div", "srow");
             srow.append(el("span", "sname", x.name));
-            srow.appendChild(await leafEditor(join(path, x.name), x.type, n.value[x.name], readOnly));
+            srow.appendChild(await leafEditor(join(path, x.name), x.type, x.value, readOnly));
             sub.appendChild(srow);
           }
           cell.appendChild(sub);
@@ -264,7 +302,7 @@
         break;
       }
       case "array": {
-        cell.append(el("span", "dim", `${c.count ?? 0} items`), open());
+        cell.append(el("span", "dim", `${(c.count ?? 0).toLocaleString()} items`), open());
         if (!readOnly) cell.appendChild(await addButton(path, c.type));
         break;
       }
@@ -285,8 +323,7 @@
     const cell = el("span", "pvalue");
     row.appendChild(cell);
     if (c.kind === "value") {
-      const item = await fetchNode(path);
-      cell.appendChild(await leafEditor(path, c.type, item.value, readOnly));
+      cell.appendChild(await leafEditor(path, c.type, c.value, readOnly));
     } else {
       const b = el("button", "link", "open");
       b.addEventListener("click", () => { expandTo(path); void select(path); });
@@ -319,10 +356,9 @@
     b.addEventListener("click", async () => {
       try {
         const desc = await typeOf(arrayType);
-        let elementType = desc.elementType;
+        const elementType = desc.elementType;
         if (!elementType) throw new Error(`Cannot tell the element type of ${arrayType}`);
         if (elementType.startsWith("handle:")) {
-          // A handle needs a concrete class. Ask for one, defaulting to the declared type.
           const inner = elementType.slice("handle:".length);
           const chosen = window.prompt(`Class for the new ${inner} (a concrete type, for example entMeshComponent):`, inner);
           if (!chosen) return;
@@ -346,8 +382,7 @@
     const b = el("button", "link", "create");
     b.addEventListener("click", async () => {
       const desc = await typeOf(n.type).catch(() => null);
-      const inner = desc?.elementType ?? "";
-      const chosen = window.prompt("Class for the new object:", inner);
+      const chosen = window.prompt("Class for the new object:", desc?.elementType ?? "");
       if (!chosen) return;
       try {
         const value = await createInstance(chosen);
@@ -363,14 +398,14 @@
   const IntTypes = new Set(["Int8", "Int16", "Int32", "Int64", "Uint8", "Uint16", "Uint32", "Uint64"]);
 
   /** An input for a leaf. Values with a $value field (CName, ResourcePath, TweakDBID, ...) edit that field and keep the rest. */
-  async function leafEditor(path, type, value, readOnly, pdesc) {
+  async function leafEditor(path, type, value, readOnly, pdesc, onCommitted) {
     const wrap = el("span", "leaf");
     const isWrapped = value !== null && typeof value === "object" && "$value" in value;
     const shown = isWrapped ? value.$value : value;
     const desc = pdesc ?? (await typeOf(type).catch(() => null));
     const commit = async (newShown) => {
       const newValue = isWrapped ? { ...value, $value: newShown } : newShown;
-      await apply([{ op: "replace", path, value: newValue }], `Set ${path}`, path, true);
+      await apply([{ op: "replace", path, value: newValue }], `Set ${path}`, path, onCommitted);
     };
     let input;
     if (desc?.kind === "enum" && desc.enumValues) {
@@ -419,27 +454,153 @@
   }
 
   // ---- applying edits ------------------------------------------------------------------------
-  async function apply(ops, label, refreshPath) {
+  async function apply(ops, label, refreshPath, after) {
     try {
       status("…");
       await patch(ops, label);
       status(label);
       nodes.delete(refreshPath);
-      await renderGrid();
-      await refreshTreeFrom(refreshPath || ops[0].path);
+      if (after) {
+        await after();
+      } else if (mode === "table") {
+        await renderTable();
+      } else {
+        await renderGrid();
+        await refreshTreeFrom(refreshPath || ops[0].path);
+      }
     } catch (e) {
       status(e.message, "error");
-      await renderGrid();
+      if (mode === "table") await renderTable(); else await renderGrid();
     }
   }
 
-  function expandTo(path) {
-    const parts = path.split(".");
-    let p = "";
-    for (const part of parts) { p = join(p, part); expanded.add(p); }
-    renderTree();
+  // ---- search ---------------------------------------------------------------------------------
+  async function runSearch(query) {
+    const grid = $("grid");
+    if (!query) { await renderGrid(); return; }
+    status("searching…");
+    try {
+      const r = await search(query, "", 500);
+      status(`${r.total.toLocaleString()} match${r.total === 1 ? "" : "es"}${r.truncated ? `, first ${r.hits.length} shown` : ""}`);
+      const list = el("div", "results");
+      $("propsLabel").textContent = `Search: ${query}`;
+      if (r.hits.length === 0) list.appendChild(el("div", "dim", "No matches."));
+      for (const h of r.hits) {
+        const row = el("div", "result" + (isCompiled(h.path) ? " compiled" : ""));
+        row.append(el("span", "rpath", h.path), el("span", "rtype", h.type), el("span", "rpreview", h.preview));
+        row.addEventListener("click", () => { if (mode === "table") { mode = "tree"; void render(); } expandTo(h.path); void select(h.path, true); });
+        list.appendChild(row);
+      }
+      grid.replaceChildren(list);
+    } catch (e) {
+      status(e.message, "error");
+    }
   }
 
+  // ---- table view (localization files) ---------------------------------------------------------
+  let filterQuery = "";
+  let filterTimer;
+  let tablePage = 0;
+  const PageSize = 200;
+
+  async function renderTable() {
+    const seq = ++renderSeq;
+    const grid = $("grid");
+    const t = table;
+    const parts = [];
+    const bar = el("div", "toolbar");
+    const filter = el("input");
+    filter.id = "filter";
+    filter.type = "search";
+    filter.placeholder = "filter rows (key or text)";
+    filter.value = filterQuery;
+    filter.addEventListener("input", () => { clearTimeout(filterTimer); filterTimer = setTimeout(() => { filterQuery = filter.value.trim(); tablePage = 0; void renderTable(); }, 300); });
+    const add = el("button", "link", "+ add row");
+    add.addEventListener("click", async () => {
+      try {
+        const value = await createInstance(t.entryType);
+        const total = nodes.get(t.path)?.total ?? 0;
+        await apply([{ op: "add", path: `${t.path}.-`, value }], "Add row", t.path, async () => { filterQuery = ""; tablePage = Math.floor(total / PageSize); await renderTable(); });
+      } catch (e) { status(e.message, "error"); }
+    });
+    bar.append(filter, add);
+    parts.push(bar);
+
+    let rows = [];
+    let total = 0;
+    let indices = null;
+    try {
+      if (filterQuery) {
+        const r = await search(filterQuery, t.path, 2000);
+        indices = [...new Set(r.hits.map((h) => h.path.slice(t.path.length + 1).split(".")[0]))];
+        total = indices.length;
+        const pageIdx = indices.slice(tablePage * PageSize, (tablePage + 1) * PageSize);
+        const got = pageIdx.length ? await getNodes(pageIdx.map((i) => `${t.path}.${i}`)) : [];
+        rows = got.map((n, k) => ({ index: Number(pageIdx[k]), value: n.value }));
+        status(`${total.toLocaleString()} row${total === 1 ? "" : "s"} match${r.truncated ? " (first 2000 matches searched)" : ""}`);
+      } else {
+        const n = await getNode(t.path, tablePage * PageSize, PageSize);
+        nodes.set(t.path, n);
+        total = n.total ?? 0;
+        rows = n.children.map((c) => ({ index: Number(c.name), value: c.value }));
+      }
+    } catch (e) {
+      if (seq === renderSeq) grid.replaceChildren(el("div", "error", e.message));
+      return;
+    }
+    if (seq !== renderSeq) return;
+
+    const tbl = el("table", "rows");
+    const head = el("tr");
+    head.appendChild(el("th", "", "#"));
+    for (const k of t.keys) head.appendChild(el("th", "", k));
+    head.appendChild(el("th", "", "femaleVariant"));
+    head.appendChild(el("th", "", "maleVariant"));
+    head.appendChild(el("th", ""));
+    tbl.appendChild(head);
+    const entryDesc = await typeOf(t.entryType).catch(() => null);
+    for (const r of rows) {
+      const tr = el("tr");
+      tr.appendChild(el("td", "idx", String(r.index)));
+      const rowPath = `${t.path}.${r.index}`;
+      for (const f of [...t.keys, "femaleVariant", "maleVariant"]) {
+        const td = el("td", f === "femaleVariant" || f === "maleVariant" ? "text" : "key");
+        const pdesc = entryDesc?.properties?.find((p) => p.name === f);
+        td.appendChild(await leafEditor(`${rowPath}.${f}`, pdesc?.type ?? "String", r.value?.[f] ?? "", false, pdesc, async () => { nodes.delete(t.path); }));
+        tr.appendChild(td);
+      }
+      const tools = el("td", "tools");
+      const del = el("button", "icon", "✕");
+      del.title = "Delete row";
+      del.addEventListener("click", () => apply([{ op: "remove", path: rowPath }], `Delete row ${r.index}`, t.path));
+      tools.appendChild(del);
+      tr.appendChild(tools);
+      tbl.appendChild(tr);
+    }
+    parts.push(tbl);
+
+    const pager = el("div", "pager");
+    const pages = Math.max(1, Math.ceil(total / PageSize));
+    const prev = el("button", "", "‹ prev"); prev.disabled = tablePage === 0;
+    const next = el("button", "", "next ›"); next.disabled = tablePage >= pages - 1;
+    prev.addEventListener("click", () => { tablePage--; void renderTable(); });
+    next.addEventListener("click", () => { tablePage++; void renderTable(); });
+    pager.append(prev, el("span", "dim", `rows ${(tablePage * PageSize + 1).toLocaleString()} to ${Math.min(total, (tablePage + 1) * PageSize).toLocaleString()} of ${total.toLocaleString()}`), next);
+    parts.push(pager);
+
+    if (seq !== renderSeq) return;
+    $("propsLabel").textContent = `${t.type}  ·  ${t.entryType}`;
+    grid.replaceChildren(...parts);
+    if (filterQuery && document.activeElement !== filter) { filter.focus(); filter.setSelectionRange(filter.value.length, filter.value.length); }
+  }
+
+  // ---- wiring ----------------------------------------------------------------------------------
   $("json").addEventListener("click", () => vscode.postMessage({ type: "openAsJson" }));
+  $("view").addEventListener("click", () => { mode = mode === "table" ? "tree" : "table"; void render(true); });
+  const searchBox = $("search");
+  searchBox.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") { e.preventDefault(); void runSearch(searchBox.value.trim()); }
+    if (e.key === "Escape") { searchBox.value = ""; void (mode === "table" ? renderTable() : renderGrid()); }
+  });
   vscode.postMessage({ type: "ready" });
 })();

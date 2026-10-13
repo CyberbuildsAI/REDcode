@@ -213,6 +213,19 @@ tool("cr2w_patch", `Apply JSON Patch operations (replace, add, remove, move) to 
   ops: z.array(PatchOpSchema).min(1),
 }, (a, b) => b.patch(a.doc, a.ops as PatchOp[]));
 
+tool("cr2w_get_nodes", "Several nodes of an open document in one call. A path that fails gives a node of kind 'error' with the message as its type, instead of failing the call.", {
+  doc: z.string(),
+  paths: z.array(z.string()).min(1).max(500),
+  limit: z.number().int().min(1).max(5000).default(200).describe("Array window size for array nodes."),
+}, (a, b) => b.getNodes(a.doc, a.paths, a.limit));
+
+tool("cr2w_search", `Find leaves in an open document whose text or property name contains the query (case-insensitive), below a path. Returns paths with previews; total counts every match. Use it to locate a value before patching, or to filter rows of a localization file (path root.Data.entries). ${PathRules}`, {
+  doc: z.string(),
+  query: z.string().min(1),
+  path: z.string().default("").describe("Start path; empty for the whole file."),
+  limit: z.number().int().min(1).max(5000).default(200),
+}, (a, b) => b.searchDocument(a.doc, a.query, a.path, a.limit));
+
 tool("cr2w_save", "Write an open document through WolvenKit's writer, to its own file or to outFile. compiledData is rebuilt from components during the write.", {
   doc: z.string(),
   outFile: z.string().optional(),

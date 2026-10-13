@@ -20,7 +20,7 @@ The server finds REDbridge.exe and the game folder from `--bridge` and `--game`,
 |---|---|
 | Archives | `bridge_info`, `archive_search`, `archive_list`, `archive_tree`, `archive_extract`, `archive_extract_many` |
 | Conversion | `cr2w_to_json`, `cr2w_file_to_json`, `cr2w_from_json`, `texture_to_png`, `texture_file_to_png`, `hash_fnv1a64`, `hash_resolve` |
-| Document sessions | `cr2w_open`, `cr2w_get_node`, `cr2w_patch`, `cr2w_save`, `cr2w_close`, `cr2w_documents`, `cr2w_describe_type`, `cr2w_create_instance` |
+| Document sessions | `cr2w_open`, `cr2w_get_node`, `cr2w_get_nodes`, `cr2w_search`, `cr2w_patch`, `cr2w_save`, `cr2w_close`, `cr2w_documents`, `cr2w_describe_type`, `cr2w_create_instance` |
 | One call | `cr2w_read` (open, read paths, close) and `cr2w_edit_file` (open, patch, save, close; a game path with `outFile` gives a modified copy, the archives are never changed) |
 
 The tool descriptions carry the path convention and the three format rules, so an assistant that has only the tool list can work correctly: paths are dotted from the root chunk as in WolvenKit's JSON; numbers are 32-bit floats; `compiledData` is rebuilt from `components` on save; defaults are not stored.

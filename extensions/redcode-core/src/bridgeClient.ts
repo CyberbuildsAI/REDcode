@@ -6,7 +6,7 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { EventEmitter } from "node:events";
 import * as readline from "node:readline";
 import { createMessageConnection, StreamMessageReader, StreamMessageWriter, type MessageConnection } from "vscode-jsonrpc/node";
-import type { ArchiveInfo, BridgeInfo, DocumentInfo, ExtractManyResult, ExtractResult, FileList, HashResult, JsonResult, NodeInfo, PatchOp, PatchResult, ResolveResult, TreeResult, TypeDescription } from "./types";
+import type { ArchiveInfo, BridgeInfo, DocumentInfo, ExtractManyResult, ExtractResult, FileList, HashResult, JsonResult, NodeInfo, PatchOp, PatchResult, ResolveResult, SearchResult, TreeResult, TypeDescription } from "./types";
 
 export interface BridgeOptions {
   /** Path to REDbridge.exe. */
@@ -164,6 +164,16 @@ export class BridgeClient extends EventEmitter<BridgeEvents> {
   /** One node by dotted path from the root chunk; an empty path is the root. Arrays page from offset. */
   getNode(doc: string, path = "", offset = 0, limit = 200): Promise<NodeInfo> {
     return this.call("cr2w.getNode", { doc, path, offset, limit });
+  }
+
+  /** Several nodes in one call; a path that fails gives a node of kind "error" whose type holds the message. */
+  getNodes(doc: string, paths: string[], limit = 200): Promise<NodeInfo[]> {
+    return this.call("cr2w.getNodes", { doc, paths, limit });
+  }
+
+  /** Leaves whose text or property name contains the query, below a path. Total counts all; hits holds the first limit. */
+  searchDocument(doc: string, query: string, path = "", limit = 200): Promise<SearchResult> {
+    return this.call("cr2w.search", { doc, query, path, limit });
   }
 
   /** Applies the operations atomically and returns the inverse, for undo. */
