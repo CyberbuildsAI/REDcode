@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- CR2W editor E5: a texture (`.xbm`) opens with its image above the grid and the setup fields selected. Game files open in the editor straight from the archives, read-only, through the `redcode-game` scheme: click a file in Game Assets, or Open in Editor; Open as JSON stays in the menu.
+
 - Project view: hovering a file or folder shows Reveal in File Explorer and Delete buttons on the right, like Add to Project in Game Assets. Delete asks first, counting the files in a folder, and sends it to the Recycle Bin.
 - Add to Project reveals what it added in the Project view, expanded down to the file (or the folder) and selected, since editing it is the likely next step.
 

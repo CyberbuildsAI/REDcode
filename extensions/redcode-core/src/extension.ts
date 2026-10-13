@@ -7,6 +7,7 @@ import { AssetBrowser, type AssetNode } from "./assetBrowser";
 import { BridgeClient } from "./bridgeClient";
 import { checkDotnetRuntime, DotnetDownloadUrl, DotnetInstallCommand, findCheckout, installRelease, latestRelease, managedDir, updateCheckout } from "./bridgeUpdater";
 import { Cr2wEditorProvider, Cr2wViewType, opensInCr2wEditor } from "./cr2wEditor";
+import { GameFileSystem, gameUri } from "./gameFs";
 import { compareJson, formatDifference, type JsonComparison } from "./jsonDiff";
 import { createProject, findProject, gamePathOf, projectPathFor, type ProjectInfo } from "./project";
 import { ProjectExplorer, type ProjectNode } from "./projectExplorer";
@@ -49,11 +50,21 @@ export function activate(context: vscode.ExtensionContext): void {
   assets = new AssetBrowser(() => bridge);
   explorer = new ProjectExplorer(() => project);
   textures = new TextureViewer(() => bridge, storage, log);
-  const cr2w = new Cr2wEditorProvider(context, () => bridge, log, textures, (file) => void withBridge((b) => openProjectFileAsJson(b, { kind: "file", file })));
+  const cr2w = new Cr2wEditorProvider(
+    context,
+    () => bridge,
+    log,
+    textures,
+    (file) => void withBridge((b) => openProjectFileAsJson(b, { kind: "file", file })),
+    (gamePath) => void withBridge((b) => openJsonOf(b, gamePath)),
+  );
+  const gameFs = new GameFileSystem(() => bridge, path.join(storage.fsPath, "cache"));
 
   context.subscriptions.push(
     log,
     status,
+    gameFs.register(),
+    vscode.commands.registerCommand("redcode.openAssetInEditor", (node: AssetNode) => openAssetInEditor(node)),
     vscode.window.createTreeView("redcode.assets", { treeDataProvider: assets, showCollapseAll: true }),
     (projectView = vscode.window.createTreeView("redcode.project", { treeDataProvider: explorer, showCollapseAll: true })),
     textures.register(),
@@ -523,6 +534,18 @@ async function openGameFileAsJson(b: BridgeClient): Promise<void> {
   if (file) {
     await openJsonOf(b, file.name);
   }
+}
+
+/** Opens a game file in the CR2W editor, read-only, straight from the archives through the redcode-game scheme. */
+async function openAssetInEditor(node: AssetNode): Promise<void> {
+  if (node.kind !== "file") {
+    return;
+  }
+  if (!bridge?.running) {
+    await withBridge(async () => undefined);
+    return;
+  }
+  await vscode.commands.executeCommand("vscode.openWith", gameUri(node.file.name), Cr2wViewType);
 }
 
 async function openAssetAsJson(b: BridgeClient, node: AssetNode): Promise<void> {

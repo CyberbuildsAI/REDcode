@@ -154,6 +154,11 @@
         "category": "REDcode"
       },
       {
+        "command": "redcode.openAssetInEditor",
+        "title": "Open in Editor",
+        "category": "REDcode"
+      },
+      {
         "command": "redcode.openAssetAsJson",
         "title": "Open as JSON",
         "category": "REDcode"
@@ -284,9 +289,14 @@
           "group": "2_open@0"
         },
         {
-          "command": "redcode.openAssetAsJson",
+          "command": "redcode.openAssetInEditor",
           "when": "view == redcode.assets && viewItem =~ /^assetFile/",
           "group": "2_open@1"
+        },
+        {
+          "command": "redcode.openAssetAsJson",
+          "when": "view == redcode.assets && viewItem =~ /^assetFile/",
+          "group": "2_open@2"
         },
         {
           "command": "redcode.copyAssetPath",
@@ -330,6 +340,10 @@
         },
         {
           "command": "redcode.openAssetAsJson",
+          "when": "false"
+        },
+        {
+          "command": "redcode.openAssetInEditor",
           "when": "false"
         },
         {

@@ -39,7 +39,7 @@ export class AssetBrowser implements vscode.TreeDataProvider<AssetNode> {
       item.command = { command: "redcode.openTexture", title: "Open Texture", arguments: [node] };
     } else {
       item.contextValue = "assetFile";
-      item.command = { command: "redcode.openAssetAsJson", title: "Open as JSON", arguments: [node] };
+      item.command = { command: "redcode.openAssetInEditor", title: "Open in Editor", arguments: [node] };
     }
     return item;
   }

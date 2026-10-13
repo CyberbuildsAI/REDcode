@@ -8,6 +8,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import * as vscode from "vscode";
 import type { BridgeClient } from "./bridgeClient";
+import { gamePathOfUri } from "./gameFs";
 import { ProjectFolders } from "./project";
 import type { TextureViewer } from "./textureViewer";
 import type { DocumentInfo, PatchOp, PatchResult } from "./types";
@@ -71,10 +72,20 @@ export class Cr2wDocument implements vscode.CustomDocument {
     return next;
   }
 
+  /** Set when the document is a game file opened through the redcode-game scheme: read-only, straight from the archives. */
+  readonly gamePath: string | undefined;
+
   constructor(
     readonly uri: vscode.Uri,
     private readonly logChannel: vscode.OutputChannel,
-  ) {}
+  ) {
+    this.gamePath = gamePathOfUri(uri);
+  }
+
+  /** The name shown in the header and the tab. */
+  get name(): string {
+    return path.basename(this.gamePath ?? this.uri.fsPath);
+  }
 
   get doc(): string {
     if (!this.info) {
@@ -88,7 +99,7 @@ export class Cr2wDocument implements vscode.CustomDocument {
     if (this.info && this.openedOn === bridge) {
       return this.info;
     }
-    this.info = await bridge.openDocument({ file: this.uri.fsPath });
+    this.info = await bridge.openDocument(this.gamePath ? { path: this.gamePath } : { file: this.uri.fsPath });
     this.openedOn = bridge;
     if (this.log.length > 0) {
       await bridge.patch(this.info.doc, this.log);
@@ -126,6 +137,9 @@ export class Cr2wDocument implements vscode.CustomDocument {
 
   save(bridge: BridgeClient, outFile?: string): Promise<void> {
     return this.enqueue(async () => {
+      if (this.gamePath && !outFile) {
+        throw new Error("This is the game's copy and is read-only. Add it to the project to edit and save it.");
+      }
       await this.ensureOpen(bridge);
       const result = await bridge.saveDocument(this.doc, outFile);
       this.logChannel.appendLine(`cr2w.save ${this.doc} -> ${result.file} (${result.bytes.toLocaleString()} bytes)`);
@@ -215,17 +229,19 @@ export class Cr2wEditorProvider implements vscode.CustomEditorProvider<Cr2wDocum
     /** Converts textures to PNG and knows where they go, for the atlas view. */
     private readonly textures: TextureViewer,
     private readonly openAsJson: (file: string) => void,
+    private readonly openGameAsJson: (gamePath: string) => void,
   ) {}
 
   /**
    * The PNG for a texture an atlas refers to by depot path. The project's own copy under
    * source/archive wins when it exists, since that is the texture a mod ships; otherwise the game's.
+   * A game document has no project, so it always gets the game's texture.
    */
-  private async texturePng(bridge: BridgeClient, documentFile: string, depot: string): Promise<string> {
-    const lower = documentFile.toLowerCase();
+  private async texturePng(bridge: BridgeClient, documentFile: string | undefined, depot: string): Promise<string> {
+    const lower = (documentFile ?? "").toLowerCase();
     const marker = `${path.sep}${ProjectFolders.archive.toLowerCase()}${path.sep}`;
-    const at = lower.indexOf(marker);
-    if (at >= 0) {
+    const at = documentFile ? lower.indexOf(marker) : -1;
+    if (documentFile && at >= 0) {
       const own = path.join(documentFile.slice(0, at), ProjectFolders.archive, ...depot.split("\\"));
       if (fs.existsSync(own)) {
         const png = this.textures.pngForFile(own);
@@ -306,7 +322,7 @@ export class Cr2wEditorProvider implements vscode.CustomEditorProvider<Cr2wDocum
           }
           case "ready": {
             const info = await document.ensureOpen(this.requireBridge());
-            post({ type: "document", info, file: path.basename(document.uri.fsPath), dirty: document.log.length > 0 });
+            post({ type: "document", info, file: document.name, game: document.gamePath !== undefined, dirty: document.log.length > 0 });
             return;
           }
           case "getNode":
@@ -322,14 +338,20 @@ export class Cr2wEditorProvider implements vscode.CustomEditorProvider<Cr2wDocum
           case "patch":
             return reply(m.id, await document.edit(this.requireBridge(), m.ops ?? [], m.label ?? "Edit"));
           case "texture": {
-            const png = await this.texturePng(this.requireBridge(), document.uri.fsPath, m.depot ?? "");
+            const png = await this.texturePng(this.requireBridge(), document.gamePath ? undefined : document.uri.fsPath, m.depot ?? "");
             return reply(m.id, { png, src: panel.webview.asWebviewUri(vscode.Uri.file(png)).toString() });
           }
           case "documentTexture": {
-            // The open file itself, for the texture view.
+            // The open file itself, for the texture view: the game's copy, or the file on disk.
             const bridge = this.requireBridge();
-            const png = this.textures.pngForFile(document.uri.fsPath);
-            await bridge.fileToPng(document.uri.fsPath, png);
+            let png: string;
+            if (document.gamePath) {
+              png = this.textures.pngForGamePath(document.gamePath);
+              await bridge.toPng(document.gamePath, png);
+            } else {
+              png = this.textures.pngForFile(document.uri.fsPath);
+              await bridge.fileToPng(document.uri.fsPath, png);
+            }
             return reply(m.id, { png, src: panel.webview.asWebviewUri(vscode.Uri.file(png)).toString() });
           }
           case "textureData": {
@@ -342,10 +364,11 @@ export class Cr2wEditorProvider implements vscode.CustomEditorProvider<Cr2wDocum
             return reply(m.id, `data:image/png;base64,${fs.readFileSync(png).toString("base64")}`);
           }
           case "openAsJson":
-            this.openAsJson(document.uri.fsPath);
+            if (document.gamePath) this.openGameAsJson(document.gamePath);
+            else this.openAsJson(document.uri.fsPath);
             return;
           case "reveal":
-            await vscode.commands.executeCommand("revealFileInOS", document.uri);
+            if (!document.gamePath) await vscode.commands.executeCommand("revealFileInOS", document.uri);
             return;
           case "log":
             this.log.appendLine(`cr2w page: ${m.label ?? ""}`);

@@ -94,7 +94,7 @@
     info = m.info;
     $("file").textContent = m.file;
     $("type").textContent = m.info.type;
-    $("size").textContent = `${m.info.bytes.toLocaleString()} B` + (m.info.embeddedFiles ? `, ${m.info.embeddedFiles} embedded` : "");
+    $("size").textContent = `${m.info.bytes.toLocaleString()} B` + (m.info.embeddedFiles ? `, ${m.info.embeddedFiles} embedded` : "") + (m.game ? "  ·  game copy, read-only" : "");
     document.title = m.file;
     table = await detectTable().catch(() => null);
     atlas = table ? null : await detectAtlas().catch((e) => { status(e.message, "error"); return null; });
@@ -251,8 +251,10 @@
     let n;
     try { n = await fetchNode(selected); } catch (e) { if (seq === renderSeq) grid.replaceChildren(el("div", "error", e.message)); return; }
     if (seq !== renderSeq) return;
-    const readOnly = isCompiled(selected);
-    if (readOnly) {
+    const readOnly = isCompiled(selected) || !!info?.readOnly;
+    if (info?.readOnly && selected === "") {
+      rows.push(el("div", "banner", "This is the game's copy and is read-only. Add the file to the project to edit it."));
+    } else if (isCompiled(selected)) {
       rows.push(el("div", "banner", "compiledData mirrors components: after parsing they are the same objects, and WolvenKit rebuilds this block from components on save. It is read-only here; edit the component under components."));
     }
     switch (n.kind) {
@@ -589,7 +591,8 @@
         });
       } catch (e) { status(e.message, "error"); }
     });
-    bar.append(filter, add);
+    bar.append(filter);
+    if (!info?.readOnly) bar.appendChild(add);
     parts.push(bar);
 
     let rows = [];
@@ -634,14 +637,14 @@
       for (const f of [...t.keys, "femaleVariant", "maleVariant"]) {
         const td = el("td", f === "femaleVariant" || f === "maleVariant" ? "text" : "key");
         const pdesc = entryDesc?.properties?.find((p) => p.name === f);
-        td.appendChild(await leafEditor(`${rowPath}.${f}`, pdesc?.type ?? "String", r.value?.[f] ?? "", false, pdesc, async () => { nodes.delete(t.path); }));
+        td.appendChild(await leafEditor(`${rowPath}.${f}`, pdesc?.type ?? "String", r.value?.[f] ?? "", !!info?.readOnly, pdesc, async () => { nodes.delete(t.path); }));
         tr.appendChild(td);
       }
       const tools = el("td", "tools");
       const del = el("button", "icon", "✕");
       del.title = "Delete row";
       del.addEventListener("click", () => apply([{ op: "remove", path: rowPath }], `Delete row ${r.index}`, t.path));
-      tools.appendChild(del);
+      if (!info?.readOnly) tools.appendChild(del);
       tr.appendChild(tools);
       tbl.appendChild(tr);
     }
@@ -922,7 +925,8 @@
     const add = el("button", "link", "+ add part");
     add.title = "Add a part to this slot";
     add.addEventListener("click", addPart);
-    bar.append(filter, add);
+    bar.append(filter);
+    if (!info?.readOnly) bar.appendChild(add);
     fillPartsList();
   }
 
@@ -981,14 +985,15 @@
     openTree.addEventListener("click", () => { mode = "tree"; expandTo(part.path); void render(true); });
     const del = el("button", "link", "delete part");
     del.addEventListener("click", () => apply([{ op: "remove", path: part.path }], `Delete part ${part.name}`, slot.partsPath, async () => { selected = ""; await renderAtlas(); }));
-    head.append(el("span", "dim", part.path), openTree, del);
+    head.append(el("span", "dim", part.path), openTree);
+    if (!info?.readOnly) head.appendChild(del);
     rows.push(head);
 
     const nameRow = el("div", "prow");
     nameRow.append(el("span", "pname", "partName"), el("span", "ptype", "CName"));
     const nameCell = el("span", "pvalue");
     const nameValue = part.raw.partName ?? { $type: "CName", $storage: "string", $value: part.name };
-    nameCell.appendChild(await leafEditor(`${part.path}.partName`, "CName", nameValue, false, null, async () => { await renderAtlas(); }));
+    nameCell.appendChild(await leafEditor(`${part.path}.partName`, "CName", nameValue, !!info?.readOnly, null, async () => { await renderAtlas(); }));
     nameRow.appendChild(nameCell);
     rows.push(nameRow);
 
@@ -1002,6 +1007,7 @@
       i.type = "text";
       i.inputMode = "numeric";
       i.value = String(r[k]);
+      i.disabled = !!info?.readOnly;
       inputs[k] = i;
       f.appendChild(i);
     }
