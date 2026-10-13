@@ -131,3 +131,10 @@ body.atlas-mode #parts { display: block; }
 .texwrap { margin-bottom: 8px; border-bottom: 1px solid var(--line); }
 .texwrap .stage { max-height: 60vh; overflow: auto; }
 .texwrap .stage.fit img { max-height: 60vh; width: auto; }
+
+/* the Properties view: the same page with only the grid */
+body[data-mode="sidebar"] header, body[data-mode="sidebar"] aside, body[data-mode="sidebar"] #splitter, body[data-mode="sidebar"] footer { display: none; }
+body[data-mode="sidebar"] #body { grid-template-columns: 1fr; }
+body[data-mode="sidebar"] .prow { grid-template-columns: minmax(90px, 32%) 1fr auto; }
+body[data-mode="sidebar"] .prow .ptype { display: none; }
+body[data-mode="sidebar"] #grid { padding: 4px 8px 16px; }

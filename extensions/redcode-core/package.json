@@ -110,6 +110,11 @@
         {
           "id": "redcode.assets",
           "name": "Game Assets"
+        },
+        {
+          "type": "webview",
+          "id": "redcode.properties",
+          "name": "Properties"
         }
       ]
     },

@@ -58,6 +58,9 @@ export class Cr2wDocument implements vscode.CustomDocument {
   private readonly reloaded = new vscode.EventEmitter<string>();
   /** Fired when the pages must refetch what they show: after undo, redo, revert, save or a reopen. */
   readonly onDidReload = this.reloaded.event;
+  private readonly disposed = new vscode.EventEmitter<void>();
+  /** Fired when VS Code closes the document, so the Properties view can let go of it. */
+  readonly onDidDispose = this.disposed.event;
 
   info: DocumentInfo | undefined;
   /** The forward operations since the last save. Replayed from a backup or after the bridge restarts. */
@@ -166,8 +169,10 @@ export class Cr2wDocument implements vscode.CustomDocument {
       void this.openedOn.closeDocument(this.info.doc).catch(() => undefined);
     }
     this.info = undefined;
+    this.disposed.fire();
     this.changed.dispose();
     this.reloaded.dispose();
+    this.disposed.dispose();
   }
 }
 
@@ -191,10 +196,27 @@ interface Request {
 export class Cr2wEditorProvider implements vscode.CustomEditorProvider<Cr2wDocument> {
   private readonly changed = new vscode.EventEmitter<vscode.CustomDocumentEditEvent<Cr2wDocument>>();
   readonly onDidChangeCustomDocument = this.changed.event;
-  /** The open pages per document, so a save can ask them to commit any input still being edited. */
-  private readonly panels = new Map<Cr2wDocument, Set<vscode.WebviewPanel>>();
+  /** The open pages per document (editor panels and the Properties view), so a save can ask them to commit any input still being edited. */
+  private readonly pages = new Map<Cr2wDocument, Set<vscode.Webview>>();
+  /** The last selected path per document, which a page attaching later (the Properties view) starts on. */
+  private readonly selection = new Map<Cr2wDocument, string>();
+  private readonly documents = new Map<string, Cr2wDocument>();
   private readonly flushes = new Map<number, () => void>();
   private nextFlush = 1;
+
+  /** The open document for an editor tab's URI, for the Properties view. */
+  documentFor(uri: vscode.Uri): Cr2wDocument | undefined {
+    return this.documents.get(uri.toString());
+  }
+
+  get media(): vscode.Uri {
+    return vscode.Uri.joinPath(this.context.extensionUri, "media", "cr2w");
+  }
+
+  /** What a page may load: the editor's media and the converted PNGs. */
+  get resourceRoots(): vscode.Uri[] {
+    return [this.media, this.textures.root];
+  }
 
   /**
    * Asks every page of the document to commit the input that has focus and to let its in-flight
@@ -202,10 +224,10 @@ export class Cr2wEditorProvider implements vscode.CustomEditorProvider<Cr2wDocum
    * edit as the save starts, and the file would be written without it.
    */
   private async flush(document: Cr2wDocument): Promise<void> {
-    const pages = [...(this.panels.get(document) ?? [])];
+    const pages = [...(this.pages.get(document) ?? [])];
     await Promise.all(
       pages.map(
-        (panel) =>
+        (webview) =>
           new Promise<void>((resolve) => {
             const id = this.nextFlush++;
             const timer = setTimeout(() => {
@@ -216,7 +238,7 @@ export class Cr2wEditorProvider implements vscode.CustomEditorProvider<Cr2wDocum
               clearTimeout(timer);
               resolve();
             });
-            void panel.webview.postMessage({ type: "flush", id });
+            void webview.postMessage({ type: "flush", id });
           }),
       ),
     );
@@ -273,6 +295,12 @@ export class Cr2wEditorProvider implements vscode.CustomEditorProvider<Cr2wDocum
   async openCustomDocument(uri: vscode.Uri, openContext: vscode.CustomDocumentOpenContext): Promise<Cr2wDocument> {
     const document = new Cr2wDocument(uri, this.log);
     document.onDidChange((e) => this.changed.fire(e));
+    this.documents.set(uri.toString(), document);
+    document.onDidDispose(() => {
+      if (this.documents.get(uri.toString()) === document) this.documents.delete(uri.toString());
+      this.pages.delete(document);
+      this.selection.delete(document);
+    });
     if (openContext.backupId) {
       try {
         const backup = JSON.parse(fs.readFileSync(vscode.Uri.parse(openContext.backupId).fsPath, "utf8")) as Backup;
@@ -290,11 +318,19 @@ export class Cr2wEditorProvider implements vscode.CustomEditorProvider<Cr2wDocum
   }
 
   async resolveCustomEditor(document: Cr2wDocument, panel: vscode.WebviewPanel): Promise<void> {
-    const media = vscode.Uri.joinPath(this.context.extensionUri, "media", "cr2w");
-    panel.webview.options = { enableScripts: true, localResourceRoots: [media, this.textures.root] };
-    panel.webview.html = this.html(panel.webview, media);
+    panel.webview.options = { enableScripts: true, localResourceRoots: this.resourceRoots };
+    panel.webview.html = this.html(panel.webview, false);
+    const page = this.attachPage(document, panel.webview);
+    panel.onDidDispose(() => page.dispose());
+  }
 
-    const post = (message: unknown) => void panel.webview.postMessage(message);
+  /**
+   * Wires a page (an editor panel, or the Properties view) to a document: answers its requests,
+   * forwards reloads, and tells the document's other pages when it edits or selects something.
+   * Returns the detach.
+   */
+  attachPage(document: Cr2wDocument, webview: vscode.Webview): vscode.Disposable {
+    const post = (message: unknown) => void webview.postMessage(message);
     const reply = (id: number | undefined, value: unknown) => post({ type: "reply", id, ok: true, value });
     const fail = (id: number | undefined, e: unknown) => {
       const message = e instanceof Error ? e.message : String(e);
@@ -302,14 +338,19 @@ export class Cr2wEditorProvider implements vscode.CustomEditorProvider<Cr2wDocum
       // A request carries an id and gets a reply; a notification such as "ready" gets a page-level error.
       post(id === undefined ? { type: "error", error: message } : { type: "reply", id, ok: false, error: message });
     };
+    const others = (message: unknown) => {
+      for (const w of this.pages.get(document) ?? []) {
+        if (w !== webview) void w.postMessage(message);
+      }
+    };
 
-    if (!this.panels.has(document)) {
-      this.panels.set(document, new Set());
+    if (!this.pages.has(document)) {
+      this.pages.set(document, new Set());
     }
-    this.panels.get(document)!.add(panel);
+    this.pages.get(document)!.add(webview);
 
     const reload = document.onDidReload((reason) => post({ type: "reload", reason }));
-    const messages = panel.webview.onDidReceiveMessage(async (m: Request) => {
+    const messages = webview.onDidReceiveMessage(async (m: Request) => {
       try {
         switch (m.type) {
           case "flushed": {
@@ -322,7 +363,7 @@ export class Cr2wEditorProvider implements vscode.CustomEditorProvider<Cr2wDocum
           }
           case "ready": {
             const info = await document.ensureOpen(this.requireBridge());
-            post({ type: "document", info, file: document.name, game: document.gamePath !== undefined, dirty: document.log.length > 0 });
+            post({ type: "document", info, file: document.name, game: document.gamePath !== undefined, dirty: document.log.length > 0, selected: this.selection.get(document) ?? "" });
             return;
           }
           case "getNode":
@@ -335,11 +376,19 @@ export class Cr2wEditorProvider implements vscode.CustomEditorProvider<Cr2wDocum
             return reply(m.id, await this.requireBridge().describeType(m.name ?? ""));
           case "createInstance":
             return reply(m.id, await this.requireBridge().createInstance(m.name ?? ""));
-          case "patch":
-            return reply(m.id, await document.edit(this.requireBridge(), m.ops ?? [], m.label ?? "Edit"));
+          case "patch": {
+            const result = await document.edit(this.requireBridge(), m.ops ?? [], m.label ?? "Edit");
+            reply(m.id, result);
+            others({ type: "changed", path: m.ops?.[0]?.path ?? "" });
+            return;
+          }
+          case "selected":
+            this.selection.set(document, m.path ?? "");
+            others({ type: "select", path: m.path ?? "" });
+            return;
           case "texture": {
             const png = await this.texturePng(this.requireBridge(), document.gamePath ? undefined : document.uri.fsPath, m.depot ?? "");
-            return reply(m.id, { png, src: panel.webview.asWebviewUri(vscode.Uri.file(png)).toString() });
+            return reply(m.id, { png, src: webview.asWebviewUri(vscode.Uri.file(png)).toString() });
           }
           case "documentTexture": {
             // The open file itself, for the texture view: the game's copy, or the file on disk.
@@ -352,7 +401,7 @@ export class Cr2wEditorProvider implements vscode.CustomEditorProvider<Cr2wDocum
               png = this.textures.pngForFile(document.uri.fsPath);
               await bridge.fileToPng(document.uri.fsPath, png);
             }
-            return reply(m.id, { png, src: panel.webview.asWebviewUri(vscode.Uri.file(png)).toString() });
+            return reply(m.id, { png, src: webview.asWebviewUri(vscode.Uri.file(png)).toString() });
           }
           case "textureData": {
             // The resource URI was refused (it has been, with a 401, on one machine): send the bytes inline.
@@ -378,10 +427,10 @@ export class Cr2wEditorProvider implements vscode.CustomEditorProvider<Cr2wDocum
         fail(m.id, e);
       }
     });
-    panel.onDidDispose(() => {
+    return new vscode.Disposable(() => {
       reload.dispose();
       messages.dispose();
-      this.panels.get(document)?.delete(panel);
+      this.pages.get(document)?.delete(webview);
     });
   }
 
@@ -415,7 +464,9 @@ export class Cr2wEditorProvider implements vscode.CustomEditorProvider<Cr2wDocum
     };
   }
 
-  private html(webview: vscode.Webview, media: vscode.Uri): string {
+  /** The page. The same markup serves the editor and, with sidebar set, the Properties view, which hides everything but the grid. */
+  html(webview: vscode.Webview, sidebar: boolean): string {
+    const media = this.media;
     const nonce = Array.from({ length: 24 }, () => "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[Math.floor(Math.random() * 62)]).join("");
     const script = webview.asWebviewUri(vscode.Uri.joinPath(media, "editor.js"));
     const style = webview.asWebviewUri(vscode.Uri.joinPath(media, "editor.css"));
@@ -428,7 +479,7 @@ export class Cr2wEditorProvider implements vscode.CustomEditorProvider<Cr2wDocum
 <link rel="stylesheet" href="${style}">
 <title>CR2W</title>
 </head>
-<body>
+<body${sidebar ? ' data-mode="sidebar"' : ""}>
 <header id="header">
   <span class="name" id="file">Loading</span>
   <span class="meta" id="type"></span>
@@ -452,5 +503,72 @@ export class Cr2wEditorProvider implements vscode.CustomEditorProvider<Cr2wDocum
 <script nonce="${nonce}" src="${script}"></script>
 </body>
 </html>`;
+  }
+}
+
+/**
+ * The Properties view in the REDcode activity bar: the selected node of the active CR2W editor, in
+ * the same grid, editable. It follows the active editor tab and keeps the last CR2W document while
+ * another kind of editor has focus, letting go only when that document closes.
+ */
+export class Cr2wPropertiesView implements vscode.WebviewViewProvider {
+  static readonly viewType = "redcode.properties";
+  private view: vscode.WebviewView | undefined;
+  private attached: { document: Cr2wDocument; page: vscode.Disposable; closed: vscode.Disposable } | undefined;
+
+  constructor(private readonly editor: Cr2wEditorProvider) {}
+
+  register(): vscode.Disposable {
+    return vscode.Disposable.from(
+      vscode.window.registerWebviewViewProvider(Cr2wPropertiesView.viewType, this, { webviewOptions: { retainContextWhenHidden: true } }),
+      vscode.window.tabGroups.onDidChangeTabs(() => this.follow()),
+      vscode.window.tabGroups.onDidChangeTabGroups(() => this.follow()),
+      new vscode.Disposable(() => this.detach()),
+    );
+  }
+
+  resolveWebviewView(view: vscode.WebviewView): void {
+    this.view = view;
+    view.webview.options = { enableScripts: true, localResourceRoots: this.editor.resourceRoots };
+    view.webview.html = this.editor.html(view.webview, true);
+    view.onDidDispose(() => {
+      this.detach();
+      this.view = undefined;
+    });
+    this.follow();
+  }
+
+  private activeDocument(): Cr2wDocument | undefined {
+    const input = vscode.window.tabGroups.activeTabGroup.activeTab?.input;
+    return input instanceof vscode.TabInputCustom && input.viewType === Cr2wViewType ? this.editor.documentFor(input.uri) : undefined;
+  }
+
+  private follow(): void {
+    if (!this.view) {
+      return;
+    }
+    const document = this.activeDocument();
+    if (!document || document === this.attached?.document) {
+      if (!this.attached) void this.view.webview.postMessage({ type: "none" });
+      return;
+    }
+    this.detach();
+    const webview = this.view.webview;
+    this.attached = {
+      document,
+      page: this.editor.attachPage(document, webview),
+      closed: document.onDidDispose(() => {
+        this.detach();
+        void webview.postMessage({ type: "none" });
+      }),
+    };
+    // The page asks for the document when it is ready; after a switch it has to ask again.
+    void webview.postMessage({ type: "attach" });
+  }
+
+  private detach(): void {
+    this.attached?.page.dispose();
+    this.attached?.closed.dispose();
+    this.attached = undefined;
   }
 }

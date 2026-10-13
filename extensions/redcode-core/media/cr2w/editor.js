@@ -32,6 +32,10 @@
     vscode.postMessage({ type: "flushed", id });
   }
 
+  // The Properties view runs this same page with everything but the grid hidden. It follows the
+  // editor's selection and edits through the same document; the editor hears about its edits as "changed".
+  const sidebar = document.body.dataset.mode === "sidebar";
+
   window.addEventListener("message", (e) => {
     const m = e.data;
     if (m.type === "reply") {
@@ -43,6 +47,19 @@
       onDocument(m);
     } else if (m.type === "reload") {
       reloadAll(m.reason);
+    } else if (m.type === "changed") {
+      // Another page edited the document: refetch and redraw, keeping the selection and expansion.
+      reloadAll("an edit elsewhere");
+    } else if (m.type === "select") {
+      if (sidebar) { selected = m.path ?? ""; $("selected").textContent = selected || "(root)"; void renderGrid(); }
+      else { expandTo(m.path ?? ""); void select(m.path ?? "", true, true); }
+    } else if (m.type === "attach") {
+      nodes.clear();
+      vscode.postMessage({ type: "ready" });
+    } else if (m.type === "none") {
+      info = null;
+      $("propsLabel").textContent = "Properties";
+      $("grid").replaceChildren(el("div", "dim", "Open a game file in the CR2W editor to see its properties here."));
     } else if (m.type === "flush") {
       void flush(m.id);
     } else if (m.type === "error") {
@@ -96,6 +113,16 @@
     $("type").textContent = m.info.type;
     $("size").textContent = `${m.info.bytes.toLocaleString()} B` + (m.info.embeddedFiles ? `, ${m.info.embeddedFiles} embedded` : "") + (m.game ? "  ·  game copy, read-only" : "");
     document.title = m.file;
+    if (sidebar) {
+      // The grid only, on whatever the editor has selected. Table and atlas files show their selected node too.
+      mode = "tree";
+      table = null;
+      atlas = null;
+      selected = m.selected ?? "";
+      $("selected").textContent = selected || "(root)";
+      await reloadAll("open");
+      return;
+    }
     table = await detectTable().catch(() => null);
     atlas = table ? null : await detectAtlas().catch((e) => { status(e.message, "error"); return null; });
     if (table || atlas) {
@@ -231,13 +258,15 @@
   }
 
   // ---- selection and the property grid -------------------------------------------------------
-  async function select(path, force = false) {
+  /** Selects a path and shows it in the grid. silent: the selection came from another page, so do not echo it back. */
+  async function select(path, force = false, silent = false) {
     if (path === selected && !force) return;
     selected = path;
     for (const r of document.querySelectorAll("#tree .row.selected")) r.classList.remove("selected");
     const li = document.querySelector(`li[data-path="${CSS.escape(path)}"]`);
     li?.querySelector(":scope > .row")?.classList.add("selected");
     $("selected").textContent = path || "(root)";
+    if (!silent) vscode.postMessage({ type: "selected", path });
     await renderGrid();
   }
 
@@ -257,6 +286,7 @@
     } else if (isCompiled(selected)) {
       rows.push(el("div", "banner", "compiledData mirrors components: after parsing they are the same objects, and WolvenKit rebuilds this block from components on save. It is read-only here; edit the component under components."));
     }
+    try {
     switch (n.kind) {
       case "class": {
         const desc = await typeOf(n.type).catch(() => null);
@@ -286,6 +316,11 @@
         row.appendChild(await leafEditor(selected, n.type, n.value, readOnly));
         rows.push(row);
       }
+    }
+    } catch (e) {
+      // A child fetch failed (the bridge went away, for instance): say so instead of an empty grid.
+      rows.push(el("div", "error", e.message));
+      status(e.message, "error");
     }
     if (seq !== renderSeq) return;
     if (mode === "texture") rows.unshift(textureStage());
@@ -954,6 +989,7 @@
   async function selectPart(path) {
     selected = path;
     $("selected").textContent = path;
+    vscode.postMessage({ type: "selected", path });
     for (const x of document.querySelectorAll("#partsList .part.selected, .stage svg g.selected")) x.classList.remove("selected");
     const row = document.querySelector(`#partsList .part[data-path="${CSS.escape(path)}"]`);
     row?.classList.add("selected");
