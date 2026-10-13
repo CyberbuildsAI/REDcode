@@ -759,24 +759,46 @@ async function revealInExplorer(node: ProjectNode): Promise<void> {
   await vscode.commands.executeCommand("revealFileInOS", vscode.Uri.file(target));
 }
 
-/** Deletes a project file after a confirmation, to the Recycle Bin so a slip can be undone. */
+/** Deletes a project file or folder after a confirmation, to the Recycle Bin so a slip can be undone. */
 async function deleteProjectFile(node: ProjectNode): Promise<void> {
-  if (node.kind !== "file") {
+  if (node.kind === "root") {
     return;
   }
   const p = requireProject();
-  const shown = path.relative(p.dir, node.file);
-  const pick = await vscode.window.showWarningMessage(`Delete ${shown} from ${p.name}?`, { modal: true, detail: "The file goes to the Recycle Bin." }, "Delete");
+  const target = node.kind === "file" ? node.file : node.dir;
+  const shown = path.relative(p.dir, target);
+  const inside = node.kind === "folder" ? countFilesUnder(target) : 0;
+  const what = node.kind === "folder" ? `the folder ${shown} and the ${inside.toLocaleString()} file${inside === 1 ? "" : "s"} in it` : shown;
+  const pick = await vscode.window.showWarningMessage(`Delete ${what} from ${p.name}?`, { modal: true, detail: "It goes to the Recycle Bin." }, "Delete");
   if (pick !== "Delete") {
     return;
   }
   try {
-    await vscode.workspace.fs.delete(vscode.Uri.file(node.file), { useTrash: true });
-    log.appendLine(`Deleted ${node.file} (to the Recycle Bin)`);
+    await vscode.workspace.fs.delete(vscode.Uri.file(target), { recursive: node.kind === "folder", useTrash: true });
+    log.appendLine(`Deleted ${target} (to the Recycle Bin)`);
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
-    log.appendLine(`Could not delete ${node.file}: ${message}`);
+    log.appendLine(`Could not delete ${target}: ${message}`);
     void vscode.window.showErrorMessage(`REDcode: could not delete ${shown}. ${message}`);
   }
   explorer.refresh();
+}
+
+function countFilesUnder(dir: string): number {
+  let n = 0;
+  const pending = [dir];
+  while (pending.length > 0) {
+    const current = pending.pop()!;
+    let entries: fs.Dirent[];
+    try {
+      entries = fs.readdirSync(current, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+    for (const e of entries) {
+      if (e.isDirectory()) pending.push(path.join(current, e.name));
+      else n++;
+    }
+  }
+  return n;
 }

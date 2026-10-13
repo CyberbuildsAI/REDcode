@@ -182,7 +182,7 @@
       },
       {
         "command": "redcode.deleteProjectFile",
-        "title": "Delete File",
+        "title": "Delete",
         "category": "REDcode",
         "icon": "$(trash)"
       },
@@ -300,12 +300,12 @@
         },
         {
           "command": "redcode.revealInExplorer",
-          "when": "view == redcode.project && viewItem == projectFile",
+          "when": "view == redcode.project && viewItem =~ /^project/",
           "group": "inline@1"
         },
         {
           "command": "redcode.deleteProjectFile",
-          "when": "view == redcode.project && viewItem == projectFile",
+          "when": "view == redcode.project && viewItem =~ /^project(File|Folder)$/",
           "group": "inline@2"
         },
         {
@@ -315,7 +315,7 @@
         },
         {
           "command": "redcode.deleteProjectFile",
-          "when": "view == redcode.project && viewItem == projectFile",
+          "when": "view == redcode.project && viewItem =~ /^project(File|Folder)$/",
           "group": "4_delete@1"
         }
       ],
