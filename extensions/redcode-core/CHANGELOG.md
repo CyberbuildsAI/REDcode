@@ -6,7 +6,7 @@
 - The CR2W editor: tree and property grid over a bridge document session, with undo, redo, save, backup and replay. Default for the CR2W file types in a project, and for .json and .csv files that are CR2W inside.
 - CR2W editor: search across the file, and a table view for localization files with filter, inline edit, add and delete.
 - CR2W editor, from the E3 hand test: the tree pane is resizable (drag the divider, double-click to reset), search hits wrap over two lines instead of being cut off, and Add row scrolls to the new row and focuses it.
-- CR2W editor: the atlas view for `.inkatlas` files. The slot's texture with every part drawn over it, click to select, a parts list with filter, add and delete, and the rectangle edited in pixels with both the pixel and the UV rectangle written. Fit, 1:1, Pixels and Labels toggles, a slot picker, the tree one click away.
+- CR2W editor: the atlas view for `.inkatlas` files. The slot's texture with every part drawn over it, click to select, a parts list with filter, add and delete, and the rectangle edited in pixels with both the pixel and the UV rectangle written. Fit, 1:1, Pixels and Labels toggles, a slot picker, the tree one click away. Needs REDbridge 0.5.1, which writes textures the right way up; on 0.5.0 the texture viewer and the atlas view show them upside down.
 
 ## 0.3.1
 
