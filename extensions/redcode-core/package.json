@@ -177,7 +177,14 @@
       {
         "command": "redcode.revealInExplorer",
         "title": "Reveal in File Explorer",
-        "category": "REDcode"
+        "category": "REDcode",
+        "icon": "$(folder-opened)"
+      },
+      {
+        "command": "redcode.deleteProjectFile",
+        "title": "Delete File",
+        "category": "REDcode",
+        "icon": "$(trash)"
       },
       {
         "command": "redcode.saveJsonToProject",
@@ -293,8 +300,23 @@
         },
         {
           "command": "redcode.revealInExplorer",
+          "when": "view == redcode.project && viewItem == projectFile",
+          "group": "inline@1"
+        },
+        {
+          "command": "redcode.deleteProjectFile",
+          "when": "view == redcode.project && viewItem == projectFile",
+          "group": "inline@2"
+        },
+        {
+          "command": "redcode.revealInExplorer",
           "when": "view == redcode.project && viewItem =~ /^project/",
           "group": "3_reveal@1"
+        },
+        {
+          "command": "redcode.deleteProjectFile",
+          "when": "view == redcode.project && viewItem == projectFile",
+          "group": "4_delete@1"
         }
       ],
       "commandPalette": [
@@ -324,6 +346,10 @@
         },
         {
           "command": "redcode.revealInExplorer",
+          "when": "false"
+        },
+        {
+          "command": "redcode.deleteProjectFile",
           "when": "false"
         },
         {

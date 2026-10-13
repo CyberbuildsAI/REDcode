@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Project view: hovering a file shows Reveal in File Explorer and Delete File buttons on the right, like Add to Project in Game Assets. Delete asks first and sends the file to the Recycle Bin.
 - Add to Project reveals what it added in the Project view, expanded down to the file (or the folder) and selected, since editing it is the likely next step.
 
 - Install bridge and Update bridge: download the latest REDbridge release from GitHub into the extension's storage and point the bridge path at it, or pull and rebuild when the bridge runs from a git checkout. The bridge is stopped and restarted around the update and the versions are reported. A newer release is offered once per session (`redcode.bridgeUpdateCheck`), and a missing .NET 10 runtime is explained with a winget install offer.

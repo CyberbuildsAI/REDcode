@@ -68,6 +68,7 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("redcode.openProjectFile", (node: ProjectNode) => openProjectFile(node)),
     vscode.commands.registerCommand("redcode.openProjectFileAsJson", (node: ProjectNode) => withBridge((b) => openProjectFileAsJson(b, node))),
     vscode.commands.registerCommand("redcode.revealInExplorer", (node: ProjectNode) => revealInExplorer(node)),
+    vscode.commands.registerCommand("redcode.deleteProjectFile", (node: ProjectNode) => deleteProjectFile(node)),
     vscode.commands.registerCommand("redcode.saveJsonToProject", () => withBridge(saveJsonToProject)),
     vscode.commands.registerCommand("redcode.newProject", () => newProject()),
     vscode.commands.registerCommand("redcode.refreshProject", () => detectProject()),
@@ -756,4 +757,26 @@ function reportSave(rel: string, bytes: number, c: JsonComparison): void {
 async function revealInExplorer(node: ProjectNode): Promise<void> {
   const target = node.kind === "file" ? node.file : node.dir;
   await vscode.commands.executeCommand("revealFileInOS", vscode.Uri.file(target));
+}
+
+/** Deletes a project file after a confirmation, to the Recycle Bin so a slip can be undone. */
+async function deleteProjectFile(node: ProjectNode): Promise<void> {
+  if (node.kind !== "file") {
+    return;
+  }
+  const p = requireProject();
+  const shown = path.relative(p.dir, node.file);
+  const pick = await vscode.window.showWarningMessage(`Delete ${shown} from ${p.name}?`, { modal: true, detail: "The file goes to the Recycle Bin." }, "Delete");
+  if (pick !== "Delete") {
+    return;
+  }
+  try {
+    await vscode.workspace.fs.delete(vscode.Uri.file(node.file), { useTrash: true });
+    log.appendLine(`Deleted ${node.file} (to the Recycle Bin)`);
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    log.appendLine(`Could not delete ${node.file}: ${message}`);
+    void vscode.window.showErrorMessage(`REDcode: could not delete ${shown}. ${message}`);
+  }
+  explorer.refresh();
 }
