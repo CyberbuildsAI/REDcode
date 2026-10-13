@@ -165,6 +165,55 @@ function run(command: string, args: string[]): Promise<void> {
   });
 }
 
+/**
+ * The processes running this exe, other than the ones listed in except. Each VS Code window runs its
+ * own bridge, so a build in the checkout fails while another window's bridge holds the files.
+ */
+export async function processesUsing(exe: string, except: number[] = []): Promise<number[]> {
+  if (process.platform !== "win32") {
+    return [];
+  }
+  const target = path.resolve(exe).toLowerCase();
+  const script = "Get-CimInstance Win32_Process -Filter \"Name = 'REDbridge.exe'\" | ForEach-Object { \"$($_.ProcessId)|$($_.ExecutablePath)\" }";
+  let out = "";
+  await new Promise<void>((resolve) => {
+    const child = spawn("powershell", ["-NoProfile", "-NonInteractive", "-Command", script], { windowsHide: true });
+    child.stdout?.on("data", (c: Buffer) => (out += c.toString()));
+    child.on("error", () => resolve());
+    child.on("exit", () => resolve());
+  });
+  return out
+    .split(/\r?\n/)
+    .map((line) => line.trim().split("|"))
+    .filter(([pid, file]) => pid && file && path.resolve(file).toLowerCase() === target)
+    .map(([pid]) => Number(pid))
+    .filter((pid) => Number.isInteger(pid) && !except.includes(pid));
+}
+
+/** Stops the processes and waits up to timeoutMs for them to go. Returns the ones still running. */
+export async function stopProcesses(pids: number[], timeoutMs = 5000): Promise<number[]> {
+  for (const pid of pids) {
+    try {
+      process.kill(pid);
+    } catch {
+      // Already gone, or not ours to stop; the check below reports it.
+    }
+  }
+  const alive = (pid: number) => {
+    try {
+      process.kill(pid, 0);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+  const until = Date.now() + timeoutMs;
+  while (Date.now() < until && pids.some(alive)) {
+    await new Promise((r) => setTimeout(r, 200));
+  }
+  return pids.filter(alive);
+}
+
 export interface RuntimeCheck {
   /** A .NET 10 runtime was found. */
   ok: boolean;

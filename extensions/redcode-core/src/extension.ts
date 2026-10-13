@@ -5,7 +5,7 @@ import * as path from "node:path";
 import * as vscode from "vscode";
 import { AssetBrowser, type AssetNode } from "./assetBrowser";
 import { BridgeClient } from "./bridgeClient";
-import { checkDotnetRuntime, DotnetDownloadUrl, DotnetInstallCommand, findCheckout, installRelease, latestRelease, managedDir, updateCheckout } from "./bridgeUpdater";
+import { checkDotnetRuntime, DotnetDownloadUrl, DotnetInstallCommand, findCheckout, installRelease, latestRelease, managedDir, processesUsing, stopProcesses, updateCheckout } from "./bridgeUpdater";
 import { Cr2wEditorProvider, Cr2wPropertiesView, Cr2wViewType, cr2wViewTypeFor, opensInCr2wEditor } from "./cr2wEditor";
 import { GameFileSystem, gameUri } from "./gameFs";
 import { compareJson, formatDifference, type JsonComparison } from "./jsonDiff";
@@ -420,6 +420,25 @@ async function updateBridge(context: vscode.ExtensionContext, forceRelease: bool
           report("stopping the bridge");
           await stopBridgeAndWait();
           stopped = true;
+          // Every VS Code window runs its own bridge; any other one on this exe holds the files the build replaces.
+          const others = exe ? await processesUsing(exe) : [];
+          if (others.length > 0) {
+            const pick = await vscode.window.showWarningMessage(
+              `${others.length} other REDbridge process${others.length === 1 ? " runs" : "es run"} from this checkout, most likely in other VS Code windows. Stop ${others.length === 1 ? "it" : "them"} so the build can replace the files?`,
+              { modal: true, detail: "Those windows show \"bridge stopped\" until you run REDcode: Restart bridge in them." },
+              "Stop and update",
+            );
+            if (pick !== "Stop and update") {
+              log.appendLine(`Bridge update cancelled: ${others.length} other process(es) use ${exe} (${others.join(", ")}).`);
+              return;
+            }
+            report(`stopping ${others.length} other bridge process(es)`);
+            const left = await stopProcesses(others);
+            log.appendLine(`Stopped other bridge process(es) ${others.filter((p) => !left.includes(p)).join(", ") || "none"}${left.length ? `; still running: ${left.join(", ")}` : ""}`);
+            if (left.length > 0) {
+              throw new Error(`REDbridge process(es) ${left.join(", ")} would not stop. Close the VS Code windows that run them and try again.`);
+            }
+          }
           updateStatus("$(sync~spin) REDcode: updating bridge", checkout);
           log.appendLine(`Updating the bridge checkout at ${checkout} (npm run update)`);
           await updateCheckout(checkout, appendLine, report);
