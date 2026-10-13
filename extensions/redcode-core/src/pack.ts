@@ -25,15 +25,12 @@ export interface PackSummary {
   archiveXl: string[];
   /** Other resource files copied into packed, relative to source/resources. */
   resources: string[];
-  /** Tweak files (.tweak, .yaml, .yml) outside r6/tweaks, which TweakXL does not read. */
+  /** Tweak files (.tweak, .yaml, .yml) outside r6/tweaks, which TweakXL does not read; .tweak ones are also left out. */
   misplacedTweaks: string[];
   packedDir: string;
   /** Where the archive and the ArchiveXL files went. */
   archiveDir: string;
 }
-
-/** Resource files WolvenKit leaves out of a plain pack: CDPR script sources. */
-const SkippedExtensions = new Set([".script", ".ws"]);
 
 /** Where the archive goes: packed/archive/pc/mod, or packed/mods/<name>/archives for a REDmod. */
 export function packedArchiveDir(project: ProjectInfo, redmod: boolean): string {
@@ -69,34 +66,50 @@ export async function packProject(bridge: BridgeClient, project: ProjectInfo, op
     log(`No files under ${source}; no archive written`);
   }
 
-  // Resources: ArchiveXL files go beside the archive, the rest keep their relative path under packed.
+  // Resources, by WolvenKit's rules (RED4Controller at the pinned commit), with one deviation marked.
+  const redmodDir = path.join(packed, "mods", project.modName);
+  const skippedTweaks: string[] = [];
   for (const file of walk(resources)) {
     const rel = path.relative(resources, file);
     const name = path.basename(file);
     const ext = path.extname(name).toLowerCase();
+    const take = (to: string) => {
+      copy(file, to);
+      summary.resources.push(rel);
+    };
     if (ext === ".xl") {
+      // ArchiveXL files go beside the archive.
       copy(file, path.join(archiveDir, name));
       summary.archiveXl.push(rel);
-    } else if (SkippedExtensions.has(ext) || name.toLowerCase() === "info.json") {
-      continue;
-    } else if (options.redmod && isUnder(rel, "scripts")) {
-      copy(file, path.join(packed, "mods", project.modName, rel));
-      summary.resources.push(rel);
-    } else if (options.redmod && isUnder(rel, "tweaks")) {
-      copy(file, path.join(packed, "mods", project.modName, rel));
-      summary.resources.push(rel);
-    } else {
-      copy(file, path.join(packed, rel));
-      summary.resources.push(rel);
-      if (TweakExtensions.has(ext) && !isUnder(rel, "r6", "tweaks")) {
+    } else if (name.toLowerCase() === "info.json") {
+      // The REDmod manifest, written below.
+    } else if (ext === ".script" || ext === ".ws") {
+      // CDPR script sources: only a REDmod carries them, from resources/scripts.
+      if (options.redmod && isUnder(rel, "scripts")) take(path.join(redmodDir, rel));
+    } else if (ext === ".tweak") {
+      if (isUnder(rel, "r6", "tweaks")) {
+        // Deviation: WolvenKit leaves every .tweak out of a plain pack, which drops TweakXL's RED tweaks.
+        take(path.join(packed, rel));
+      } else if (options.redmod && isUnder(rel, "tweaks")) {
+        take(path.join(redmodDir, rel));
+      } else {
+        skippedTweaks.push(rel);
         summary.misplacedTweaks.push(rel);
       }
+    } else {
+      // Everything else keeps its relative path under packed.
+      take(path.join(packed, rel));
+      if (TweakExtensions.has(ext) && !isUnder(rel, "r6", "tweaks")) summary.misplacedTweaks.push(rel);
     }
   }
   if (summary.archiveXl.length) log(`Copied ${summary.archiveXl.length} ArchiveXL file(s) to ${archiveDir}`);
   if (summary.resources.length) log(`Copied ${summary.resources.length} resource file(s) under ${packed}`);
   for (const t of summary.misplacedTweaks) {
-    log(`  warning: ${t} is not under r6\\tweaks, so TweakXL will not load it; move it to source\\resources\\r6\\tweaks`);
+    log(
+      skippedTweaks.includes(t)
+        ? `  warning: ${t} is left out, as WolvenKit does: a .tweak file is packed only from r6\\tweaks${options.redmod ? " or, for a REDmod, tweaks" : ""}`
+        : `  warning: ${t} is not under r6\\tweaks, so TweakXL will not load it; move it to source\\resources\\r6\\tweaks`,
+    );
   }
 
   // A REDmod needs its manifest; the project's own info.json under resources wins when it exists.

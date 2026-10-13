@@ -62,7 +62,7 @@ After Save JSON to Project the editor shows the JSON read back from the written 
 |---|---|
 | `source/archive` | `packed/archive/pc/mod/<mod name>.archive`, written by WolvenKit's packer on the bridge |
 | `source/resources/**/*.xl` | Beside the archive |
-| Other files under `source/resources` | `packed/<same relative path>`, so `resources/r6/tweaks/x.yaml` becomes `packed/r6/tweaks/x.yaml`. `.script`, `.ws` and `info.json` are left out |
+| Other files under `source/resources` | `packed/<same relative path>`, so `resources/r6/tweaks/x.yaml` becomes `packed/r6/tweaks/x.yaml`. `.script`, `.ws` and `info.json` are left out, and so is a `.tweak` file outside `r6/tweaks`. WolvenKit leaves out `.tweak` files in `r6/tweaks` too, which drops TweakXL tweaks in RED format; REDcode packs them |
 
 `packed` is emptied first, so a file removed from the project does not linger in the mod (`redcode.pack.clean`). With `redcode.pack.redmod` the archive and the ArchiveXL files go under `packed/mods/<mod name>/archives`, with an `info.json`, as WolvenKit's REDmod option does. Paths with capital letters or spaces are listed in the log, as WolvenKit warns about them. Needs REDbridge 0.6.1.
 

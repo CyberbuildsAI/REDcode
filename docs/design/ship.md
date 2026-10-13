@@ -14,12 +14,14 @@ Read from WolvenKit's `RED4Controller` and `ModTools` at the pinned submodule, s
 |---|---|---|
 | Pack archives | Warns about capital letters or spaces in paths under `source/archive`, then writes every file there into one archive named after the mod | `packed/archive/pc/mod/<ModName>.archive` (REDmod: `packed/mods/<ModName>/archives/`) |
 | ArchiveXL | Copies `source/resources/**/*.xl` | Beside the archive |
-| Resources | Copies every other file under `source/resources`, keeping its relative path, except `.script`, `.ws` and `info.json` | `packed/<same relative path>`, so `resources/r6/tweaks/x.yaml` becomes `packed/r6/tweaks/x.yaml` |
+| Resources | Copies every other file under `source/resources`, keeping its relative path, except `.xl`, `.script`, `.ws`, `.tweak` and `info.json` | `packed/<same relative path>`, so `resources/r6/tweaks/x.yaml` becomes `packed/r6/tweaks/x.yaml` |
 | REDmod only | `info.json`, `customSounds`, scripts and tweaks | `packed/mods/<ModName>/` |
 | Install | Copies `packed/` onto the game folder and writes an install log of the files for uninstall | The game folder |
 | Hot install | Same, with archives sent to `archive/pc/hot` instead of `mod`, for Red Hot Tools to reload without a restart | `archive/pc/hot` |
 
 Only the archive writer needs WolvenKit's libraries. The copies are plain file operations.
+
+One deviation, found in the S1 hand test on 2026-10-13: WolvenKit leaves every `.tweak` file out of a plain pack, so a TweakXL tweak in RED format under `resources/r6/tweaks` never reaches the game while the same tweak as `.yaml` does. REDcode packs `.tweak` files from `r6/tweaks` and, like WolvenKit, leaves out any `.tweak` elsewhere, with a warning. Worth reporting upstream when the WolvenKit team is contacted.
 
 ## Decisions
 
