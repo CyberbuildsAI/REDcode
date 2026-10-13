@@ -189,6 +189,16 @@ tool("texture_file_to_png", "Decode a texture file on disk to a PNG.", {
   outFile: z.string(),
 }, (a, b) => b.fileToPng(a.file, a.outFile));
 
+tool("project_pack", "Pack a folder (a project's source/archive) into <modName>.archive in outDir through WolvenKit's packer. Returns the archive path, size, file count and warnings for paths with capital letters or spaces. Bridge 0.6.0.", {
+  dir: z.string().describe("The folder to pack, laid out as game paths (base/..., ep1/...)."),
+  outDir: z.string().describe("Where the archive goes, usually packed/archive/pc/mod."),
+  modName: z.string().describe("The archive name without extension."),
+}, (a, b) => b.pack(a.dir, a.outDir, a.modName));
+
+tool("archive_open_mod", "List the resources inside a mod .archive on disk. No game needed.", {
+  path: z.string().describe("The .archive file."),
+}, (a, b) => b.openMod(a.path));
+
 tool("hash_fnv1a64", "The FNV1a64 hash of a string, as the game uses for paths and names.", { value: z.string() }, (a, b) => b.fnv1a64(a.value));
 tool("hash_resolve", "The game path for a known hash, if the hash list knows it.", { hash: z.string().describe("Decimal hash string.") }, (a, b) => b.resolve(a.hash));
 

@@ -163,3 +163,20 @@ export interface ResolveResult {
   path: string | null;
   known: boolean;
 }
+
+/** project.pack: the archive written and what went into it. */
+export interface PackResult {
+  archive: string;
+  bytes: number;
+  files: number;
+  /** Paths under the folder with capital letters or spaces, which the game may not resolve. */
+  warnings: string[];
+}
+
+/** archive.openMod: the resources inside a mod archive on disk. */
+export interface ModArchiveInfo {
+  path: string;
+  name: string;
+  files: number;
+  items: GameFileInfo[];
+}

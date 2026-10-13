@@ -6,7 +6,7 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { EventEmitter } from "node:events";
 import * as readline from "node:readline";
 import { createMessageConnection, StreamMessageReader, StreamMessageWriter, type MessageConnection } from "vscode-jsonrpc/node";
-import type { ArchiveInfo, BridgeInfo, DocumentInfo, ExtractManyResult, ExtractResult, FileList, HashResult, JsonResult, NodeInfo, PatchOp, PatchResult, ResolveResult, SearchResult, TreeResult, TypeDescription } from "./types";
+import type { ArchiveInfo, BridgeInfo, DocumentInfo, ExtractManyResult, ExtractResult, FileList, HashResult, JsonResult, ModArchiveInfo, PackResult, NodeInfo, PatchOp, PatchResult, ResolveResult, SearchResult, TreeResult, TypeDescription } from "./types";
 
 export interface BridgeOptions {
   /** Path to REDbridge.exe. */
@@ -160,6 +160,16 @@ export class BridgeClient extends EventEmitter<BridgeEvents> {
   /** Converts a texture file on disk, for example one in a project, to PNG. Needs REDbridge 0.3.0. */
   fileToPng(file: string, outFile: string): Promise<ExtractResult> {
     return this.call("texture.fileToPng", { file, outFile });
+  }
+
+  /** Packs a folder (a project's source/archive) into outDir/modName.archive through WolvenKit's packer. Bridge 0.6.0. */
+  pack(dir: string, outDir: string, modName: string): Promise<PackResult> {
+    return this.call("project.pack", { dir, outDir, modName });
+  }
+
+  /** Lists the resources inside a mod archive on disk. No game needed. Bridge 0.4.0. */
+  openMod(path: string): Promise<ModArchiveInfo> {
+    return this.call("archive.openMod", { path });
   }
 
   // ---- cr2w document sessions (bridge 0.5.0) -------------------------------------------
