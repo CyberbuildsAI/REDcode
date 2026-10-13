@@ -780,13 +780,18 @@ function reportSave(rel: string, bytes: number, c: JsonComparison): void {
 }
 
 async function revealInExplorer(node: ProjectNode): Promise<void> {
+  if (node.kind === "project") {
+    // The project folder itself, opened rather than selected in its parent.
+    await vscode.env.openExternal(vscode.Uri.file(node.dir));
+    return;
+  }
   const target = node.kind === "file" ? node.file : node.dir;
   await vscode.commands.executeCommand("revealFileInOS", vscode.Uri.file(target));
 }
 
 /** Deletes a project file or folder after a confirmation, to the Recycle Bin so a slip can be undone. */
 async function deleteProjectFile(node: ProjectNode): Promise<void> {
-  if (node.kind === "root") {
+  if (node.kind === "root" || node.kind === "project") {
     return;
   }
   const p = requireProject();

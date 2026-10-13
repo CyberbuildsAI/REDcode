@@ -7,6 +7,7 @@ import { folderIcon, iconFor } from "./assetBrowser";
 import { ProjectFolders, type ProjectFolderKey, type ProjectInfo } from "./project";
 
 export type ProjectNode =
+  | { kind: "project"; dir: string }
   | { kind: "root"; key: ProjectFolderKey; dir: string }
   | { kind: "folder"; dir: string }
   | { kind: "file"; file: string };
@@ -37,6 +38,17 @@ export class ProjectExplorer implements vscode.TreeDataProvider<ProjectNode> {
 
   getTreeItem(node: ProjectNode): vscode.TreeItem {
     // Stable ids, so reveal() can find a node built fresh from a path.
+    if (node.kind === "project") {
+      const project = this.getProject();
+      const item = new vscode.TreeItem(project?.name ?? path.basename(node.dir), vscode.TreeItemCollapsibleState.Expanded);
+      item.id = "project";
+      item.description = project ? `${project.modName}${project.version ? ` ${project.version}` : ""}` : undefined;
+      item.tooltip = project ? `${project.file}${project.author ? `\n${project.author}` : ""}` : node.dir;
+      item.iconPath = folderIcon("package");
+      item.contextValue = "project";
+      item.resourceUri = vscode.Uri.file(node.dir);
+      return item;
+    }
     if (node.kind === "root") {
       const item = new vscode.TreeItem(RootLabels[node.key], vscode.TreeItemCollapsibleState.Expanded);
       item.id = `root:${node.key}`;
@@ -57,7 +69,8 @@ export class ProjectExplorer implements vscode.TreeDataProvider<ProjectNode> {
     const item = new vscode.TreeItem(path.basename(node.file), vscode.TreeItemCollapsibleState.None);
     item.id = `file:${node.file.toLowerCase()}`;
     item.iconPath = iconFor(node.file);
-    item.contextValue = "projectFile";
+    // Textures open in the viewer on click, so they alone get the "Open in CR2W Editor" entry.
+    item.contextValue = node.file.toLowerCase().endsWith(".xbm") ? "projectFile.texture" : "projectFile";
     item.resourceUri = vscode.Uri.file(node.file);
     item.tooltip = node.file;
     item.command = { command: "redcode.openProjectFile", title: "Open", arguments: [node] };
@@ -70,6 +83,9 @@ export class ProjectExplorer implements vscode.TreeDataProvider<ProjectNode> {
       return [];
     }
     if (!node) {
+      return [{ kind: "project", dir: project.dir }];
+    }
+    if (node.kind === "project") {
       return (Object.keys(ProjectFolders) as ProjectFolderKey[]).map((key) => ({ kind: "root", key, dir: path.join(project.dir, ProjectFolders[key]) }));
     }
     if (node.kind === "file") {
@@ -87,19 +103,26 @@ export class ProjectExplorer implements vscode.TreeDataProvider<ProjectNode> {
 
   /** The parent of a node, which TreeView.reveal needs to expand the way down to it. */
   getParent(node: ProjectNode): ProjectNode | undefined {
-    if (node.kind === "root") {
+    if (node.kind === "project") {
       return undefined;
+    }
+    if (node.kind === "root") {
+      const project = this.getProject();
+      return project ? { kind: "project", dir: project.dir } : undefined;
     }
     return this.nodeFor(path.dirname(node.kind === "file" ? node.file : node.dir));
   }
 
-  /** The node for a path inside the project's source or packed folders: a root, a folder or a file. */
+  /** The node for a path inside the project: the project itself, a root, a folder or a file. */
   nodeFor(p: string): ProjectNode | undefined {
     const project = this.getProject();
     if (!project) {
       return undefined;
     }
     const full = path.resolve(p);
+    if (full.toLowerCase() === path.resolve(project.dir).toLowerCase()) {
+      return { kind: "project", dir: project.dir };
+    }
     for (const key of Object.keys(ProjectFolders) as ProjectFolderKey[]) {
       const dir = path.resolve(project.dir, ProjectFolders[key]);
       if (full.toLowerCase() === dir.toLowerCase()) {

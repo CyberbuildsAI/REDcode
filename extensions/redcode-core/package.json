@@ -315,12 +315,12 @@
         },
         {
           "command": "redcode.openProjectFileInEditor",
-          "when": "view == redcode.project && viewItem == projectFile",
+          "when": "view == redcode.project && viewItem == projectFile.texture",
           "group": "2_open@0"
         },
         {
           "command": "redcode.openProjectFileAsJson",
-          "when": "view == redcode.project && viewItem == projectFile",
+          "when": "view == redcode.project && viewItem =~ /^projectFile/",
           "group": "2_open@1"
         },
         {
@@ -330,7 +330,7 @@
         },
         {
           "command": "redcode.deleteProjectFile",
-          "when": "view == redcode.project && viewItem =~ /^project(File|Folder)$/",
+          "when": "view == redcode.project && viewItem =~ /^project(File|Folder)/",
           "group": "inline@2"
         },
         {
@@ -340,7 +340,7 @@
         },
         {
           "command": "redcode.deleteProjectFile",
-          "when": "view == redcode.project && viewItem =~ /^project(File|Folder)$/",
+          "when": "view == redcode.project && viewItem =~ /^project(File|Folder)/",
           "group": "4_delete@1"
         }
       ],

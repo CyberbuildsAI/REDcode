@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Project view: the project is the root node, named after the project with the mod name and version beside it, and Reveal in File Explorer on it opens the project folder. Open in CR2W Editor is offered for textures only, since a click already opens the editor for everything else.
+- Properties view: follows an editor that opens after every editor was closed. It listened to tab changes, which fire before the document is registered.
+
 ## 0.4.0
 
 Needs REDbridge 0.5.1 or newer; the extension refuses an older bridge and offers Update bridge.

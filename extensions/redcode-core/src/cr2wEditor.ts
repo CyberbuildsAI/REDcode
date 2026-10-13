@@ -328,11 +328,22 @@ export class Cr2wEditorProvider implements vscode.CustomEditorProvider<Cr2wDocum
     return document;
   }
 
+  private readonly opened = new vscode.EventEmitter<Cr2wDocument>();
+  /** Fired when an editor panel for the document resolves or becomes active, which the Properties view follows. */
+  readonly onDidShowEditor = this.opened.event;
+
   async resolveCustomEditor(document: Cr2wDocument, panel: vscode.WebviewPanel): Promise<void> {
     panel.webview.options = { enableScripts: true, localResourceRoots: this.resourceRoots };
     panel.webview.html = this.html(panel.webview, false);
     const page = this.attachPage(document, panel.webview);
-    panel.onDidDispose(() => page.dispose());
+    const state = panel.onDidChangeViewState((e) => {
+      if (e.webviewPanel.active) this.opened.fire(document);
+    });
+    panel.onDidDispose(() => {
+      page.dispose();
+      state.dispose();
+    });
+    this.opened.fire(document);
   }
 
   /**
@@ -534,6 +545,8 @@ export class Cr2wPropertiesView implements vscode.WebviewViewProvider {
       vscode.window.registerWebviewViewProvider(Cr2wPropertiesView.viewType, this, { webviewOptions: { retainContextWhenHidden: true } }),
       vscode.window.tabGroups.onDidChangeTabs(() => this.follow()),
       vscode.window.tabGroups.onDidChangeTabGroups(() => this.follow()),
+      // The tab events can fire before the document is registered; the editor says when it is really showing.
+      this.editor.onDidShowEditor((document) => this.follow(document)),
       new vscode.Disposable(() => this.detach()),
     );
   }
@@ -554,11 +567,11 @@ export class Cr2wPropertiesView implements vscode.WebviewViewProvider {
     return input instanceof vscode.TabInputCustom && (input.viewType === Cr2wViewType || input.viewType === Cr2wOptionViewType) ? this.editor.documentFor(input.uri) : undefined;
   }
 
-  private follow(): void {
+  private follow(shown?: Cr2wDocument): void {
     if (!this.view) {
       return;
     }
-    const document = this.activeDocument();
+    const document = shown ?? this.activeDocument();
     if (!document || document === this.attached?.document) {
       if (!this.attached) void this.view.webview.postMessage({ type: "none" });
       return;
