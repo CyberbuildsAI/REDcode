@@ -54,6 +54,18 @@ After Save JSON to Project the editor shows the JSON read back from the written 
 
 `.tweak` files get syntax highlighting, bracket matching, comment toggling and snippets (`package`, `record`, `clone`, `edit`, `flat`, `fk`, `append`, `remove`, `inline`, `lockey`). The grammar follows the RED format on the [TweakXL wiki](https://github.com/psiberx/cp2077-tweak-xl/wiki/RED-Tweaks). `samples/example.tweak` shows every construct it knows. YAML tweaks use VS Code's built-in YAML support.
 
+## Packing
+
+**REDcode: Pack**, the package button in the Project view's title bar, or the `redcode: pack` build task (**Ctrl+Shift+B**) builds the project's `packed` folder the way WolvenKit does, so it installs the same way:
+
+| From | To |
+|---|---|
+| `source/archive` | `packed/archive/pc/mod/<mod name>.archive`, written by WolvenKit's packer on the bridge |
+| `source/resources/**/*.xl` | Beside the archive |
+| Other files under `source/resources` | `packed/<same relative path>`, so `resources/r6/tweaks/x.yaml` becomes `packed/r6/tweaks/x.yaml`. `.script`, `.ws` and `info.json` are left out |
+
+`packed` is emptied first, so a file removed from the project does not linger in the mod (`redcode.pack.clean`). With `redcode.pack.redmod` the archive and the ArchiveXL files go under `packed/mods/<mod name>/archives`, with an `info.json`, as WolvenKit's REDmod option does. Paths with capital letters or spaces are listed in the log, as WolvenKit warns about them. Needs REDbridge 0.6.1.
+
 ## Settings
 
 | Setting | Default | Meaning |
@@ -64,6 +76,8 @@ After Save JSON to Project the editor shows the JSON read back from the written 
 | `redcode.bridgeRepository` | `Edgemodders/REDbridge` | The GitHub repository whose releases Install bridge and Update bridge download |
 | `redcode.bridgeUpdateCheck` | `true` | Ask GitHub once per session whether a newer release exists; skipped for a git checkout |
 | `redcode.author` | empty | Author name written into new projects |
+| `redcode.pack.clean` | `true` | Empty `packed` before packing |
+| `redcode.pack.redmod` | `false` | Pack as a REDmod under `packed/mods/<mod name>` |
 
 ## Running from source
 

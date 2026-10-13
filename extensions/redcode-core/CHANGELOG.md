@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Pack: **REDcode: Pack**, the package button on the Project view, or the `redcode: pack` build task (Ctrl+Shift+B) packs the project the way WolvenKit does. `packed` is emptied first (`redcode.pack.clean`), `source/archive` becomes `packed/archive/pc/mod/<mod name>.archive` through the bridge, ArchiveXL files go beside it and other resources keep their paths under `packed`. `redcode.pack.redmod` lays it out as a REDmod instead. Paths with capital letters or spaces are reported. Needs REDbridge 0.6.1.
+
 - Project view: the project is the root node, named after the project with the mod name and version beside it, and Reveal in File Explorer on it opens the project folder. Open in CR2W Editor is offered for textures only, since a click already opens the editor for everything else.
 - Properties view: follows an editor that opens after every editor was closed. It listened to tab changes, which fire before the document is registered.
 

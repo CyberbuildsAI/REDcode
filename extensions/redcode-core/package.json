@@ -137,6 +137,12 @@
         "icon": "$(new-folder)"
       },
       {
+        "command": "redcode.pack",
+        "title": "Pack",
+        "category": "REDcode",
+        "icon": "$(package)"
+      },
+      {
         "command": "redcode.openGameFileAsJson",
         "title": "Open game file as JSON",
         "category": "REDcode"
@@ -256,6 +262,11 @@
         }
       ],
       "view/title": [
+        {
+          "command": "redcode.pack",
+          "when": "view == redcode.project && redcode.projectOpen",
+          "group": "navigation@0"
+        },
         {
           "command": "redcode.newProject",
           "when": "view == redcode.project",
@@ -423,9 +434,32 @@
           "type": "boolean",
           "default": true,
           "description": "When the bridge starts, ask GitHub once per session whether a newer REDbridge release exists and offer to install it. Skipped when the bridge runs from a git checkout."
+        },
+        "redcode.pack.clean": {
+          "type": "boolean",
+          "default": true,
+          "description": "Empty the project's packed folder before packing, so a file removed from the project does not linger in the mod."
+        },
+        "redcode.pack.redmod": {
+          "type": "boolean",
+          "default": false,
+          "description": "Pack as a REDmod under packed/mods/<mod name> instead of a plain archive under packed/archive/pc/mod, as WolvenKit's REDmod option does."
         }
       }
     },
+    "taskDefinitions": [
+      {
+        "type": "redcode",
+        "required": ["action"],
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": ["pack"],
+            "description": "What to run: pack the open project into its packed folder."
+          }
+        }
+      }
+    ],
     "colors": [
       {
         "id": "redcode.folder",

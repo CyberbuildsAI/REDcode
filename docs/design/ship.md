@@ -32,7 +32,7 @@ Only the archive writer needs WolvenKit's libraries. The copies are plain file o
 
 ## S1 Pack
 
-Bridge, REDbridge 0.6.0:
+Bridge, REDbridge 0.6.1 (0.6.0 went to EDGEbuilder's `mesh.info` and `sector.build`):
 
 | Method | Params | Result |
 |---|---|---|

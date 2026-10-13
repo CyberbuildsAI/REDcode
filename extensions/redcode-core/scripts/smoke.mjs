@@ -80,6 +80,20 @@ try {
     await bridge.extract(tex.name, xbm);
     await step("texture.fileToPng (from disk)", () => bridge.fileToPng(xbm, png.replace(/\.png$/, ".disk.png")));
   }
+  // C4 S1: pack the extracted files as a mod's source/archive, then read the archive back.
+  const [maj, min] = info.version.split(".").map(Number);
+  if (maj > 0 || min >= 6) {
+    const source = path.join(os.tmpdir(), "redcode-smoke", "extract");
+    const outDir = path.join(os.tmpdir(), "redcode-smoke", "packed", "archive", "pc", "mod");
+    const packed = await step("project.pack (the extracted files)", async () => {
+      const r = await bridge.pack(source, outDir, "redcode_smoke");
+      return `${r.files} files, ${r.bytes.toLocaleString()} bytes, ${r.warnings.length} warning(s)`;
+    });
+    const mod = await step("archive.openMod (the packed archive)", async () => (await bridge.openMod(path.join(outDir, "redcode_smoke.archive"))).files + " files");
+    if (packed.split(" ")[0] !== mod.split(" ")[0]) throw new Error(`packed ${packed} but the archive lists ${mod}`);
+  } else {
+    console.log(`        project.pack skipped: REDbridge ${info.version} is older than 0.6.1`);
+  }
   console.log(`done in ${((Date.now() - started) / 1000).toFixed(1)}s`);
 } finally {
   bridge.stop();

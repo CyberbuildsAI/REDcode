@@ -9,6 +9,7 @@ import { checkDotnetRuntime, DotnetDownloadUrl, DotnetInstallCommand, findChecko
 import { Cr2wEditorProvider, Cr2wPropertiesView, Cr2wViewType, cr2wViewTypeFor, opensInCr2wEditor } from "./cr2wEditor";
 import { GameFileSystem, gameUri } from "./gameFs";
 import { compareJson, formatDifference, type JsonComparison } from "./jsonDiff";
+import { packProject, type PackSummary } from "./pack";
 import { createProject, findProject, gamePathOf, projectPathFor, type ProjectInfo } from "./project";
 import { ProjectExplorer, type ProjectNode } from "./projectExplorer";
 import { isTexture, TextureViewer, TextureViewType } from "./textureViewer";
@@ -84,6 +85,8 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("redcode.deleteProjectFile", (node: ProjectNode) => deleteProjectFile(node)),
     vscode.commands.registerCommand("redcode.saveJsonToProject", () => withBridge(saveJsonToProject)),
     vscode.commands.registerCommand("redcode.newProject", () => newProject()),
+    vscode.commands.registerCommand("redcode.pack", () => packCommand()),
+    vscode.tasks.registerTaskProvider("redcode", { provideTasks: () => provideTasks(), resolveTask: (task) => resolveTask(task) }),
     vscode.commands.registerCommand("redcode.refreshProject", () => detectProject()),
     vscode.commands.registerCommand("redcode.refreshAssets", () => assets.refresh()),
     vscode.commands.registerCommand("redcode.restartBridge", () => restartBridge(context)),
@@ -163,6 +166,120 @@ function requireProject(): ProjectInfo {
     throw new Error("No project is open. Open a folder with a .cpmodproj file, or run REDcode: New Project.");
   }
   return project;
+}
+
+// ---- pack ---------------------------------------------------------------------------------
+
+/** Packs the open project. extra receives each log line too (the task's terminal). Throws on failure. */
+async function runPack(extra?: (line: string) => void): Promise<PackSummary> {
+  const p = requireProject();
+  if (!bridge?.running) {
+    throw new Error('The REDbridge process is not running. Run "REDcode: Restart bridge".');
+  }
+  const b = bridge;
+  const config = vscode.workspace.getConfiguration("redcode");
+  const options = { clean: config.get<boolean>("pack.clean", true), redmod: config.get<boolean>("pack.redmod", false) };
+  const write = (line: string) => {
+    log.appendLine(line);
+    extra?.(line);
+  };
+  write(`Packing ${p.name} as ${p.modName}${options.redmod ? " (REDmod)" : ""}`);
+  const started = Date.now();
+  let summary: PackSummary;
+  try {
+    summary = await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: `Packing ${p.name}` }, () => packProject(b, p, options, write));
+  } catch (e) {
+    const code = (e as { code?: unknown })?.code;
+    const message = e instanceof Error ? e.message : String(e);
+    if (code === -32601 || /method not found/i.test(message)) {
+      throw new Error('Pack needs REDbridge 0.6.1 or newer. Run "REDcode: Update bridge".');
+    }
+    throw e;
+  } finally {
+    explorer.refresh();
+  }
+  write(`Done in ${((Date.now() - started) / 1000).toFixed(1)} s`);
+  return summary;
+}
+
+async function packCommand(): Promise<void> {
+  let summary: PackSummary;
+  try {
+    summary = await runPack();
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    log.appendLine(`Pack failed: ${message}`);
+    void vscode.window.showErrorMessage(`REDcode: ${message}`, "Show log").then((pick) => pick && log.show(true));
+    return;
+  }
+  // Show the archive in the Project view, or the packed folder for a resources-only mod.
+  const shown = explorer.nodeFor(summary.archive ?? summary.packedDir);
+  if (shown) {
+    await projectView.reveal(shown, { select: true, focus: false, expand: true }).then(undefined, () => undefined);
+  }
+  if (summary.warnings.length > 0) {
+    const pick = await vscode.window.showWarningMessage(
+      `REDcode: packed, but ${summary.warnings.length} path(s) have capital letters or spaces, which the game may not resolve.`,
+      "Show log",
+    );
+    if (pick) log.show(true);
+    return;
+  }
+  const what = summary.archive ? `${summary.archiveFiles.toLocaleString()} file(s) into ${path.basename(summary.archive)}` : "resources only, no archive";
+  vscode.window.setStatusBarMessage(`$(package) REDcode: packed ${what}`, 6000);
+}
+
+/** The redcode task type: one task per project folder, "pack", offered as the default build task. */
+function packTask(folder: vscode.WorkspaceFolder | vscode.TaskScope, definition: vscode.TaskDefinition = { type: "redcode", action: "pack" }): vscode.Task {
+  const task = new vscode.Task(
+    definition,
+    folder,
+    "pack",
+    "redcode",
+    new vscode.CustomExecution(async () => packTerminal()),
+    [],
+  );
+  task.group = vscode.TaskGroup.Build;
+  task.detail = "Pack the project into packed/ the way WolvenKit does";
+  return task;
+}
+
+function provideTasks(): vscode.Task[] {
+  if (!project) {
+    return [];
+  }
+  const folder = vscode.workspace.workspaceFolders?.find((f) => path.resolve(f.uri.fsPath).toLowerCase() === path.resolve(project!.dir).toLowerCase())
+    ?? vscode.workspace.workspaceFolders?.[0];
+  return [packTask(folder ?? vscode.TaskScope.Workspace)];
+}
+
+function resolveTask(task: vscode.Task): vscode.Task | undefined {
+  return task.definition.action === "pack" ? packTask(task.scope ?? vscode.TaskScope.Workspace, task.definition) : undefined;
+}
+
+/** A terminal that runs Pack and shows its log lines, closing with 0 on success and 1 on failure. */
+function packTerminal(): vscode.Pseudoterminal {
+  const output = new vscode.EventEmitter<string>();
+  const done = new vscode.EventEmitter<number>();
+  const line = (s: string) => output.fire(s.replace(/\r?\n/g, "\r\n") + "\r\n");
+  return {
+    onDidWrite: output.event,
+    onDidClose: done.event,
+    open: () => {
+      runPack(line).then(
+        (summary) => {
+          explorer.refresh();
+          if (summary.warnings.length > 0) line(`${summary.warnings.length} path(s) with capital letters or spaces; see above.`);
+          done.fire(0);
+        },
+        (e) => {
+          line(`Pack failed: ${e instanceof Error ? e.message : String(e)}`);
+          done.fire(1);
+        },
+      );
+    },
+    close: () => undefined,
+  };
 }
 
 // ---- bridge lifecycle ---------------------------------------------------------------------
