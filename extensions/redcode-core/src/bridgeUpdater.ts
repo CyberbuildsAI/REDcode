@@ -7,6 +7,7 @@
 
 import { spawn } from "node:child_process";
 import * as fs from "node:fs";
+import * as os from "node:os";
 import * as path from "node:path";
 import { Readable, Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
@@ -212,6 +213,45 @@ export async function stopProcesses(pids: number[], timeoutMs = 5000): Promise<n
     await new Promise((r) => setTimeout(r, 200));
   }
   return pids.filter(alive);
+}
+
+// ---- the update marker ---------------------------------------------------------------------
+// While one window rebuilds a checkout, it leaves a marker file named after the exe. The windows
+// whose bridges it stopped see the marker, wait for it to go, and restart on the new build.
+
+function markerFile(exe: string): string {
+  const key = path.resolve(exe).toLowerCase().replace(/[^a-z0-9]+/g, "_").slice(-120);
+  return path.join(os.tmpdir(), `redcode-bridge-update-${key}.json`);
+}
+
+export function writeUpdateMarker(exe: string): void {
+  fs.writeFileSync(markerFile(exe), JSON.stringify({ pid: process.pid, started: Date.now() }));
+}
+
+export function clearUpdateMarker(exe: string): void {
+  fs.rmSync(markerFile(exe), { force: true });
+}
+
+/** True while another window is updating this exe: the marker exists and the process that wrote it is alive. */
+export function updateInProgress(exe: string): boolean {
+  try {
+    const { pid, started } = JSON.parse(fs.readFileSync(markerFile(exe), "utf8")) as { pid: number; started: number };
+    if (Date.now() - started > 30 * 60 * 1000) return false;
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Resolves true when the update finishes, false after timeoutMs. */
+export async function waitForUpdate(exe: string, timeoutMs = 15 * 60 * 1000): Promise<boolean> {
+  const until = Date.now() + timeoutMs;
+  while (Date.now() < until) {
+    if (!updateInProgress(exe)) return true;
+    await new Promise((r) => setTimeout(r, 2000));
+  }
+  return false;
 }
 
 export interface RuntimeCheck {

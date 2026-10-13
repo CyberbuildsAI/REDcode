@@ -5,7 +5,22 @@ import * as path from "node:path";
 import * as vscode from "vscode";
 import { AssetBrowser, type AssetNode } from "./assetBrowser";
 import { BridgeClient } from "./bridgeClient";
-import { checkDotnetRuntime, DotnetDownloadUrl, DotnetInstallCommand, findCheckout, installRelease, latestRelease, managedDir, processesUsing, stopProcesses, updateCheckout } from "./bridgeUpdater";
+import {
+  checkDotnetRuntime,
+  clearUpdateMarker,
+  DotnetDownloadUrl,
+  DotnetInstallCommand,
+  findCheckout,
+  installRelease,
+  latestRelease,
+  managedDir,
+  processesUsing,
+  stopProcesses,
+  updateCheckout,
+  updateInProgress,
+  waitForUpdate,
+  writeUpdateMarker,
+} from "./bridgeUpdater";
 import { Cr2wEditorProvider, Cr2wPropertiesView, Cr2wViewType, cr2wViewTypeFor, opensInCr2wEditor } from "./cr2wEditor";
 import { GameFileSystem, gameUri } from "./gameFs";
 import { compareJson, formatDifference, type JsonComparison } from "./jsonDiff";
@@ -321,8 +336,30 @@ function startBridge(context: vscode.ExtensionContext, onReady?: (info: BridgeIn
   client.on("exit", (code) => {
     if (client !== bridge) return;
     setGameLoaded(false);
-    updateStatus("$(debug-disconnect) REDcode: bridge stopped", `Exit code ${code}. Run "REDcode: Restart bridge".`);
     log.appendLine(`Bridge exited with code ${code}.`);
+    if (updateInProgress(exe)) {
+      // Another window stopped this bridge to rebuild the checkout: wait for it, then restart on the new build.
+      updateStatus("$(sync~spin) REDcode: bridge updating in another window", exe);
+      void vscode.window.showInformationMessage("REDcode: REDbridge is being updated in another window. It restarts here when the update finishes.");
+      void waitForUpdate(exe).then((finished) => {
+        if (client !== bridge) return; // restarted by hand meanwhile
+        if (!finished) {
+          updateStatus("$(debug-disconnect) REDcode: bridge stopped", 'The update in another window did not finish. Run "REDcode: Restart bridge".');
+          return;
+        }
+        restartBridge(context, (info) => {
+          const text = `REDcode: REDbridge restarted after the update in another window, now ${info.version}.`;
+          log.appendLine(text);
+          void vscode.window.showInformationMessage(text);
+        });
+      });
+      return;
+    }
+    updateStatus("$(debug-disconnect) REDcode: bridge stopped", `Exit code ${code}. Run "REDcode: Restart bridge".`);
+    void vscode.window.showWarningMessage(`REDcode: the bridge stopped (exit code ${code}).`, "Restart bridge", "Show log").then((pick) => {
+      if (pick === "Restart bridge") restartBridge(context);
+      else if (pick === "Show log") log.show(true);
+    });
     if (code !== 0) void explainStartFailure(dotnetRoot);
   });
   setGameLoaded(false);
@@ -406,6 +443,7 @@ async function updateBridge(context: vscode.ExtensionContext, forceRelease: bool
   const before = lastInfo?.version;
   const appendLine = (line: string) => log.appendLine(line);
   let stopped = false;
+  let markerExe: string | undefined;
   try {
     await vscode.window.withProgress(
       { location: vscode.ProgressLocation.Notification, title: checkout ? "REDcode: updating the bridge from its checkout" : "REDcode: installing REDbridge" },
@@ -421,6 +459,9 @@ async function updateBridge(context: vscode.ExtensionContext, forceRelease: bool
           await stopBridgeAndWait();
           stopped = true;
           // Every VS Code window runs its own bridge; any other one on this exe holds the files the build replaces.
+          // The marker tells the windows whose bridges stop that an update is running, so they wait and restart.
+          if (exe) writeUpdateMarker(exe);
+          markerExe = exe;
           const others = exe ? await processesUsing(exe) : [];
           if (others.length > 0) {
             const pick = await vscode.window.showWarningMessage(
@@ -462,6 +503,9 @@ async function updateBridge(context: vscode.ExtensionContext, forceRelease: bool
     const message = e instanceof Error ? e.message : String(e);
     log.appendLine(`Bridge update failed: ${message}`);
     void vscode.window.showErrorMessage(`REDcode: the bridge update failed. ${message}`, "Show log").then((pick) => pick && log.show(true));
+  } finally {
+    // Cleared on success and on failure alike, so the other windows restart on whatever build is there.
+    if (markerExe) clearUpdateMarker(markerExe);
   }
   if (stopped) {
     restartBridge(context, (info) => {
