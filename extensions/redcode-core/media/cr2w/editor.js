@@ -487,6 +487,7 @@
       if (r.hits.length === 0) list.appendChild(el("div", "dim", "No matches."));
       for (const h of r.hits) {
         const row = el("div", "result" + (isCompiled(h.path) ? " compiled" : ""));
+        row.title = h.path;
         row.append(el("span", "rpath", h.path), el("span", "rtype", h.type), el("span", "rpreview", h.preview));
         row.addEventListener("click", () => { if (mode === "table") { mode = "tree"; void render(); } expandTo(h.path); void select(h.path, true); });
         list.appendChild(row);
@@ -503,7 +504,8 @@
   let tablePage = 0;
   const PageSize = 200;
 
-  async function renderTable() {
+  /** Renders the current page. With focusIndex, the page then scrolls to that row and focuses its first field. */
+  async function renderTable(focusIndex) {
     const seq = ++renderSeq;
     const grid = $("grid");
     const t = table;
@@ -519,8 +521,13 @@
     add.addEventListener("click", async () => {
       try {
         const value = await createInstance(t.entryType);
-        const total = nodes.get(t.path)?.total ?? 0;
-        await apply([{ op: "add", path: `${t.path}.-`, value }], "Add row", t.path, async () => { filterQuery = ""; tablePage = Math.floor(total / PageSize); await renderTable(); });
+        await apply([{ op: "add", path: `${t.path}.-`, value }], "Add row", t.path, async () => {
+          // The new row is the last one. Ask for the count after the add, since a filter leaves the cached node stale.
+          const total = (await getNode(t.path, 0, 1)).total ?? 1;
+          filterQuery = "";
+          tablePage = Math.floor((total - 1) / PageSize);
+          await renderTable(total - 1);
+        });
       } catch (e) { status(e.message, "error"); }
     });
     bar.append(filter, add);
@@ -559,8 +566,10 @@
     head.appendChild(el("th", ""));
     tbl.appendChild(head);
     const entryDesc = await typeOf(t.entryType).catch(() => null);
+    let focusRow = null;
     for (const r of rows) {
       const tr = el("tr");
+      if (r.index === focusIndex) { tr.classList.add("focus"); focusRow = tr; }
       tr.appendChild(el("td", "idx", String(r.index)));
       const rowPath = `${t.path}.${r.index}`;
       for (const f of [...t.keys, "femaleVariant", "maleVariant"]) {
@@ -591,8 +600,47 @@
     if (seq !== renderSeq) return;
     $("propsLabel").textContent = `${t.type}  ·  ${t.entryType}`;
     grid.replaceChildren(...parts);
-    if (filterQuery && document.activeElement !== filter) { filter.focus(); filter.setSelectionRange(filter.value.length, filter.value.length); }
+    if (focusRow) {
+      focusRow.scrollIntoView({ block: "center" });
+      focusRow.querySelector("input, select")?.focus();
+    } else if (filterQuery && document.activeElement !== filter) {
+      filter.focus(); filter.setSelectionRange(filter.value.length, filter.value.length);
+    }
   }
+
+  // ---- the splitter between the tree and the properties -----------------------------------------
+  // Drag sets --tree on #body in pixels; the width is kept in the webview state so a reload keeps it.
+  const splitter = $("splitter");
+  const body = $("body");
+  const savedTree = vscode.getState()?.treeWidth;
+  if (typeof savedTree === "number") body.style.setProperty("--tree", `${savedTree}px`);
+  splitter.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    splitter.setPointerCapture(e.pointerId);
+    splitter.classList.add("active");
+    document.body.classList.add("resizing");
+    const left = body.getBoundingClientRect().left;
+    let width = $("tree").getBoundingClientRect().width;
+    const move = (ev) => {
+      width = Math.min(Math.max(160, ev.clientX - left), body.clientWidth * 0.7);
+      body.style.setProperty("--tree", `${Math.round(width)}px`);
+    };
+    const up = () => {
+      splitter.removeEventListener("pointermove", move);
+      splitter.removeEventListener("pointerup", up);
+      splitter.removeEventListener("pointercancel", up);
+      splitter.classList.remove("active");
+      document.body.classList.remove("resizing");
+      vscode.setState({ ...(vscode.getState() ?? {}), treeWidth: Math.round(width) });
+    };
+    splitter.addEventListener("pointermove", move);
+    splitter.addEventListener("pointerup", up);
+    splitter.addEventListener("pointercancel", up);
+  });
+  splitter.addEventListener("dblclick", () => {
+    body.style.removeProperty("--tree");
+    const s = vscode.getState() ?? {}; delete s.treeWidth; vscode.setState(s);
+  });
 
   // ---- wiring ----------------------------------------------------------------------------------
   $("json").addEventListener("click", () => vscode.postMessage({ type: "openAsJson" }));

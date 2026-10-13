@@ -25,9 +25,12 @@ button.link { border: 0; color: var(--cyan); padding: 0 6px; }
 button.link:hover { text-decoration: underline; }
 button.icon { padding: 0 6px; }
 button.more { margin: 8px 0; }
-#body { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(220px, 34%) 1fr; }
+#body { flex: 1; min-height: 0; display: grid; grid-template-columns: var(--tree, minmax(220px, 34%)) 5px 1fr; }
 aside, main { min-width: 0; overflow: auto; }
-aside { border-right: 1px solid var(--line); }
+#splitter { cursor: col-resize; border-left: 1px solid var(--line); }
+#splitter:hover, #splitter.active { background: var(--accent); opacity: .5; }
+body.resizing { cursor: col-resize; user-select: none; }
+body.resizing aside, body.resizing main { pointer-events: none; }
 .label { font-family: var(--mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--dim); padding: 8px 12px 4px; position: sticky; top: 0; background: var(--vscode-editor-background); z-index: 1; }
 #propsLabel { color: var(--accent); }
 
@@ -68,17 +71,19 @@ li.more { color: var(--cyan); cursor: pointer; }
 /* footer search */
 #search, #filter { background: var(--vscode-input-background); color: var(--vscode-input-foreground); border: 1px solid var(--vscode-input-border, var(--line)); padding: 2px 8px; font: inherit; font-family: var(--mono); font-size: 12px; min-width: 220px; }
 #search:focus, #filter:focus { outline: 1px solid var(--accent); border-color: var(--accent); }
-.results { display: flex; flex-direction: column; }
-.result { display: grid; grid-template-columns: minmax(200px, 40%) minmax(80px, 15%) 1fr; gap: 10px; padding: 3px 0; border-bottom: 1px solid var(--line); cursor: pointer; font-family: var(--mono); font-size: 12px; }
+/* Each hit is two lines: the path with its type at the right, then the preview. Both wrap, so nothing is cut off. */
+.results { display: flex; flex-direction: column; min-width: 0; }
+.result { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; padding: 4px 0; border-bottom: 1px solid var(--line); cursor: pointer; font-family: var(--mono); font-size: 12px; min-width: 0; }
 .result:hover { background: var(--vscode-list-hoverBackground); }
 .result.compiled { opacity: .6; }
-.rpath { color: var(--cyan); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.rtype { color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.rpreview { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rpath { color: var(--cyan); min-width: 0; overflow-wrap: anywhere; }
+.rtype { color: var(--dim); white-space: nowrap; font-size: 11px; padding-top: 1px; }
+.rpreview { grid-column: 1 / -1; min-width: 0; overflow-wrap: anywhere; white-space: pre-wrap; max-height: 4.5em; overflow: hidden; }
 
 /* table mode: the tree pane folds away and the rows take the width */
 body.table-mode #body { grid-template-columns: 1fr; }
-body.table-mode aside { display: none; }
+body.table-mode aside, body.table-mode #splitter { display: none; }
+table.rows tr.focus td { background: var(--vscode-list-activeSelectionBackground); }
 table.rows { border-collapse: collapse; width: 100%; font-size: 12px; }
 table.rows th { text-align: left; font-family: var(--mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); padding: 4px 6px; border-bottom: 1px solid var(--line); position: sticky; top: 28px; background: var(--vscode-editor-background); }
 table.rows td { padding: 2px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }

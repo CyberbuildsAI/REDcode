@@ -5,6 +5,7 @@
 - Bridge client: cr2w document sessions (open, getNode, patch, save, close, describeType, createInstance) for the CR2W editor, with a smoke step. Needs REDbridge 0.5.0.
 - The CR2W editor: tree and property grid over a bridge document session, with undo, redo, save, backup and replay. Default for the CR2W file types in a project, and for .json and .csv files that are CR2W inside.
 - CR2W editor: search across the file, and a table view for localization files with filter, inline edit, add and delete.
+- CR2W editor, from the E3 hand test: the tree pane is resizable (drag the divider, double-click to reset), search hits wrap over two lines instead of being cut off, and Add row scrolls to the new row and focuses it.
 
 ## 0.3.1
 

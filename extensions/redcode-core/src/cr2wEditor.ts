@@ -366,6 +366,7 @@ export class Cr2wEditorProvider implements vscode.CustomEditorProvider<Cr2wDocum
 </header>
 <div id="body">
   <aside id="tree"><div class="label">Tree</div><ul id="treeRoot" class="tree"></ul></aside>
+  <div id="splitter" title="Drag to resize the tree"></div>
   <main id="props"><div class="label" id="propsLabel">Properties</div><div id="grid"></div></main>
 </div>
 <footer id="footer">
