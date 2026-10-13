@@ -112,16 +112,12 @@ export async function packProject(bridge: BridgeClient, project: ProjectInfo, op
     );
   }
 
-  // A REDmod needs its manifest; the project's own info.json under resources wins when it exists.
+  // A REDmod needs its manifest, written from the project file every time as WolvenKit does (an
+  // info.json under resources is ignored by both). Same fields in the same order as WolvenKit's ModInfo.
   if (options.redmod) {
-    const own = path.join(resources, "info.json");
-    const dest = path.join(packed, "mods", project.modName, "info.json");
-    if (fs.existsSync(own)) {
-      copy(own, dest);
-    } else {
-      fs.mkdirSync(path.dirname(dest), { recursive: true });
-      fs.writeFileSync(dest, JSON.stringify({ name: project.modName, version: project.version, description: project.description, customSounds: [] }, null, 2));
-    }
+    const dest = path.join(redmodDir, "info.json");
+    fs.mkdirSync(path.dirname(dest), { recursive: true });
+    fs.writeFileSync(dest, JSON.stringify({ name: project.modName, version: project.version || "1.0", description: project.description, customSounds: [] }, null, 2));
     log(`Wrote ${dest}`);
   }
   return summary;
