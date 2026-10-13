@@ -39,7 +39,7 @@ export function activate(context: vscode.ExtensionContext): void {
   assets = new AssetBrowser(() => bridge);
   explorer = new ProjectExplorer(() => project);
   textures = new TextureViewer(() => bridge, storage, log);
-  const cr2w = new Cr2wEditorProvider(context, () => bridge, log, (file) => void withBridge((b) => openProjectFileAsJson(b, { kind: "file", file })));
+  const cr2w = new Cr2wEditorProvider(context, () => bridge, log, textures, (file) => void withBridge((b) => openProjectFileAsJson(b, { kind: "file", file })));
 
   context.subscriptions.push(
     log,

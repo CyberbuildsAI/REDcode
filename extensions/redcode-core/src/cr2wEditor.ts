@@ -8,6 +8,8 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import * as vscode from "vscode";
 import type { BridgeClient } from "./bridgeClient";
+import { ProjectFolders } from "./project";
+import type { TextureViewer } from "./textureViewer";
 import type { DocumentInfo, PatchOp, PatchResult } from "./types";
 
 export const Cr2wViewType = "redcode.cr2w";
@@ -166,6 +168,10 @@ interface Request {
   query?: string;
   ops?: PatchOp[];
   label?: string;
+  /** texture: the depot path of a texture the page wants to show. */
+  depot?: string;
+  /** textureData: the PNG the page could not load through its resource URI. */
+  png?: string;
 }
 
 export class Cr2wEditorProvider implements vscode.CustomEditorProvider<Cr2wDocument> {
@@ -206,8 +212,32 @@ export class Cr2wEditorProvider implements vscode.CustomEditorProvider<Cr2wDocum
     private readonly context: vscode.ExtensionContext,
     private readonly getBridge: () => BridgeClient | undefined,
     private readonly log: vscode.OutputChannel,
+    /** Converts textures to PNG and knows where they go, for the atlas view. */
+    private readonly textures: TextureViewer,
     private readonly openAsJson: (file: string) => void,
   ) {}
+
+  /**
+   * The PNG for a texture an atlas refers to by depot path. The project's own copy under
+   * source/archive wins when it exists, since that is the texture a mod ships; otherwise the game's.
+   */
+  private async texturePng(bridge: BridgeClient, documentFile: string, depot: string): Promise<string> {
+    const lower = documentFile.toLowerCase();
+    const marker = `${path.sep}${ProjectFolders.archive.toLowerCase()}${path.sep}`;
+    const at = lower.indexOf(marker);
+    if (at >= 0) {
+      const own = path.join(documentFile.slice(0, at), ProjectFolders.archive, ...depot.split("\\"));
+      if (fs.existsSync(own)) {
+        const png = this.textures.pngForFile(own);
+        await bridge.fileToPng(own, png);
+        this.log.appendLine(`cr2w editor: atlas texture from the project, ${own}`);
+        return png;
+      }
+    }
+    const png = this.textures.pngForGamePath(depot);
+    await bridge.toPng(depot, png);
+    return png;
+  }
 
   register(): vscode.Disposable {
     return vscode.window.registerCustomEditorProvider(Cr2wViewType, this, {
@@ -245,7 +275,7 @@ export class Cr2wEditorProvider implements vscode.CustomEditorProvider<Cr2wDocum
 
   async resolveCustomEditor(document: Cr2wDocument, panel: vscode.WebviewPanel): Promise<void> {
     const media = vscode.Uri.joinPath(this.context.extensionUri, "media", "cr2w");
-    panel.webview.options = { enableScripts: true, localResourceRoots: [media] };
+    panel.webview.options = { enableScripts: true, localResourceRoots: [media, this.textures.root] };
     panel.webview.html = this.html(panel.webview, media);
 
     const post = (message: unknown) => void panel.webview.postMessage(message);
@@ -291,6 +321,19 @@ export class Cr2wEditorProvider implements vscode.CustomEditorProvider<Cr2wDocum
             return reply(m.id, await this.requireBridge().createInstance(m.name ?? ""));
           case "patch":
             return reply(m.id, await document.edit(this.requireBridge(), m.ops ?? [], m.label ?? "Edit"));
+          case "texture": {
+            const png = await this.texturePng(this.requireBridge(), document.uri.fsPath, m.depot ?? "");
+            return reply(m.id, { png, src: panel.webview.asWebviewUri(vscode.Uri.file(png)).toString() });
+          }
+          case "textureData": {
+            // The resource URI was refused (it has been, with a 401, on one machine): send the bytes inline.
+            const png = path.resolve(m.png ?? "");
+            if (!png.toLowerCase().startsWith(this.textures.root.fsPath.toLowerCase())) {
+              throw new Error("Only PNGs the extension converted can be sent inline.");
+            }
+            this.log.appendLine(`cr2w editor: the page could not load ${png}; sending it inline`);
+            return reply(m.id, `data:image/png;base64,${fs.readFileSync(png).toString("base64")}`);
+          }
           case "openAsJson":
             this.openAsJson(document.uri.fsPath);
             return;
@@ -350,7 +393,7 @@ export class Cr2wEditorProvider implements vscode.CustomEditorProvider<Cr2wDocum
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource}; script-src 'nonce-${nonce}'; font-src ${webview.cspSource};">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${webview.cspSource} data:; style-src ${webview.cspSource}; script-src 'nonce-${nonce}'; font-src ${webview.cspSource};">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="${style}">
 <title>CR2W</title>
@@ -361,11 +404,12 @@ export class Cr2wEditorProvider implements vscode.CustomEditorProvider<Cr2wDocum
   <span class="meta" id="type"></span>
   <span class="meta" id="size"></span>
   <span class="spacer"></span>
-  <button id="view" hidden title="Switch between the table and the tree">Tree</button>
+  <button id="view" hidden title="Switch between this file's own view and the tree">Tree</button>
   <button id="json" title="Open this file as WolvenKit JSON in a text editor">JSON</button>
 </header>
 <div id="body">
   <aside id="tree"><div class="label">Tree</div><ul id="treeRoot" class="tree"></ul></aside>
+  <aside id="parts" hidden><div class="label">Parts</div><div id="partsBar"></div><div id="partsList"></div></aside>
   <div id="splitter" title="Drag to resize the tree"></div>
   <main id="props"><div class="label" id="propsLabel">Properties</div><div id="grid"></div></main>
 </div>

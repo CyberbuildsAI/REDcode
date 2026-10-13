@@ -25,7 +25,7 @@
   /** Before a save: commit the input being edited (blur fires its change) and let in-flight patches land. */
   async function flush(id) {
     const active = document.activeElement;
-    if (active && active !== document.body && (active.tagName === "INPUT" || active.tagName === "SELECT") && active.id !== "search" && active.id !== "filter") {
+    if (active && active !== document.body && (active.tagName === "INPUT" || active.tagName === "SELECT") && active.id !== "search" && active.id !== "filter" && active.id !== "partsFilter") {
       active.blur();
     }
     await Promise.allSettled([...inflight]);
@@ -67,6 +67,7 @@
   const expanded = new Set([""]);
   let mode = "tree";
   let table = null;             // { path, type, entryType, keys } when the file is a localization table
+  let atlas = null;             // { slots, slot, parts, image } when the file is an inkTextureAtlas (see the atlas section)
 
   const status = (text, kind = "") => { const s = $("status"); s.textContent = text; s.className = kind; };
   const join = (a, b) => (a ? `${a}.${b}` : b);
@@ -94,8 +95,9 @@
     $("size").textContent = `${m.info.bytes.toLocaleString()} B` + (m.info.embeddedFiles ? `, ${m.info.embeddedFiles} embedded` : "");
     document.title = m.file;
     table = await detectTable().catch(() => null);
-    if (table) {
-      mode = "table";
+    atlas = table ? null : await detectAtlas().catch((e) => { status(e.message, "error"); return null; });
+    if (table || atlas) {
+      mode = table ? "table" : "atlas";
       $("view").hidden = false;
     }
     await reloadAll("open");
@@ -130,12 +132,22 @@
   /** Draws the main pane for the current mode. */
   async function render(force = false) {
     document.body.classList.toggle("table-mode", mode === "table");
-    $("view").textContent = mode === "table" ? "Tree" : "Table";
+    document.body.classList.toggle("atlas-mode", mode === "atlas");
+    $("view").textContent = mode !== "tree" ? "Tree" : table ? "Table" : "Atlas";
     if (mode === "table") {
       await renderTable();
+    } else if (mode === "atlas") {
+      await renderAtlas();
     } else {
       await select(selected, force);
     }
+  }
+
+  /** Redraws the main pane of the current mode after an edit. */
+  async function rerender() {
+    if (mode === "table") await renderTable();
+    else if (mode === "atlas") await renderAtlas();
+    else await renderGrid();
   }
 
   // ---- tree --------------------------------------------------------------------------------
@@ -462,15 +474,15 @@
       nodes.delete(refreshPath);
       if (after) {
         await after();
-      } else if (mode === "table") {
-        await renderTable();
+      } else if (mode !== "tree") {
+        await rerender();
       } else {
         await renderGrid();
         await refreshTreeFrom(refreshPath || ops[0].path);
       }
     } catch (e) {
       status(e.message, "error");
-      if (mode === "table") await renderTable(); else await renderGrid();
+      await rerender();
     }
   }
 
@@ -489,7 +501,7 @@
         const row = el("div", "result" + (isCompiled(h.path) ? " compiled" : ""));
         row.title = h.path;
         row.append(el("span", "rpath", h.path), el("span", "rtype", h.type), el("span", "rpreview", h.preview));
-        row.addEventListener("click", () => { if (mode === "table") { mode = "tree"; void render(); } expandTo(h.path); void select(h.path, true); });
+        row.addEventListener("click", () => { if (mode !== "tree") { mode = "tree"; void render(); } expandTo(h.path); void select(h.path, true); });
         list.appendChild(row);
       }
       grid.replaceChildren(list);
@@ -642,13 +654,370 @@
     const s = vscode.getState() ?? {}; delete s.treeWidth; vscode.setState(s);
   });
 
+  // ---- atlas view (inkTextureAtlas) --------------------------------------------------------------
+  // Game atlases keep clippingRectInPixels at zero; only clippingRectInUVCoords counts in the game. So
+  // the rectangles are drawn from UV times the texture size, and an edit here writes both rectangles.
+  const SVG = "http://www.w3.org/2000/svg";
+  const RectKeys = ["left", "top", "right", "bottom"];
+  const UvKeys = ["Left", "Top", "Right", "Bottom"];
+  const images = new Map();     // depot path -> { src, png, w, h, error }, converted once per document
+  let partsFilter = "";
+  let atlasFit = true;
+  let atlasPixel = false;
+  let atlasLabels = null;       // null: on while the slot has few parts
+
+  /** An inkTextureAtlas gets the atlas view, starting on the first slot that has parts. */
+  async function detectAtlas() {
+    if (info.type !== "inkTextureAtlas") return null;
+    const slots = await readSlots();
+    if (slots.length === 0) return null;
+    const first = slots.findIndex((s) => s.count > 0);
+    return { slots, slot: first < 0 ? 0 : first, parts: [] };
+  }
+
+  /** The slots with their texture and part count, plus the root's own texture and parts when an older file uses them. */
+  async function readSlots() {
+    const out = [];
+    const list = await getNode("slots", 0, 10).catch(() => null);
+    for (const c of list?.children ?? []) {
+      const p = join("slots", c.name);
+      out.push(slotInfo(p, await getNode(p), `slot ${c.name}`));
+    }
+    const root = await getNode("");
+    const rootParts = root.children?.find((c) => c.name === "parts");
+    if (rootParts && (rootParts.count ?? 0) > 0) out.push(slotInfo("", root, "root"));
+    return out;
+  }
+
+  function slotInfo(path, node, name) {
+    const depot = node.children?.find((c) => c.name === "texture")?.value?.DepotPath?.$value;
+    return {
+      path, name,
+      texture: depot && depot !== "0" ? depot : "",
+      count: node.children?.find((c) => c.name === "parts")?.count ?? 0,
+      partsPath: join(path, "parts"),
+    };
+  }
+
+  /** Every part of the slot with its values, fetched 200 at a time. */
+  async function loadParts(slot) {
+    const first = await getNode(slot.partsPath, 0, 1);
+    const total = first.total ?? 0;
+    slot.count = total;
+    const paths = Array.from({ length: total }, (_, i) => `${slot.partsPath}.${i}`);
+    const parts = [];
+    for (let i = 0; i < paths.length; i += 200) {
+      const got = await getNodes(paths.slice(i, i + 200));
+      got.forEach((n, k) => parts.push(partOf(paths[i + k], i + k, n)));
+    }
+    return parts;
+  }
+
+  function partOf(path, index, n) {
+    const get = (name) => n.children?.find((c) => c.name === name)?.value;
+    const raw = { partName: get("partName"), px: get("clippingRectInPixels") ?? {}, uv: get("clippingRectInUVCoords") ?? {} };
+    return { path, index, name: raw.partName?.$value ?? "", raw };
+  }
+
+  /** The rectangle in texture pixels: from UV when the texture size is known and UV is set, else as stored in pixels. */
+  function pixelRect(part, size) {
+    const { px, uv } = part.raw;
+    if (size && UvKeys.some((k) => (uv[k] ?? 0) !== 0)) {
+      return { left: Math.round((uv.Left ?? 0) * size.w), top: Math.round((uv.Top ?? 0) * size.h), right: Math.round((uv.Right ?? 0) * size.w), bottom: Math.round((uv.Bottom ?? 0) * size.h) };
+    }
+    return { left: px.left ?? 0, top: px.top ?? 0, right: px.right ?? 0, bottom: px.bottom ?? 0 };
+  }
+
+  const uvOf = (rect, size) => size ? { Left: Math.fround(rect.left / size.w), Top: Math.fround(rect.top / size.h), Right: Math.fround(rect.right / size.w), Bottom: Math.fround(rect.bottom / size.h) } : null;
+  const sizeOf = (slot) => { const i = images.get(slot.texture); return i && i.w ? { w: i.w, h: i.h } : null; };
+  const showLabels = () => atlasLabels ?? atlas.parts.length <= 60;
+
+  /** Asks the extension for the texture's PNG once; later renders reuse the answer. */
+  async function imageFor(depot) {
+    if (!depot) return null;
+    if (images.has(depot)) return images.get(depot);
+    const entry = { src: "", png: "", w: 0, h: 0, error: "" };
+    images.set(depot, entry);
+    try {
+      const r = await request("texture", { depot });
+      entry.src = r.src;
+      entry.png = r.png;
+    } catch (e) {
+      entry.error = e.message;
+    }
+    return entry;
+  }
+
+  async function renderAtlas() {
+    const seq = ++renderSeq;
+    const a = atlas;
+    const grid = $("grid");
+    const slot = a.slots[a.slot];
+    let image;
+    try {
+      [a.parts, image] = await Promise.all([loadParts(slot), imageFor(slot.texture)]);
+    } catch (e) {
+      if (seq === renderSeq) grid.replaceChildren(el("div", "error", e.message));
+      return;
+    }
+    if (seq !== renderSeq) return;
+    if (!a.parts.some((p) => p.path === selected)) selected = a.parts[0]?.path ?? "";
+    $("selected").textContent = selected || "(root)";
+    renderPartsList();
+
+    // The stage: the texture with the overlay, or a note when there is nothing to draw.
+    const stage = el("div", "stage" + (atlasFit ? " fit" : "") + (atlasPixel ? " pixel" : ""));
+    const svg = document.createElementNS(SVG, "svg");
+    const dims = el("span", "dim");
+    if (!slot.texture) {
+      stage.appendChild(el("div", "note", "This slot has no texture. Its parts are listed on the left and edited below; the tree has everything else."));
+    } else if (image.error) {
+      stage.appendChild(el("div", "note", `Could not show ${slot.texture}: ${image.error}`));
+    } else {
+      const img = el("img");
+      img.alt = slot.texture;
+      let retried = false;
+      img.addEventListener("load", () => {
+        image.w = img.naturalWidth;
+        image.h = img.naturalHeight;
+        dims.textContent = `${image.w} × ${image.h}`;
+        drawOverlay(svg, img, image);
+        if (seq === renderSeq) { fillPartsList(); void renderPartForm(); }
+      });
+      img.addEventListener("error", async () => {
+        if (!retried && image.png) {
+          // The resource URI was refused: ask for the bytes and keep the data URI for later renders.
+          retried = true;
+          try { image.src = await request("textureData", { png: image.png }); img.src = image.src; return; } catch (e) { image.error = e.message; }
+        } else {
+          image.error = `the page could not load ${image.png}`;
+        }
+        stage.replaceChildren(el("div", "note", `Could not show ${slot.texture}: ${image.error}`));
+      });
+      img.src = image.src;
+      stage.append(img, svg);
+    }
+
+    const bar = el("div", "toolbar");
+    const pick = el("select");
+    a.slots.forEach((s, i) => {
+      const o = el("option", "", `${s.name}: ${s.texture ? s.texture.split("\\").pop() : "no texture"}, ${s.count} part${s.count === 1 ? "" : "s"}`);
+      o.value = String(i);
+      pick.appendChild(o);
+    });
+    pick.value = String(a.slot);
+    pick.title = slot.texture || "This slot has no texture";
+    pick.addEventListener("change", () => { a.slot = Number(pick.value); selected = ""; partsFilter = ""; void renderAtlas(); });
+    const fit = el("button", atlasFit ? "on" : "", "Fit");
+    const one = el("button", atlasFit ? "" : "on", "1:1");
+    const pixel = el("button", atlasPixel ? "on" : "", "Pixels");
+    const labels = el("button", showLabels() ? "on" : "", "Labels");
+    fit.title = "Scale the texture to the pane"; one.title = "One texture pixel per screen pixel"; pixel.title = "Nearest-neighbour scaling"; labels.title = "Part names on the texture";
+    fit.addEventListener("click", () => { atlasFit = true; stage.classList.add("fit"); fit.classList.add("on"); one.classList.remove("on"); });
+    one.addEventListener("click", () => { atlasFit = false; stage.classList.remove("fit"); one.classList.add("on"); fit.classList.remove("on"); });
+    pixel.addEventListener("click", () => { atlasPixel = !atlasPixel; stage.classList.toggle("pixel", atlasPixel); pixel.classList.toggle("on", atlasPixel); });
+    labels.addEventListener("click", () => { atlasLabels = !showLabels(); svg.classList.toggle("labels", atlasLabels); labels.classList.toggle("on", atlasLabels); });
+    bar.append(pick, fit, one, pixel, labels, dims);
+
+    const form = el("div");
+    form.id = "partForm";
+    if (seq !== renderSeq) return;
+    $("propsLabel").textContent = `inkTextureAtlas  ·  ${slot.name}`;
+    grid.replaceChildren(bar, stage, form);
+    await renderPartForm();
+  }
+
+  /** The part rectangles over the image, in texture pixels through the viewBox; labels keep a screen size. */
+  function drawOverlay(svg, img, image) {
+    svg.setAttribute("viewBox", `0 0 ${image.w} ${image.h}`);
+    svg.setAttribute("preserveAspectRatio", "none");
+    svg.classList.toggle("labels", showLabels());
+    svg.replaceChildren();
+    const size = { w: image.w, h: image.h };
+    for (const p of atlas.parts) {
+      const r = pixelRect(p, size);
+      const g = document.createElementNS(SVG, "g");
+      g.dataset.path = p.path;
+      if (p.path === selected) g.classList.add("selected");
+      const rect = document.createElementNS(SVG, "rect");
+      rect.setAttribute("x", r.left); rect.setAttribute("y", r.top);
+      rect.setAttribute("width", Math.max(0, r.right - r.left)); rect.setAttribute("height", Math.max(0, r.bottom - r.top));
+      const title = document.createElementNS(SVG, "title");
+      title.textContent = `${p.name}\n${r.left}, ${r.top} to ${r.right}, ${r.bottom}  (${r.right - r.left} × ${r.bottom - r.top})`;
+      const text = document.createElementNS(SVG, "text");
+      text.dataset.x = r.left; text.dataset.y = r.top;
+      text.textContent = p.name;
+      g.append(title, rect, text);
+      g.addEventListener("click", () => void selectPart(p.path));
+      svg.appendChild(g);
+    }
+    const fitText = () => {
+      const scale = img.clientWidth / image.w || 1;
+      for (const t of svg.querySelectorAll("text")) {
+        t.setAttribute("font-size", (11 / scale).toFixed(3));
+        t.setAttribute("x", (Number(t.dataset.x) + 3 / scale).toFixed(2));
+        t.setAttribute("y", (Number(t.dataset.y) + 13 / scale).toFixed(2));
+      }
+    };
+    fitText();
+    new ResizeObserver(fitText).observe(img);
+  }
+
+  function renderPartsList() {
+    const bar = $("partsBar");
+    bar.replaceChildren();
+    const filter = el("input");
+    filter.id = "partsFilter";
+    filter.type = "search";
+    filter.placeholder = "filter parts";
+    filter.value = partsFilter;
+    filter.addEventListener("input", () => { partsFilter = filter.value.trim().toLowerCase(); fillPartsList(); });
+    const add = el("button", "link", "+ add part");
+    add.title = "Add a part to this slot";
+    add.addEventListener("click", addPart);
+    bar.append(filter, add);
+    fillPartsList();
+  }
+
+  function fillPartsList() {
+    const a = atlas;
+    const size = sizeOf(a.slots[a.slot]);
+    const list = $("partsList");
+    list.replaceChildren();
+    let shown = 0;
+    for (const p of a.parts) {
+      if (partsFilter && !p.name.toLowerCase().includes(partsFilter)) continue;
+      shown++;
+      const r = pixelRect(p, size);
+      const row = el("div", "part" + (p.path === selected ? " selected" : ""));
+      row.dataset.path = p.path;
+      row.title = `${p.path}\n${r.left}, ${r.top} to ${r.right}, ${r.bottom}`;
+      row.append(el("span", "name", p.name || "(unnamed)"), el("span", "size", `${r.right - r.left}×${r.bottom - r.top}`));
+      row.addEventListener("click", () => void selectPart(p.path));
+      list.appendChild(row);
+    }
+    if (shown === 0) list.appendChild(el("div", "part dim", a.parts.length ? "No part matches." : "No parts in this slot."));
+  }
+
+  /** Selects a part in the list and on the image, and shows its form, without touching the rest of the page. */
+  async function selectPart(path) {
+    selected = path;
+    $("selected").textContent = path;
+    for (const x of document.querySelectorAll("#partsList .part.selected, .stage svg g.selected")) x.classList.remove("selected");
+    const row = document.querySelector(`#partsList .part[data-path="${CSS.escape(path)}"]`);
+    row?.classList.add("selected");
+    row?.scrollIntoView({ block: "nearest" });
+    document.querySelector(`.stage svg g[data-path="${CSS.escape(path)}"]`)?.classList.add("selected");
+    await renderPartForm();
+  }
+
+  /** The selected part's form: name, the rectangle in pixels with the UV it maps to, delete, open in tree. */
+  async function renderPartForm() {
+    const form = $("partForm");
+    if (!form) return;
+    const a = atlas;
+    const slot = a.slots[a.slot];
+    const part = a.parts.find((p) => p.path === selected);
+    if (!part) {
+      form.replaceChildren(el("div", "dim", a.parts.length ? "Click a rectangle, or a part on the left, to edit it." : "No parts in this slot. Use + add part on the left."));
+      return;
+    }
+    const size = sizeOf(slot);
+    const image = images.get(slot.texture);
+    if (slot.texture && image && !image.error && !size) {
+      form.replaceChildren(el("div", "dim", "Loading the texture…"));
+      return;
+    }
+    const rows = [];
+    const head = el("div", "toolbar");
+    const openTree = el("button", "link", "open in tree");
+    openTree.addEventListener("click", () => { mode = "tree"; expandTo(part.path); void render(true); });
+    const del = el("button", "link", "delete part");
+    del.addEventListener("click", () => apply([{ op: "remove", path: part.path }], `Delete part ${part.name}`, slot.partsPath, async () => { selected = ""; await renderAtlas(); }));
+    head.append(el("span", "dim", part.path), openTree, del);
+    rows.push(head);
+
+    const nameRow = el("div", "prow");
+    nameRow.append(el("span", "pname", "partName"), el("span", "ptype", "CName"));
+    const nameCell = el("span", "pvalue");
+    const nameValue = part.raw.partName ?? { $type: "CName", $storage: "string", $value: part.name };
+    nameCell.appendChild(await leafEditor(`${part.path}.partName`, "CName", nameValue, false, null, async () => { await renderAtlas(); }));
+    nameRow.appendChild(nameCell);
+    rows.push(nameRow);
+
+    const r = pixelRect(part, size);
+    const f = el("div", "rectform");
+    f.append(el("span", "h", ""), ...RectKeys.map((k) => el("span", "h", k)));
+    f.append(el("span", "k", "pixels"));
+    const inputs = {};
+    for (const k of RectKeys) {
+      const i = el("input");
+      i.type = "text";
+      i.inputMode = "numeric";
+      i.value = String(r[k]);
+      inputs[k] = i;
+      f.appendChild(i);
+    }
+    f.append(el("span", "k", "uv"));
+    const uvCells = UvKeys.map(() => el("span", "uv"));
+    f.append(...uvCells);
+    const showUv = (rect) => { const uv = uvOf(rect, size) ?? part.raw.uv; UvKeys.forEach((k, i) => { uvCells[i].textContent = Number(uv[k] ?? 0).toFixed(6); }); };
+    const read = () => { const t = {}; for (const k of RectKeys) t[k] = Number(inputs[k].value); return t; };
+    showUv(r);
+    const commit = async () => {
+      const next = read();
+      let bad = false;
+      for (const k of RectKeys) { const ok = Number.isInteger(next[k]); inputs[k].classList.toggle("bad", !ok); bad = bad || !ok; }
+      if (bad || RectKeys.every((k) => next[k] === r[k])) return;
+      const ops = [{ op: "replace", path: `${part.path}.clippingRectInPixels`, value: { $type: "Rect", ...next } }];
+      const uv = uvOf(next, size);
+      if (uv) ops.push({ op: "replace", path: `${part.path}.clippingRectInUVCoords`, value: { $type: "RectF", ...uv } });
+      await apply(ops, `Set ${part.name} rectangle`, slot.partsPath, async () => { await renderAtlas(); });
+    };
+    for (const i of Object.values(inputs)) {
+      i.addEventListener("change", commit);
+      i.addEventListener("input", () => showUv(read()));
+      i.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); void commit(); } });
+    }
+    rows.push(f);
+    rows.push(el("div", "dim", `${r.right - r.left} × ${r.bottom - r.top} px` + (size ? "" : ". The texture size is not known, so only the pixel rectangle is written; the game reads the UV one.")));
+    form.replaceChildren(...rows);
+  }
+
+  /** Appends a 64 by 64 part at the origin to the slot and selects it. */
+  async function addPart() {
+    const a = atlas;
+    const slot = a.slots[a.slot];
+    try {
+      const value = await createInstance("inkTextureAtlasMapper");
+      const rect = { left: 0, top: 0, right: 64, bottom: 64 };
+      value.partName = { $type: "CName", $storage: "string", $value: "new_part" };
+      value.clippingRectInPixels = { $type: "Rect", ...rect };
+      const uv = uvOf(rect, sizeOf(slot));
+      if (uv) value.clippingRectInUVCoords = { $type: "RectF", ...uv };
+      const next = `${slot.partsPath}.${a.parts.length}`;
+      await apply([{ op: "add", path: `${slot.partsPath}.-`, value }], "Add part", slot.partsPath, async () => {
+        selected = next;
+        partsFilter = "";
+        await renderAtlas();
+        document.querySelector("#partForm .leaf input")?.select();
+      });
+    } catch (e) {
+      status(e.message, "error");
+    }
+  }
+
   // ---- wiring ----------------------------------------------------------------------------------
   $("json").addEventListener("click", () => vscode.postMessage({ type: "openAsJson" }));
-  $("view").addEventListener("click", () => { mode = mode === "table" ? "tree" : "table"; void render(true); });
+  $("view").addEventListener("click", () => {
+    mode = mode !== "tree" ? "tree" : table ? "table" : "atlas";
+    if (mode === "tree" && selected) expandTo(selected);
+    void render(true);
+  });
   const searchBox = $("search");
   searchBox.addEventListener("keydown", (e) => {
     if (e.key === "Enter") { e.preventDefault(); void runSearch(searchBox.value.trim()); }
-    if (e.key === "Escape") { searchBox.value = ""; void (mode === "table" ? renderTable() : renderGrid()); }
+    if (e.key === "Escape") { searchBox.value = ""; void rerender(); }
   });
   vscode.postMessage({ type: "ready" });
 })();

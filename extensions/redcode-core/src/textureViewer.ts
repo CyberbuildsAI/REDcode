@@ -36,7 +36,7 @@ export class TextureViewer implements vscode.CustomReadonlyEditorProvider<Textur
    * and the webview's resource check compares schemes before paths, so a vscode-userdata root never
    * matches the file: URIs that asWebviewUri produces and every image request gets a 401.
    */
-  private readonly root: vscode.Uri;
+  readonly root: vscode.Uri;
 
   constructor(
     private readonly getBridge: () => BridgeClient | undefined,

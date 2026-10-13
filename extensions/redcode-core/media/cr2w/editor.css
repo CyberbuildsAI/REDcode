@@ -93,3 +93,36 @@ table.rows td.key .leaf input { min-width: 90px; width: 100%; }
 table.rows td.text .leaf input { min-width: 240px; }
 table.rows td.tools { width: 1%; }
 .pager { display: flex; gap: 12px; align-items: center; padding: 8px 0; }
+
+/* atlas mode: the parts list replaces the tree, the texture with the part rectangles over it fills the main pane */
+body.atlas-mode #tree { display: none; }
+body.atlas-mode #parts { display: block; }
+#partsBar { padding: 4px 12px 6px; display: flex; gap: 8px; align-items: center; }
+#partsBar input { min-width: 0; flex: 1; }
+.part { display: flex; gap: 8px; align-items: baseline; padding: 2px 12px; cursor: pointer; white-space: nowrap; border-left: 2px solid transparent; }
+.part:hover { background: var(--vscode-list-hoverBackground); }
+.part.selected { background: var(--vscode-list-activeSelectionBackground); color: var(--vscode-list-activeSelectionForeground, inherit); border-left-color: var(--accent); }
+.part .name { flex: 1; overflow: hidden; text-overflow: ellipsis; color: inherit; font-weight: 500; }
+.part .size { color: var(--dim); font-family: var(--mono); font-size: 11px; }
+.toolbar select { background: var(--vscode-input-background); color: var(--vscode-input-foreground); border: 1px solid var(--vscode-input-border, var(--line)); padding: 2px 6px; font: inherit; font-size: 12px; max-width: 50%; }
+.toolbar button.on { border-color: var(--accent); color: var(--accent); }
+.stage { position: relative; display: inline-block; max-width: 100%; margin: 8px 0; line-height: 0; background-color: #161616; background-image: conic-gradient(#232323 25%, #161616 0 50%, #232323 0 75%, #161616 0); background-size: 16px 16px; }
+.stage.fit img { max-width: 100%; height: auto; }
+.stage.pixel img { image-rendering: pixelated; }
+.stage img { display: block; }
+.stage svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.stage svg rect { fill: rgba(25, 243, 255, .08); stroke: var(--cyan); stroke-width: 1; vector-effect: non-scaling-stroke; cursor: pointer; }
+.stage svg g:hover rect { fill: rgba(25, 243, 255, .25); }
+.stage svg g.selected rect { fill: rgba(252, 238, 10, .18); stroke: var(--accent); stroke-width: 2; }
+.stage svg text { fill: var(--cyan); font-family: var(--mono); paint-order: stroke; stroke: rgba(0, 0, 0, .8); stroke-width: 3px; pointer-events: none; }
+.stage svg g.selected text { fill: var(--accent); }
+.stage .note { line-height: normal; padding: 24px; color: var(--dim); }
+.rectform { display: grid; grid-template-columns: auto repeat(4, minmax(70px, 110px)); gap: 6px 10px; align-items: center; padding: 6px 0; }
+.rectform .h { font-family: var(--mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--dim); }
+.rectform .k { font-family: var(--mono); font-size: 12px; color: var(--dim); }
+.rectform input { width: 100%; box-sizing: border-box; background: var(--vscode-input-background); color: var(--vscode-input-foreground); border: 1px solid var(--vscode-input-border, var(--line)); padding: 2px 6px; font: inherit; font-family: var(--mono); font-size: 12px; }
+.rectform input:focus { outline: 1px solid var(--accent); border-color: var(--accent); }
+.rectform input.bad { border-color: var(--red); }
+.rectform .uv { font-family: var(--mono); font-size: 12px; color: var(--dim); }
+.stage svg text { display: none; }
+.stage svg.labels text { display: block; }
