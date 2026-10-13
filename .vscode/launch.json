@@ -8,6 +8,14 @@
       "args": ["--extensionDevelopmentPath=${workspaceFolder}/extensions/redcode-core"],
       "outFiles": ["${workspaceFolder}/extensions/redcode-core/dist/**/*.js"],
       "preLaunchTask": "build redcode-core"
+    },
+    {
+      "name": "Run REDcode Core (no other extensions)",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": ["--extensionDevelopmentPath=${workspaceFolder}/extensions/redcode-core", "--disable-extensions"],
+      "outFiles": ["${workspaceFolder}/extensions/redcode-core/dist/**/*.js"],
+      "preLaunchTask": "build redcode-core"
     }
   ]
 }
