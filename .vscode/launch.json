@@ -13,7 +13,11 @@
       "name": "Run REDcode Core (no other extensions)",
       "type": "extensionHost",
       "request": "launch",
-      "args": ["--extensionDevelopmentPath=${workspaceFolder}/extensions/redcode-core", "--disable-extensions"],
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}/extensions/redcode-core",
+        "--extensionDevelopmentPath=${workspaceFolder}/extensions/rednode-hud-theme",
+        "--disable-extensions"
+      ],
       "outFiles": ["${workspaceFolder}/extensions/redcode-core/dist/**/*.js"],
       "preLaunchTask": "build redcode-core"
     }
