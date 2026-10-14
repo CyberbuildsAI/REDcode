@@ -27,6 +27,7 @@ import { GameFileSystem, gameUri } from "./gameFs";
 import { compareJson, formatDifference, type JsonComparison } from "./jsonDiff";
 import { hasRedHotTools, installDirect, installHot, launchTarget, planInstall, readRecord, uninstallDirect } from "./install";
 import { targetsUnder } from "./modkit";
+import { compileFilter } from "./treeFilter";
 import { MeshViewer } from "./meshViewer";
 import { packProject, type PackSummary } from "./pack";
 import { findREDdeck } from "./reddeck";
@@ -52,6 +53,7 @@ let restartTimer: NodeJS.Timeout | undefined;
 let assets: AssetBrowser;
 let explorer: ProjectExplorer;
 let projectView: vscode.TreeView<ProjectNode>;
+let assetsView: vscode.TreeView<AssetNode>;
 let textures: TextureViewer;
 let cr2wEditor: Cr2wEditorProvider;
 let watcher: vscode.FileSystemWatcher | undefined;
@@ -102,7 +104,7 @@ export function activate(context: vscode.ExtensionContext): void {
     status,
     gameFs.register(),
     vscode.commands.registerCommand("redcode.openAssetInEditor", (node: AssetNode) => openAssetInEditor(node)),
-    vscode.window.createTreeView("redcode.assets", { treeDataProvider: assets, showCollapseAll: true }),
+    (assetsView = vscode.window.createTreeView("redcode.assets", { treeDataProvider: assets, showCollapseAll: true })),
     (projectView = vscode.window.createTreeView("redcode.project", { treeDataProvider: explorer, showCollapseAll: true })),
     textures.register(),
     cr2w.register(),
@@ -134,6 +136,10 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.tasks.registerTaskProvider("redcode", { provideTasks: () => provideTasks(), resolveTask: (task) => resolveTask(task) }),
     vscode.commands.registerCommand("redcode.refreshProject", () => detectProject()),
     vscode.commands.registerCommand("redcode.refreshAssets", () => assets.refresh()),
+    vscode.commands.registerCommand("redcode.filterAssets", () => filterInput("assets")),
+    vscode.commands.registerCommand("redcode.clearAssetsFilter", () => applyFilter("assets", "")),
+    vscode.commands.registerCommand("redcode.filterProject", () => filterInput("project")),
+    vscode.commands.registerCommand("redcode.clearProjectFilter", () => applyFilter("project", "")),
     vscode.commands.registerCommand("redcode.restartBridge", () => restartBridge(context)),
     vscode.commands.registerCommand("redcode.updateBridge", () => updateBridge(context, false)),
     vscode.commands.registerCommand("redcode.installBridge", () => updateBridge(context, true)),
@@ -496,6 +502,69 @@ async function modkitCommand(b: BridgeClient, node: ProjectNode, action: "export
   } else {
     vscode.window.setStatusBarMessage(`$(check) REDcode: ${verb} ${files.length} file(s), ${written.length} written`, 6000);
   }
+}
+
+// ---- filtering the Game Assets and Project trees ----------------------------------------------
+
+const filterPatterns = { assets: "", project: "" };
+
+/**
+ * The Filter button: an input at the top of the window that filters the tree as you type. The filter
+ * stays after the input closes; the view says what it shows, and Clear filter brings the whole tree back.
+ * A tree view cannot hold an input box itself, so this is VS Code's own way to type into one.
+ */
+async function filterInput(which: "assets" | "project"): Promise<void> {
+  if (which === "assets" && !bridge?.running) {
+    void vscode.window.showWarningMessage('REDcode: the bridge is not running, so Game Assets cannot be filtered. Run "REDcode: Restart REDbridge".');
+    return;
+  }
+  const input = vscode.window.createInputBox();
+  input.title = which === "assets" ? "Filter Game Assets" : "Filter the project";
+  input.placeholder = "Part of a path: osprey mesh, *.xbm, ep1\\weapons\\*.mesh (empty shows everything)";
+  input.prompt = "Words must all match; * and ? are wildcards; case does not matter. Enter or click away keeps the filter.";
+  input.value = filterPatterns[which];
+  let timer: NodeJS.Timeout | undefined;
+  input.onDidChangeValue((value) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => void applyFilter(which, value), which === "assets" ? 350 : 150);
+  });
+  input.onDidAccept(() => {
+    clearTimeout(timer);
+    void applyFilter(which, input.value);
+    input.hide();
+  });
+  input.onDidHide(() => input.dispose());
+  input.show();
+}
+
+/** Applies a pattern to one tree, or clears its filter when the pattern is empty, and updates the view's message. */
+async function applyFilter(which: "assets" | "project", pattern: string): Promise<void> {
+  filterPatterns[which] = pattern.trim();
+  const view: vscode.TreeView<unknown> = which === "assets" ? assetsView : projectView;
+  try {
+    if (which === "assets") {
+      if (!bridge?.running) return;
+      const compiled = compileFilter(pattern);
+      if (compiled && compiled.seed.length < 2) {
+        // Over 580,000 files, the search needs something to look for besides wildcards.
+        view.message = "Give the filter at least two letters besides * and ?, such as *.mesh or osprey.";
+        return;
+      }
+      const r = await assets.setFilter(bridge, pattern);
+      if (filterPatterns.assets !== pattern.trim()) return; // a newer keystroke won
+      view.message = r
+        ? r.files.length === 0
+          ? `No game file matches "${r.filter.pattern}".`
+          : `Filter "${r.filter.pattern}": ${r.files.length.toLocaleString()} file${r.files.length === 1 ? "" : "s"}${r.total > r.files.length ? ` (the search stopped at ${r.total.toLocaleString()} hits; a narrower pattern finds the rest)` : ""}`
+        : undefined;
+    } else {
+      const r = explorer.setFilter(pattern);
+      view.message = r ? (r.matches === 0 ? `No project file matches "${r.pattern}".` : `Filter "${r.pattern}": ${r.matches.toLocaleString()} file${r.matches === 1 ? "" : "s"}`) : undefined;
+    }
+  } catch (e) {
+    view.message = `Filter failed: ${e instanceof Error ? e.message : String(e)}`;
+  }
+  void vscode.commands.executeCommand("setContext", which === "assets" ? "redcode.assetsFiltered" : "redcode.projectFiltered", filterPatterns[which] !== "");
 }
 
 // ---- extract to project, for REDdeck ----------------------------------------------------------
@@ -1099,6 +1168,12 @@ async function searchGameFiles(b: BridgeClient): Promise<void> {
 async function filesOf(b: BridgeClient, node: AssetNode, title: string): Promise<GameFileInfo[]> {
   if (node.kind === "file") {
     return [node.file];
+  }
+  // In a filtered tree, a folder stands for the matching files under it, not the whole folder.
+  const filtered = assets.filter;
+  if (filtered) {
+    const prefix = node.path.toLowerCase() + "\\";
+    return filtered.files.filter((f) => f.name.toLowerCase().startsWith(prefix));
   }
   return vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: `${title}: listing ${node.name}` }, (progress) =>
     assets.collect(b, node.path, (n) => progress.report({ message: `${n.toLocaleString()} files` })),

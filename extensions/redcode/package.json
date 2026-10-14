@@ -456,6 +456,30 @@
         "command": "redcode.showLog",
         "title": "Show REDbridge log",
         "category": "REDcode"
+      },
+      {
+        "command": "redcode.filterAssets",
+        "title": "Filter Game Assets",
+        "category": "REDcode",
+        "icon": "$(filter)"
+      },
+      {
+        "command": "redcode.clearAssetsFilter",
+        "title": "Clear the Game Assets Filter",
+        "category": "REDcode",
+        "icon": "$(clear-all)"
+      },
+      {
+        "command": "redcode.filterProject",
+        "title": "Filter the Project",
+        "category": "REDcode",
+        "icon": "$(filter)"
+      },
+      {
+        "command": "redcode.clearProjectFilter",
+        "title": "Clear the Project Filter",
+        "category": "REDcode",
+        "icon": "$(clear-all)"
       }
     ],
     "menus": {
@@ -523,6 +547,26 @@
           "command": "redcode.refreshAssets",
           "when": "view == redcode.assets",
           "group": "navigation@2"
+        },
+        {
+          "command": "redcode.filterAssets",
+          "when": "view == redcode.assets && redcode.gameLoaded",
+          "group": "navigation@0"
+        },
+        {
+          "command": "redcode.clearAssetsFilter",
+          "when": "view == redcode.assets && redcode.assetsFiltered",
+          "group": "navigation@0"
+        },
+        {
+          "command": "redcode.filterProject",
+          "when": "view == redcode.project && redcode.projectOpen",
+          "group": "navigation@3"
+        },
+        {
+          "command": "redcode.clearProjectFilter",
+          "when": "view == redcode.project && redcode.projectFiltered",
+          "group": "navigation@3"
         }
       ],
       "view/item/context": [
@@ -672,6 +716,22 @@
         {
           "command": "redcode.saveJsonToProject",
           "when": "redcode.jsonFromProject"
+        },
+        {
+          "command": "redcode.clearAssetsFilter",
+          "when": "redcode.assetsFiltered"
+        },
+        {
+          "command": "redcode.clearProjectFilter",
+          "when": "redcode.projectFiltered"
+        },
+        {
+          "command": "redcode.filterProject",
+          "when": "redcode.projectOpen"
+        },
+        {
+          "command": "redcode.filterAssets",
+          "when": "redcode.gameLoaded"
         }
       ]
     },
