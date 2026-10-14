@@ -91,6 +91,15 @@ try {
     });
     const mod = await step("archive.openMod (the packed archive)", async () => (await bridge.openMod(path.join(outDir, "redcode_smoke.archive"))).files + " files");
     if (packed.split(" ")[0] !== mod.split(" ")[0]) throw new Error(`packed ${packed} but the archive lists ${mod}`);
+    if (maj > 0 || min > 7 || (min === 7 && Number(info.version.split(".")[2] ?? 0) >= 1)) {
+      const listed = (await bridge.openMod(path.join(outDir, "redcode_smoke.archive"))).items[0];
+      const back = path.join(os.tmpdir(), "redcode-smoke", "from-mod", ...listed.name.split("\\"));
+      await step("archive.extractFromMod (by hash)", async () => {
+        const r = await bridge.extractFromMod(path.join(outDir, "redcode_smoke.archive"), [{ path: listed.hash, outFile: back }, { path: "base\\not_there.ent", outFile: back + ".x" }]);
+        if (r.extracted !== 1 || r.failed.length !== 1) throw new Error(`expected 1 extracted and 1 failed: ${JSON.stringify(r)}`);
+        return `${r.extracted} extracted, ${r.bytes.toLocaleString()} bytes, ${r.failed.length} not in the archive`;
+      });
+    }
   } else {
     console.log(`        project.pack skipped: REDbridge ${info.version} is older than 0.6.1`);
   }

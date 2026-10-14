@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.6.1 (2026-10-14)
+
+Needs REDbridge 0.7.0; `redcode.extractToProject` needs 0.7.1 and says so on an older bridge.
 
 - `redcode.extractToProject` for REDdeck (REDcode request #1): `{ archive, paths, overwrite? }` extracts resources, by game path or hash, from a mod's `.archive` on disk into the open project's `source/archive`, and returns `{ written, kept, failed }` with project-relative paths. Files the project already has are left alone and listed as kept unless `overwrite` is set. REDdeck calls it by name to offer Add to Project on the resources inside a mod's archives. MCP tool `archive_extract_from_mod`. Needs REDbridge 0.7.1 (`archive.extractFromMod`).
 - When the old REDcode Core extension is still installed or still loaded, REDcode says so and offers to show it and to reload the window, instead of failing to start with "already registered" errors and missing views. Found when 0.6.0 was installed into windows that still had REDcode Core 0.3.1 loaded.
