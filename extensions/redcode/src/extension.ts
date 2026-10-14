@@ -1,4 +1,4 @@
-// REDcode Core: owns the bridge process for this VS Code window, the project, and the views.
+// REDcode: owns the bridge process for this VS Code window, the project, and the views.
 
 import { spawn } from "node:child_process";
 import * as fs from "node:fs";
@@ -36,10 +36,11 @@ import type { BridgeInfo, GameFileInfo } from "./types";
 
 /**
  * The oldest REDbridge this extension works with. The CR2W editor needs the document session methods
- * (0.5.0), textures the right way up (0.5.1) and Pack needs project.pack (0.6.1), so an older bridge is
+ * (0.5.0), textures the right way up (0.5.1), Pack needs project.pack (0.6.1) and Export and Import
+ * need project.export, project.import and texture.imageToPng (0.7.0), so an older bridge is
  * refused with Update REDbridge offered.
  */
-const MinBridgeVersion = "0.6.1";
+const MinBridgeVersion = "0.7.0";
 
 let bridge: BridgeClient | undefined;
 let project: ProjectInfo | undefined;

@@ -2,10 +2,10 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "build redcode-core",
+      "label": "build redcode",
       "type": "npm",
       "script": "build",
-      "path": "extensions/redcode-core",
+      "path": "extensions/redcode",
       "problemMatcher": [],
       "presentation": { "reveal": "silent" }
     }

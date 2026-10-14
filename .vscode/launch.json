@@ -2,37 +2,37 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Run REDcode Core",
+      "name": "Run REDcode",
       "type": "extensionHost",
       "request": "launch",
-      "args": ["--extensionDevelopmentPath=${workspaceFolder}/extensions/redcode-core"],
-      "outFiles": ["${workspaceFolder}/extensions/redcode-core/dist/**/*.js"],
-      "preLaunchTask": "build redcode-core"
+      "args": ["--extensionDevelopmentPath=${workspaceFolder}/extensions/redcode"],
+      "outFiles": ["${workspaceFolder}/extensions/redcode/dist/**/*.js"],
+      "preLaunchTask": "build redcode"
     },
     {
-      "name": "Run REDcode Core (no other extensions)",
+      "name": "Run REDcode (no other extensions)",
       "type": "extensionHost",
       "request": "launch",
       "args": [
-        "--extensionDevelopmentPath=${workspaceFolder}/extensions/redcode-core",
+        "--extensionDevelopmentPath=${workspaceFolder}/extensions/redcode",
         "--extensionDevelopmentPath=${workspaceFolder}/extensions/rednode-hud-theme",
         "--disable-extensions"
       ],
-      "outFiles": ["${workspaceFolder}/extensions/redcode-core/dist/**/*.js"],
-      "preLaunchTask": "build redcode-core"
+      "outFiles": ["${workspaceFolder}/extensions/redcode/dist/**/*.js"],
+      "preLaunchTask": "build redcode"
     },
     {
-      "name": "Run REDcode Core and REDdeck (no other extensions)",
+      "name": "Run REDcode and REDdeck (no other extensions)",
       "type": "extensionHost",
       "request": "launch",
       "args": [
-        "--extensionDevelopmentPath=${workspaceFolder}/extensions/redcode-core",
+        "--extensionDevelopmentPath=${workspaceFolder}/extensions/redcode",
         "--extensionDevelopmentPath=${workspaceFolder}/extensions/rednode-hud-theme",
         "--extensionDevelopmentPath=${workspaceFolder}/../REDdeck",
         "--disable-extensions"
       ],
-      "outFiles": ["${workspaceFolder}/extensions/redcode-core/dist/**/*.js", "${workspaceFolder}/../REDdeck/dist/**/*.js"],
-      "preLaunchTask": "build redcode-core"
+      "outFiles": ["${workspaceFolder}/extensions/redcode/dist/**/*.js", "${workspaceFolder}/../REDdeck/dist/**/*.js"],
+      "preLaunchTask": "build redcode"
     }
   ]
 }

@@ -10,5 +10,5 @@
     "skipLibCheck": true,
     "esModuleInterop": true
   },
-  "include": ["src", "../../extensions/redcode-core/src/bridgeClient.ts", "../../extensions/redcode-core/src/types.ts"]
+  "include": ["src", "../../extensions/redcode/src/bridgeClient.ts", "../../extensions/redcode/src/types.ts"]
 }

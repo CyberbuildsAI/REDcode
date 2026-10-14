@@ -1,6 +1,10 @@
 # Changelog
 
-## Unreleased
+## 0.6.0 (2026-10-14)
+
+C4 done: a mod exported, edited, imported, packed, installed and started from REDcode. Needs REDbridge 0.7.0 or newer; the extension refuses an older bridge and offers Update REDbridge.
+
+**The extension is now `edgemodders.redcode`, named REDcode** (it was `edgemodders.redcode-core`, "REDcode Core"). Everything REDcode does lives in this one extension, and the id cannot change once it is on the Marketplace, so it changes now. VS Code sees a new extension: install this one, then uninstall REDcode Core. Settings, commands and keybindings carry over, since their names already start with `redcode.`. The extension's storage folder moves with the id, so run **REDcode: Install REDbridge** once more if REDcode fetched the bridge for you (a bridge you pointed `redcode.bridgePath` at is not affected).
 
 - Project view: a click on a file REDcode has no editor for opens it the way VS Code would, so an exported `.png`, `.jpg` or `.wav` in Raw shows in VS Code's own preview and a `.gltf` in the text editor; it opened everything as text and failed on images. `.tga` and `.dds` open in REDcode's texture viewer (REDbridge 0.7.0), since VS Code cannot show them.
 - **Export to Raw** and **Import from Raw** in the Project view, on files (also as hover buttons) and folders. Export writes a game file under `source/archive` to the same path under `source/raw` through WolvenKit's exporter: glTF for meshes, with their material textures, an image for textures, WAV for sounds, and the other types WolvenKit converts; other files stay with Open as JSON. Import brings a raw file back, and the file it replaces keeps its settings (`redcode.import.keepSettings`): a texture keeps all its setup, flags included, which WolvenKit's import alone does not. A folder import takes only re-imports, the newest raw file per game file, so the material textures a mesh export writes into `raw` do not turn into new game textures in the mod. A file open in the CR2W editor reloads after an import. Settings `redcode.export.textureFormat`, `redcode.export.meshFormat` and `redcode.export.meshMaterials`. Needs REDbridge 0.7.0.

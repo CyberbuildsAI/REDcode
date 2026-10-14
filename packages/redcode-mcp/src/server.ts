@@ -13,8 +13,8 @@ import { McpServer, type ToolCallback } from "@modelcontextprotocol/sdk/server/m
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z, type ZodRawShape } from "zod";
-import { BridgeClient } from "../../../extensions/redcode-core/src/bridgeClient";
-import type { PatchOp } from "../../../extensions/redcode-core/src/types";
+import { BridgeClient } from "../../../extensions/redcode/src/bridgeClient";
+import type { PatchOp } from "../../../extensions/redcode/src/types";
 
 const Version = "0.1.0";
 

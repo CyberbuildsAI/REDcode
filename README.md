@@ -19,7 +19,7 @@ REDcode is the build-time half of an AI-first, Node-based modding ecosystem; [RE
 **[Read the docs](https://edgemodders.github.io/REDcode/)** &middot; [REDbridge](https://github.com/Edgemodders/REDbridge) &middot; [REDnode](https://github.com/Edgemodders/REDnode)
 
 > [!NOTE]
-> **Status: C2 works end to end.** `redcode-core` opens WolvenKit projects, browses the game archives folder by folder, adds files or whole folders to a project, extracts them anywhere, and opens game files or project files as JSON. Next: the CR2W editor, texture viewer and TweakXL support (C3).
+> **Status: C2 works end to end.** The `redcode` extension opens WolvenKit projects, browses the game archives folder by folder, adds files or whole folders to a project, extracts them anywhere, and opens game files or project files as JSON. Next: the CR2W editor, texture viewer and TweakXL support (C3).
 
 ## How it works
 
@@ -45,7 +45,7 @@ Everything a modder touches is text an AI assistant can read and write: game fil
 
 | Path | Contents |
 |---|---|
-| `extensions/redcode-core/` | Bridge client, the Project and Game Assets views, project create and detect, add to project, extract, open as JSON |
+| `extensions/redcode/` | Bridge client, the Project and Game Assets views, project create and detect, add to project, extract, open as JSON |
 | `extensions/rednode-hud-theme/` | The REDnode HUD color theme, REDcode's default theme and the shared look of the whole ecosystem |
 | `docs/` | Documentation site |
 | `tools/brand/` | Generates the banner, badges and icon |
@@ -57,7 +57,7 @@ npm install
 npm run build           # bundles every extension
 npm run bridge:build    # rebuilds a REDbridge checkout next to this one (../REDbridge)
 npm run bridge:update   # pulls and rebuilds it
-npm run core:package    # writes dist/redcode-core-<version>.vsix
+npm run redcode:package    # writes dist/redcode-<version>.vsix
 npm run theme:package   # writes dist/rednode-hud-theme-<version>.vsix
 ```
 
