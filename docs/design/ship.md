@@ -71,11 +71,11 @@ The same install is `reddeck install-project` on REDdeck's command line and the 
 
 ## S3 Export
 
-Export a project file to `source/raw` over Modkit's exporter: glTF for meshes (with the material and rig options), PNG for textures, WAV for sounds, JSON for the rest. One command on a project file and on a folder, a small settings page for the options that matter, and the defaults WolvenKit uses. Detail to follow once S1 and S2 are done.
+Built 2026-10-14. REDbridge 0.7.0 `project.export` wraps `ModTools.Export` on the project layout: a file under `source/archive` goes to the same relative path under `source/raw`, and the result lists every file written (a mesh writes its `.glb`, a `.Material.json` and its material textures, which go into `raw` as WolvenKit's command line puts them in its output folder). Types come from WolvenKit's `ECookedFileFormat`: `.mesh`, `.w2mesh`, `.xbm`, `.wem`, `.opusinfo`, `.csv`, `.mlmask`, `.cubemap`, `.xcube`, `.envprobe`, `.texarray`, `.morphtarget`, `.fnt`, `.anims`, `.inkatlas`, `.physicalscene`. Others are refused, since WolvenKit would dump their raw buffers; JSON is their editable form. Two findings: WolvenKit's `ModTools` remembers what it exported in the process and silently skips a second export of the same file, so the bridge calls `ClearFileLookup` first; and the settings page is VS Code's own, with four settings for the options that matter (texture format, `.glb` or `.gltf`, materials on or off, keep settings on import) and WolvenKit's defaults for the rest.
 
 ## S4 Import
 
-The reverse: a changed `raw` file back into `source/archive`, keeping the original's settings where WolvenKit does (texture group and compression from the existing `.xbm`, for instance). Detail with S3.
+Built 2026-10-14. `project.import` wraps `ModTools.Import`: images to `.xbm`, glTF and GLB to `.mesh`, WAV, CSV, masks, fonts and animations back to their game files, with WolvenKit's "use existing file" on by default. Finding: WolvenKit reads the existing texture's setup itself only when it runs as its command line (`ImportExportArgs.IsCLI`); its app fills the import dialog from that file first. The bridge does what the dialog does, passing `XbmImportArgs(existing.Setup)`, and then puts back the four flags those settings cannot carry (`isStreamable`, `allowTextureDowngrade`, the two mip biases). Checked on TestMod and in the smoke run: a re-imported texture has all ten setup fields of the original and the image the right way up. REDcode's folder import takes only re-imports, raw files whose game file already exists in `source/archive`, the newest per game file, because a mesh export's material textures in `raw` would otherwise become new textures in the mod that override the game's.
 
 ## Deferred
 

@@ -26,6 +26,7 @@ import { Cr2wEditorProvider, Cr2wPropertiesView, Cr2wViewType, cr2wViewTypeFor, 
 import { GameFileSystem, gameUri } from "./gameFs";
 import { compareJson, formatDifference, type JsonComparison } from "./jsonDiff";
 import { hasRedHotTools, installDirect, installHot, launchTarget, planInstall, readRecord, uninstallDirect } from "./install";
+import { targetsUnder } from "./modkit";
 import { packProject, type PackSummary } from "./pack";
 import { findREDdeck } from "./reddeck";
 import { createProject, findProject, gamePathOf, projectPathFor, type ProjectInfo } from "./project";
@@ -50,6 +51,7 @@ let assets: AssetBrowser;
 let explorer: ProjectExplorer;
 let projectView: vscode.TreeView<ProjectNode>;
 let textures: TextureViewer;
+let cr2wEditor: Cr2wEditorProvider;
 let watcher: vscode.FileSystemWatcher | undefined;
 /** The last bridge.info from the running bridge, for version comparisons. */
 let lastInfo: BridgeInfo | undefined;
@@ -78,6 +80,7 @@ export function activate(context: vscode.ExtensionContext): void {
     (file) => void withBridge((b) => openProjectFileAsJson(b, { kind: "file", file })),
     (gamePath) => void withBridge((b) => openJsonOf(b, gamePath)),
   );
+  cr2wEditor = cr2w;
   const gameFs = new GameFileSystem(() => bridge, path.join(storage.fsPath, "cache"));
 
   context.subscriptions.push(
@@ -110,6 +113,8 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("redcode.uninstall", () => shipCommand(() => uninstallCommand())),
     vscode.commands.registerCommand("redcode.installHot", () => shipCommand(() => installHotCommand())),
     vscode.commands.registerCommand("redcode.runGame", () => shipCommand(() => runGameCommand())),
+    vscode.commands.registerCommand("redcode.export", (node: ProjectNode) => withBridge((b) => modkitCommand(b, node, "export"))),
+    vscode.commands.registerCommand("redcode.import", (node: ProjectNode) => withBridge((b) => modkitCommand(b, node, "import"))),
     vscode.tasks.registerTaskProvider("redcode", { provideTasks: () => provideTasks(), resolveTask: (task) => resolveTask(task) }),
     vscode.commands.registerCommand("redcode.refreshProject", () => detectProject()),
     vscode.commands.registerCommand("redcode.refreshAssets", () => assets.refresh()),
@@ -405,6 +410,91 @@ async function runGameCommand(): Promise<void> {
 function updateHotToolsContext(): void {
   const gamePath = vscode.workspace.getConfiguration("redcode").get<string>("gamePath", "");
   void vscode.commands.executeCommand("setContext", "redcode.hotTools", !!gamePath && hasRedHotTools(gamePath));
+}
+
+// ---- export and import ----------------------------------------------------------------------
+
+/**
+ * REDcode: Export and Import on a project file or folder: game files under source/archive go to
+ * the same path under source/raw (glTF, an image, WAV...) and back, through WolvenKit's Modkit on
+ * the bridge. A folder takes every file of a type that applies.
+ */
+async function modkitCommand(b: BridgeClient, node: ProjectNode, action: "export" | "import"): Promise<void> {
+  const p = requireProject();
+  const target = node.kind === "file" ? node.file : node.dir;
+  const files = targetsUnder(p, target, action);
+  const archiveDir = path.join(p.dir, "source", "archive");
+  const rawDir = path.join(p.dir, "source", "raw");
+  if (files.length === 0) {
+    void vscode.window.showInformationMessage(
+      action === "export"
+        ? `Nothing to export in ${path.basename(target)}. Export takes meshes, textures, sounds, animations and the other types WolvenKit converts; open other files as JSON.`
+        : `Nothing to import in ${path.basename(target)}. Import takes images, glTF and GLB, FBX, WAV, CSV and the other types WolvenKit converts back; a folder import takes only files whose game file is already in source/archive, so the material textures a mesh export writes stay out of the mod. Import such a file on its own to add it.`,
+    );
+    return;
+  }
+  if (files.length > 20) {
+    const pick = await vscode.window.showWarningMessage(`${action === "export" ? "Export" : "Import"} ${files.length} files from ${path.basename(target)}?`, { modal: true }, action === "export" ? "Export" : "Import");
+    if (!pick) return;
+  }
+  const config = vscode.workspace.getConfiguration("redcode");
+  const options = {
+    textureFormat: config.get<string>("export.textureFormat", "png"),
+    meshBinary: config.get<string>("export.meshFormat", "glb") === "glb",
+    meshMaterials: config.get<boolean>("export.meshMaterials", true),
+  };
+  const keep = config.get<boolean>("import.keepSettings", true);
+  const written: string[] = [];
+  const failed: string[] = [];
+  await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: `${action === "export" ? "Exporting" : "Importing"} ${files.length} file(s)`, cancellable: true }, async (progress, token) => {
+    for (const f of files) {
+      if (token.isCancellationRequested) break;
+      progress.report({ message: path.basename(f), increment: 100 / files.length });
+      try {
+        const r = action === "export" ? await b.exportFile(f, archiveDir, rawDir, options) : await b.importFile(f, rawDir, archiveDir, keep);
+        const base = action === "export" ? rawDir : archiveDir;
+        written.push(...r.written.map((w) => path.join(base, w)));
+        log.appendLine(`${action === "export" ? "Exported" : "Imported"} ${path.relative(p.dir, f)}: ${r.ok ? "" : "WolvenKit reported a failure; "}${r.written.length ? r.written.join(", ") : "nothing written"}`);
+        if (!r.ok || r.written.length === 0) failed.push(path.basename(f));
+      } catch (e) {
+        const message = e instanceof Error ? e.message : String(e);
+        const code = (e as { code?: unknown })?.code;
+        if (code === -32601 || /method not found/i.test(message)) {
+          throw new Error(`${action === "export" ? "Export" : "Import"} needs REDbridge 0.7.0 or newer. Run "REDcode: Update REDbridge".`);
+        }
+        log.appendLine(`${action === "export" ? "Export" : "Import"} of ${path.relative(p.dir, f)} failed: ${message}`);
+        failed.push(path.basename(f));
+      }
+    }
+  });
+  explorer.refresh();
+  if (action === "import") await reloadImported(written);
+  // Show the main result: for one file, what it became; for a folder, the first file written.
+  const stem = (f: string) => path.basename(f, path.extname(f)).toLowerCase();
+  const shown = files.length === 1 ? written.find((w) => stem(w) === stem(files[0])) ?? written[0] : written[0];
+  const node2 = shown ? explorer.nodeFor(shown) : undefined;
+  if (node2) await projectView.reveal(node2, { select: true, focus: false, expand: true }).then(undefined, () => undefined);
+  const verb = action === "export" ? "exported" : "imported";
+  if (failed.length) {
+    void vscode.window.showWarningMessage(`REDcode: ${files.length - failed.length} of ${files.length} ${verb}; ${failed.slice(0, 5).join(", ")}${failed.length > 5 ? "..." : ""} did not. See the log.`, "Show log").then((pick) => pick && log.show(true));
+  } else {
+    vscode.window.setStatusBarMessage(`$(check) REDcode: ${verb} ${files.length} file(s), ${written.length} written`, 6000);
+  }
+}
+
+/** A file an import rewrote and the CR2W editor has open is reloaded, unless it has unsaved edits. */
+async function reloadImported(written: string[]): Promise<void> {
+  if (!bridge?.running) return;
+  for (const f of written) {
+    const doc = cr2wEditor.documentFor(vscode.Uri.file(f));
+    if (!doc) continue;
+    if (doc.log.length > 0) {
+      void vscode.window.showWarningMessage(`REDcode: ${path.basename(f)} was imported again while it has unsaved edits open; the editor still shows the old file. Revert it (File > Revert File) to see the import, or save to keep your edits over it.`);
+      continue;
+    }
+    await doc.revert(bridge);
+    log.appendLine(`Reloaded ${path.basename(f)} in the editor after the import`);
+  }
 }
 
 /** The redcode task type: one task per project folder, "pack", offered as the default build task. */

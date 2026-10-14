@@ -219,6 +219,18 @@
         "category": "REDcode"
       },
       {
+        "command": "redcode.export",
+        "title": "Export to Raw",
+        "category": "REDcode",
+        "icon": "$(export)"
+      },
+      {
+        "command": "redcode.import",
+        "title": "Import from Raw",
+        "category": "REDcode",
+        "icon": "$(desktop-download)"
+      },
+      {
         "command": "redcode.openProjectFileAsJson",
         "title": "Open as JSON",
         "category": "REDcode"
@@ -379,8 +391,28 @@
         },
         {
           "command": "redcode.openProjectFileInEditor",
-          "when": "view == redcode.project && viewItem == projectFile.texture",
+          "when": "view == redcode.project && viewItem =~ /^projectFile\\.texture/",
           "group": "2_open@0"
+        },
+        {
+          "command": "redcode.export",
+          "when": "view == redcode.project && viewItem =~ /\\.export$/",
+          "group": "1_modkit@1"
+        },
+        {
+          "command": "redcode.export",
+          "when": "view == redcode.project && viewItem =~ /^projectFile.*\\.export$/",
+          "group": "inline@0"
+        },
+        {
+          "command": "redcode.import",
+          "when": "view == redcode.project && viewItem =~ /^projectFile.*\\.import$/",
+          "group": "inline@0"
+        },
+        {
+          "command": "redcode.import",
+          "when": "view == redcode.project && viewItem =~ /\\.import$/",
+          "group": "1_modkit@1"
         },
         {
           "command": "redcode.openProjectFileAsJson",
@@ -412,6 +444,14 @@
         {
           "command": "redcode.installHot",
           "when": "redcode.projectOpen && redcode.hotTools"
+        },
+        {
+          "command": "redcode.export",
+          "when": "false"
+        },
+        {
+          "command": "redcode.import",
+          "when": "false"
         },
         {
           "command": "redcode.addToProject",
@@ -501,6 +541,29 @@
           "type": "boolean",
           "default": false,
           "description": "Pack as a REDmod under packed/mods/<mod name> instead of a plain archive under packed/archive/pc/mod, as WolvenKit's REDmod option does."
+        },
+        "redcode.export.textureFormat": {
+          "type": "string",
+          "enum": ["png", "tga", "dds", "bmp", "jpg", "tiff"],
+          "default": "png",
+          "description": "The image format Export to Raw writes for textures (.xbm), as WolvenKit's XBM export type."
+        },
+        "redcode.export.meshFormat": {
+          "type": "string",
+          "enum": ["glb", "gltf"],
+          "enumDescriptions": ["One binary file", "A .gltf with its .bin beside it"],
+          "default": "glb",
+          "description": "The glTF form Export to Raw writes for meshes."
+        },
+        "redcode.export.meshMaterials": {
+          "type": "boolean",
+          "default": true,
+          "description": "Export a mesh's materials and their textures with it, into source/raw, as WolvenKit does by default."
+        },
+        "redcode.import.keepSettings": {
+          "type": "boolean",
+          "default": true,
+          "description": "Import from Raw keeps the settings of the file it replaces: a texture's group, format, compression and flags, a mesh's materials. WolvenKit's \"Use existing file\"."
         },
         "redcode.launch": {
           "type": "string",

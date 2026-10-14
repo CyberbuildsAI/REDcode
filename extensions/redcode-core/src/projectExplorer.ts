@@ -4,6 +4,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import * as vscode from "vscode";
 import { folderIcon, iconFor } from "./assetBrowser";
+import { isExportable, isImportable, sourceFolderOf } from "./modkit";
 import { ProjectFolders, type ProjectFolderKey, type ProjectInfo } from "./project";
 
 export type ProjectNode =
@@ -55,14 +56,14 @@ export class ProjectExplorer implements vscode.TreeDataProvider<ProjectNode> {
       item.description = `${countFiles(node.dir).toLocaleString()} files`;
       item.tooltip = `${RootHints[node.key]}\n${node.dir}`;
       item.iconPath = folderIcon(node.key === "packed" ? "package" : "folder-library");
-      item.contextValue = "projectRoot";
+      item.contextValue = "projectRoot" + this.tags(node.dir, true);
       return item;
     }
     if (node.kind === "folder") {
       const item = new vscode.TreeItem(path.basename(node.dir), vscode.TreeItemCollapsibleState.Collapsed);
       item.id = `dir:${node.dir.toLowerCase()}`;
       item.iconPath = folderIcon();
-      item.contextValue = "projectFolder";
+      item.contextValue = "projectFolder" + this.tags(node.dir, true);
       item.resourceUri = vscode.Uri.file(node.dir);
       return item;
     }
@@ -70,11 +71,20 @@ export class ProjectExplorer implements vscode.TreeDataProvider<ProjectNode> {
     item.id = `file:${node.file.toLowerCase()}`;
     item.iconPath = iconFor(node.file);
     // Textures open in the viewer on click, so they alone get the "Open in CR2W Editor" entry.
-    item.contextValue = node.file.toLowerCase().endsWith(".xbm") ? "projectFile.texture" : "projectFile";
+    item.contextValue = (node.file.toLowerCase().endsWith(".xbm") ? "projectFile.texture" : "projectFile") + this.tags(node.file, false);
     item.resourceUri = vscode.Uri.file(node.file);
     item.tooltip = node.file;
     item.command = { command: "redcode.openProjectFile", title: "Open", arguments: [node] };
     return item;
+  }
+
+  /** ".export" for what Export takes (under source/archive), ".import" for what Import takes (under source/raw). Menus match on these. */
+  private tags(p: string, folder: boolean): string {
+    const project = this.getProject();
+    const where = project ? sourceFolderOf(project, p) : undefined;
+    if (where === "archive" && (folder || isExportable(p))) return ".export";
+    if (where === "raw" && (folder || isImportable(p))) return ".import";
+    return "";
   }
 
   getChildren(node?: ProjectNode): ProjectNode[] {

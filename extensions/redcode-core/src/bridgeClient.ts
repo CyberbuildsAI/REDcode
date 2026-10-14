@@ -6,7 +6,7 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { EventEmitter } from "node:events";
 import * as readline from "node:readline";
 import { createMessageConnection, StreamMessageReader, StreamMessageWriter, type MessageConnection } from "vscode-jsonrpc/node";
-import type { ArchiveInfo, BridgeInfo, DocumentInfo, ExtractManyResult, ExtractResult, FileList, HashResult, JsonResult, ModArchiveInfo, PackResult, NodeInfo, PatchOp, PatchResult, ResolveResult, SearchResult, TreeResult, TypeDescription } from "./types";
+import type { ArchiveInfo, BridgeInfo, DocumentInfo, ExtractManyResult, ExtractResult, FileList, HashResult, ExportOptions, JsonResult, ModArchiveInfo, ModkitResult, PackResult, NodeInfo, PatchOp, PatchResult, ResolveResult, SearchResult, TreeResult, TypeDescription } from "./types";
 
 export interface BridgeOptions {
   /** Path to REDbridge.exe. */
@@ -170,6 +170,16 @@ export class BridgeClient extends EventEmitter<BridgeEvents> {
   /** Lists the resources inside a mod archive on disk. No game needed. Bridge 0.4.0. */
   openMod(path: string): Promise<ModArchiveInfo> {
     return this.call("archive.openMod", { path });
+  }
+
+  /** Exports a file under archiveDir into rawDir at the same relative path, through WolvenKit's exporter. Bridge 0.7.0. */
+  exportFile(file: string, archiveDir: string, rawDir: string, options?: ExportOptions): Promise<ModkitResult> {
+    return this.call("project.export", { file, archiveDir, rawDir, options: options ?? null });
+  }
+
+  /** Imports a raw file under rawDir back into archiveDir, through WolvenKit's importer. keep: an existing file keeps its settings. Bridge 0.7.0. */
+  importFile(file: string, rawDir: string, archiveDir: string, keep = true): Promise<ModkitResult> {
+    return this.call("project.import", { file, rawDir, archiveDir, keep });
   }
 
   // ---- cr2w document sessions (bridge 0.5.0) -------------------------------------------

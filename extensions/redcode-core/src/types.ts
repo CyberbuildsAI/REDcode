@@ -180,3 +180,21 @@ export interface ModArchiveInfo {
   files: number;
   items: GameFileInfo[];
 }
+
+/** project.export options; anything left out keeps WolvenKit's default. */
+export interface ExportOptions {
+  /** Texture format for .xbm: png (default), tga, dds, bmp, jpg, tiff. */
+  textureFormat?: string;
+  /** Mesh as .glb (true, default) or .gltf. */
+  meshBinary?: boolean;
+  /** Export the mesh's materials and their textures too (default true). */
+  meshMaterials?: boolean;
+  materialTextureFormat?: string;
+  meshLodFilter?: boolean;
+}
+
+/** project.export and project.import: whether WolvenKit reported success, and the files written, relative to the target folder. */
+export interface ModkitResult {
+  ok: boolean;
+  written: string[];
+}

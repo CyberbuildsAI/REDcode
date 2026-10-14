@@ -66,6 +66,10 @@ After Save JSON to Project the editor shows the JSON read back from the written 
 
 `packed` is emptied first, so a file removed from the project does not linger in the mod (`redcode.pack.clean`). With `redcode.pack.redmod` the archive and the ArchiveXL files go under `packed/mods/<mod name>/archives`, with an `info.json`, as WolvenKit's REDmod option does. Paths with capital letters or spaces are listed in the log, as WolvenKit warns about them. Needs REDbridge 0.6.1.
 
+## Export and import
+
+**Export to Raw** on a game file under Archive writes it to the same path under Raw in a format other tools edit, through WolvenKit's exporter: a mesh as glTF (`.glb`, or `.gltf` with `redcode.export.meshFormat`) with its material textures, a texture as an image (`redcode.export.textureFormat`, PNG by default), a sound as WAV, and the other types WolvenKit converts (masks, animations, morph targets, fonts, CSV). Files with no such format keep **Open as JSON**. **Import from Raw** on a raw file brings it back. With `redcode.import.keepSettings` (on by default) the file it replaces keeps its settings: a texture its group, format, compression and every flag, a mesh its materials. Both work on a folder too; a folder import takes only files whose game file is already in Archive, the newest raw file of each, so the material textures a mesh export writes into Raw stay out of the mod unless you import one on its own. A file open in the CR2W editor reloads after the import. Needs REDbridge 0.7.0.
+
 ## Installing and running
 
 The rocket button in the Project view, **REDcode: Pack and Install**, packs and installs in one go; **Install** and **Uninstall** sit in the view's `...` menu, and the play button is **Run Game**.
@@ -89,6 +93,10 @@ The rocket button in the Project view, **REDcode: Pack and Install**, packs and 
 | `redcode.author` | empty | Author name written into new projects |
 | `redcode.pack.clean` | `true` | Empty `packed` before packing |
 | `redcode.pack.redmod` | `false` | Pack as a REDmod under `packed/mods/<mod name>` |
+| `redcode.export.textureFormat` | `png` | The image format Export to Raw writes for textures: `png`, `tga`, `dds`, `bmp`, `jpg` or `tiff` |
+| `redcode.export.meshFormat` | `glb` | Meshes as one `.glb`, or `.gltf` with its `.bin` |
+| `redcode.export.meshMaterials` | `true` | Export a mesh's materials and textures with it |
+| `redcode.import.keepSettings` | `true` | Import keeps the settings of the file it replaces |
 | `redcode.launch` | `auto` | How Run Game starts the game: `auto` (Steam for a Steam install, else the exe), `steam` or `exe` |
 
 ## Running from source

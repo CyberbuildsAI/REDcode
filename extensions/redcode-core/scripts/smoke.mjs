@@ -94,6 +94,19 @@ try {
   } else {
     console.log(`        project.pack skipped: REDbridge ${info.version} is older than 0.6.1`);
   }
+  // C4 S3 and S4: the extracted texture out to raw as PNG and back, keeping its setup.
+  if ((maj > 0 || min >= 7) && tex) {
+    const archiveDir = path.join(os.tmpdir(), "redcode-smoke", "extract");
+    const rawDir = path.join(os.tmpdir(), "redcode-smoke", "raw");
+    const xbm = path.join(archiveDir, ...tex.name.split("\\"));
+    const setupOf = async () => { const d = await bridge.openDocument({ file: xbm }); const n = await bridge.getNode(d.doc, "setup"); await bridge.closeDocument(d.doc); return JSON.stringify(n.children.map((c) => [c.name, c.value])); };
+    const before = await setupOf();
+    const out = await step("project.export (the texture)", async () => { const r = await bridge.exportFile(xbm, archiveDir, rawDir); if (!r.ok || !r.written.length) throw new Error("export wrote nothing"); return r.written.join(", "); });
+    const png = path.join(rawDir, out.split(", ").find((w) => w.endsWith(".png")));
+    await step("project.import (the PNG back)", async () => { const r = await bridge.importFile(png, rawDir, archiveDir); if (!r.ok || !r.written.length) throw new Error("import wrote nothing"); return r.written.join(", "); });
+    if ((await setupOf()) !== before) throw new Error("the re-imported texture lost settings");
+    console.log("        the re-imported texture kept its setup");
+  }
   console.log(`done in ${((Date.now() - started) / 1000).toFixed(1)}s`);
 } finally {
   bridge.stop();
