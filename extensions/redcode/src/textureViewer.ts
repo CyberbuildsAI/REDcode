@@ -9,14 +9,30 @@ import * as vscode from "vscode";
 import type { BridgeClient } from "./bridgeClient";
 
 export const TextureViewType = "redcode.texture";
+/**
+ * The same viewer under a second view type, offered under Open With for the common image formats
+ * and used by the Project view, so a PNG elsewhere keeps VS Code's own preview. VS Code keeps one
+ * manifest entry per view type, so a default and an option registration need two names.
+ */
+export const TextureOptionViewType = "redcode.textureOption";
 
 /** .xbm is a game texture; .tga and .dds are plain images (an exported texture in source/raw) VS Code cannot show itself. */
-const TextureExtensions = new Set([".xbm", ".tga", ".dds"]);
+const DefaultExtensions = new Set([".xbm", ".tga", ".dds"]);
+/** Images VS Code can show, but without a checkerboard behind transparency: a black texture vanishes on a dark theme. */
+const OptionExtensions = new Set([".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff"]);
+/** What a webview shows as it is, so no bridge is needed for them. */
+const BrowserImages = new Set([".png", ".jpg", ".jpeg", ".bmp"]);
 export const isGameTexture = (file: string) => path.extname(file).toLowerCase() === ".xbm";
 
 /** True for the file types the viewer can show. */
 export function isTexture(file: string): boolean {
-  return TextureExtensions.has(path.extname(file).toLowerCase());
+  const ext = path.extname(file).toLowerCase();
+  return DefaultExtensions.has(ext) || OptionExtensions.has(ext);
+}
+
+/** The view type to open a file in the viewer with. */
+export function textureViewTypeFor(file: string): string {
+  return DefaultExtensions.has(path.extname(file).toLowerCase()) ? TextureViewType : TextureOptionViewType;
 }
 
 export interface TextureSource {
@@ -49,10 +65,11 @@ export class TextureViewer implements vscode.CustomReadonlyEditorProvider<Textur
   }
 
   register(): vscode.Disposable {
-    return vscode.window.registerCustomEditorProvider(TextureViewType, this, {
-      webviewOptions: { retainContextWhenHidden: false },
-      supportsMultipleEditorsPerDocument: true,
-    });
+    const options = { webviewOptions: { retainContextWhenHidden: false }, supportsMultipleEditorsPerDocument: true };
+    return vscode.Disposable.from(
+      vscode.window.registerCustomEditorProvider(TextureViewType, this, options),
+      vscode.window.registerCustomEditorProvider(TextureOptionViewType, this, options),
+    );
   }
 
   /** Where the PNG for a file on disk goes: <storage>/png/disk/<drive>/<path>.png */
@@ -73,6 +90,16 @@ export class TextureViewer implements vscode.CustomReadonlyEditorProvider<Textur
   async resolveCustomEditor(doc: TextureDocument, panel: vscode.WebviewPanel): Promise<void> {
     panel.webview.options = { enableScripts: true, localResourceRoots: [this.root] };
     const file = doc.uri.fsPath;
+    const folder = vscode.workspace.getWorkspaceFolder(doc.uri);
+    const subtitle = folder ? path.relative(folder.uri.fsPath, file) : file;
+    if (BrowserImages.has(path.extname(file).toLowerCase())) {
+      // The webview shows these as they are: a copy under the viewer's storage root, no bridge needed.
+      const copy = this.pngForFile(file);
+      fs.mkdirSync(path.dirname(copy), { recursive: true });
+      fs.copyFileSync(file, copy);
+      this.present(panel, { title: path.basename(file), subtitle, png: copy });
+      return;
+    }
     const bridge = this.getBridge();
     if (!bridge?.running) {
       panel.webview.html = messageHtml(panel.webview, "The REDbridge process is not running.", "Run REDcode: Restart REDbridge, then reopen this file.");
@@ -84,8 +111,6 @@ export class TextureViewer implements vscode.CustomReadonlyEditorProvider<Textur
       const game = isGameTexture(file);
       const result = game ? await bridge.fileToPng(file, png) : await bridge.imageToPng(file, png);
       this.log.appendLine(`texture.${game ? "fileToPng" : "imageToPng"} ${file} -> ${result.file} (${result.bytes.toLocaleString()} bytes)`);
-      const folder = vscode.workspace.getWorkspaceFolder(doc.uri);
-      const subtitle = folder ? path.relative(folder.uri.fsPath, file) : file;
       this.present(panel, { title: path.basename(file), subtitle, png });
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);

@@ -96,6 +96,15 @@
           }
         ],
         "priority": "default"
+      },
+      {
+        "viewType": "redcode.textureOption",
+        "displayName": "REDcode Texture",
+        "selector": [
+          { "filenamePattern": "*.png" }, { "filenamePattern": "*.jpg" }, { "filenamePattern": "*.jpeg" },
+          { "filenamePattern": "*.bmp" }, { "filenamePattern": "*.tif" }, { "filenamePattern": "*.tiff" }
+        ],
+        "priority": "option"
       }
     ],
     "viewsContainers": {

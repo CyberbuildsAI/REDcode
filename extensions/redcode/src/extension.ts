@@ -31,7 +31,7 @@ import { packProject, type PackSummary } from "./pack";
 import { findREDdeck } from "./reddeck";
 import { createProject, findProject, gamePathOf, projectPathFor, type ProjectInfo } from "./project";
 import { ProjectExplorer, type ProjectNode } from "./projectExplorer";
-import { isTexture, TextureViewer, TextureViewType } from "./textureViewer";
+import { isTexture, TextureViewer, textureViewTypeFor } from "./textureViewer";
 import type { BridgeInfo, GameFileInfo } from "./types";
 
 /**
@@ -1081,7 +1081,7 @@ async function openProjectFile(node: ProjectNode): Promise<void> {
     return;
   }
   if (isTexture(node.file)) {
-    await vscode.commands.executeCommand("vscode.openWith", vscode.Uri.file(node.file), TextureViewType);
+    await vscode.commands.executeCommand("vscode.openWith", vscode.Uri.file(node.file), textureViewTypeFor(node.file));
     return;
   }
   if (opensInCr2wEditor(node.file)) {
