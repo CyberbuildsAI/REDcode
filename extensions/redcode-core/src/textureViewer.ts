@@ -73,7 +73,7 @@ export class TextureViewer implements vscode.CustomReadonlyEditorProvider<Textur
     const file = doc.uri.fsPath;
     const bridge = this.getBridge();
     if (!bridge?.running) {
-      panel.webview.html = messageHtml(panel.webview, "The REDbridge process is not running.", "Run REDcode: Restart bridge, then reopen this file.");
+      panel.webview.html = messageHtml(panel.webview, "The REDbridge process is not running.", "Run REDcode: Restart REDbridge, then reopen this file.");
       return;
     }
     panel.webview.html = messageHtml(panel.webview, `Converting ${path.basename(file)}`, "");
@@ -90,7 +90,7 @@ export class TextureViewer implements vscode.CustomReadonlyEditorProvider<Textur
       panel.webview.html = messageHtml(
         panel.webview,
         `Could not show ${path.basename(file)}`,
-        isMethodMissing(e) ? "Viewing project textures needs REDbridge 0.3.0 or newer. Run npm run bridge:update in the REDcode folder, then REDcode: Restart bridge." : message,
+        isMethodMissing(e) ? "Viewing project textures needs REDbridge 0.3.0 or newer. Run npm run bridge:update in the REDcode folder, then REDcode: Restart REDbridge." : message,
       );
     }
   }

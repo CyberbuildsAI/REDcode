@@ -125,7 +125,7 @@
       },
       {
         "view": "redcode.assets",
-        "contents": "The bridge is not running or no game is loaded.\n[Show bridge log](command:redcode.showLog)\n[Restart bridge](command:redcode.restartBridge)",
+        "contents": "The bridge is not running or no game is loaded.\n[Show REDbridge log](command:redcode.showLog)\n[Restart REDbridge](command:redcode.restartBridge)",
         "when": "!redcode.gameLoaded"
       }
     ],
@@ -227,22 +227,22 @@
       },
       {
         "command": "redcode.restartBridge",
-        "title": "Restart bridge",
+        "title": "Restart REDbridge",
         "category": "REDcode"
       },
       {
         "command": "redcode.updateBridge",
-        "title": "Update bridge",
+        "title": "Update REDbridge",
         "category": "REDcode"
       },
       {
         "command": "redcode.installBridge",
-        "title": "Install bridge",
+        "title": "Install REDbridge",
         "category": "REDcode"
       },
       {
         "command": "redcode.showLog",
-        "title": "Show bridge log",
+        "title": "Show REDbridge log",
         "category": "REDcode"
       }
     ],
@@ -428,7 +428,7 @@
         "redcode.bridgeRepository": {
           "type": "string",
           "default": "Edgemodders/REDbridge",
-          "description": "The GitHub repository whose releases Update bridge and Install bridge download, as owner/name."
+          "description": "The GitHub repository whose releases Update REDbridge and Install REDbridge download, as owner/name."
         },
         "redcode.bridgeUpdateCheck": {
           "type": "boolean",

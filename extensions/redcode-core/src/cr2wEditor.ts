@@ -298,7 +298,7 @@ export class Cr2wEditorProvider implements vscode.CustomEditorProvider<Cr2wDocum
   private requireBridge(): BridgeClient {
     const bridge = this.getBridge();
     if (!bridge?.running) {
-      throw new Error("The REDbridge process is not running. Run REDcode: Restart bridge, then reopen the file.");
+      throw new Error("The REDbridge process is not running. Run REDcode: Restart REDbridge, then reopen the file.");
     }
     return bridge;
   }

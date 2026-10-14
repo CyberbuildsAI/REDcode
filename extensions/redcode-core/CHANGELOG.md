@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- The bridge commands name REDbridge, as REDdeck's do: **REDcode: Restart REDbridge**, **Update REDbridge**, **Install REDbridge** and **Show REDbridge log** (the command IDs are unchanged, so keybindings keep working).
 - The status bar shows the running bridge's version beside the file count; it was only in the tooltip.
 - Pack: cleaning `packed` deletes its files and then the empty folders, so a folder that something has open (a File Explorer window, a terminal) no longer fails the pack with EPERM. Tweak files outside `r6/tweaks` are reported, since TweakXL does not read them there. Resources follow WolvenKit's rules exactly, checked against a WolvenKit pack of the same project: a `.tweak` file outside `r6/tweaks` is left out, and a REDmod gets its `.script` and `.ws` files under `mods/<name>/scripts`, which were dropped before. One deviation: `.tweak` files in `r6/tweaks` are packed, where WolvenKit leaves them out.
 

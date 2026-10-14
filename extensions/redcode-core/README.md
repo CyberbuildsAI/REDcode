@@ -23,14 +23,14 @@ A project is any folder with a `.cpmodproj` file in it, opened as the workspace 
 | **REDcode: Open game file as JSON** | Search the game archives as you type, pick a file, and it opens as WolvenKit JSON in an editor tab |
 | **REDcode: Search game files** | Same search, then Open as JSON, Add to project, or Copy path |
 | **REDcode: Save JSON to Project** | On a JSON document opened from a project file: saves the document, asks to confirm, rebuilds the game file in `source/archive` from it through the bridge, then reads the file back into the editor and reports any value the format did not keep. It never runs on plain save, so a half-edited document cannot clobber the file |
-| **REDcode: Restart bridge** | Stops and restarts the bridge process |
-| **REDcode: Show bridge log** | Opens the REDcode output channel. Clicking the status bar item does the same |
+| **REDcode: Restart REDbridge** | Stops and restarts the bridge process |
+| **REDcode: Show REDbridge log** | Opens the REDcode output channel. Clicking the status bar item does the same |
 
 The status bar shows the open project and the bridge state: starting, the number of indexed files when ready, or what went wrong.
 
-The extension checks the bridge's version when it starts. If REDbridge is older than the extension needs, the status bar says so and offers **REDcode: Update bridge**.
+The extension checks the bridge's version when it starts. If REDbridge is older than the extension needs, the status bar says so and offers **REDcode: Update REDbridge**.
 
-**Installing and updating the bridge.** With no bridge configured, the extension offers **REDcode: Install bridge**: it downloads the latest REDbridge release from GitHub, unpacks it under the extension's storage and points `redcode.bridgePath` at it. Nothing to type. **REDcode: Update bridge** does the same when a newer release exists, stopping and restarting the bridge around it; when the bridge runs from a git checkout of REDbridge, it pulls and rebuilds there instead (`npm run update`), which is the developer's path. Once per session the extension asks GitHub whether a newer release exists and offers it (`redcode.bridgeUpdateCheck`). The bridge needs the .NET 10 runtime: if it fails to start and no runtime is installed, the extension says so and offers `winget install Microsoft.DotNet.Runtime.10` in a terminal, or the download page.
+**Installing and updating the bridge.** With no bridge configured, the extension offers **REDcode: Install REDbridge**: it downloads the latest REDbridge release from GitHub, unpacks it under the extension's storage and points `redcode.bridgePath` at it. Nothing to type. **REDcode: Update REDbridge** does the same when a newer release exists, stopping and restarting the bridge around it; when the bridge runs from a git checkout of REDbridge, it pulls and rebuilds there instead (`npm run update`), which is the developer's path. Once per session the extension asks GitHub whether a newer release exists and offers it (`redcode.bridgeUpdateCheck`). The bridge needs the .NET 10 runtime: if it fails to start and no runtime is installed, the extension says so and offers `winget install Microsoft.DotNet.Runtime.10` in a terminal, or the download page.
 
 ## The CR2W editor
 
@@ -73,7 +73,7 @@ After Save JSON to Project the editor shows the JSON read back from the written 
 | `redcode.gamePath` | The default Steam folder | The Cyberpunk 2077 install, the folder containing `bin`, `archive` and `r6` |
 | `redcode.bridgePath` | empty | Path to `REDbridge.exe`. Empty means a bridge bundled with the extension, or one on `PATH` |
 | `redcode.dotnetRoot` | empty | `DOTNET_ROOT` for the bridge when the .NET 10 runtime is installed per user |
-| `redcode.bridgeRepository` | `Edgemodders/REDbridge` | The GitHub repository whose releases Install bridge and Update bridge download |
+| `redcode.bridgeRepository` | `Edgemodders/REDbridge` | The GitHub repository whose releases Install REDbridge and Update REDbridge download |
 | `redcode.bridgeUpdateCheck` | `true` | Ask GitHub once per session whether a newer release exists; skipped for a git checkout |
 | `redcode.author` | empty | Author name written into new projects |
 | `redcode.pack.clean` | `true` | Empty `packed` before packing |
