@@ -29,6 +29,8 @@ import { hasRedHotTools, installDirect, installHot, launchTarget, planInstall, r
 import { targetsUnder } from "./modkit";
 import { compileFilter } from "./treeFilter";
 import { MeshViewer } from "./meshViewer";
+import { AudioPlayer, AudioViewType, SoundsViewType } from "./audioPlayer";
+import { GameSoundIndex } from "./audio";
 import { packProject, type PackSummary } from "./pack";
 import { findREDdeck } from "./reddeck";
 import { createProject, findProject, gamePathOf, projectPathFor, type ProjectInfo } from "./project";
@@ -110,6 +112,8 @@ export function activate(context: vscode.ExtensionContext): void {
     cr2w.register(),
     new Cr2wPropertiesView(cr2w).register(),
     new MeshViewer(context.extensionUri, log).register(),
+    new AudioPlayer(context.extensionUri, path.join(storage.fsPath, "cache", "audio"), () => bridge, log).register(),
+    vscode.commands.registerCommand("redcode.browseSounds", () => withBridge(async () => void (await vscode.commands.executeCommand("vscode.openWith", gameUri(GameSoundIndex), SoundsViewType)))),
     vscode.commands.registerCommand("redcode.openTexture", (node: AssetNode) => withBridge((b) => openTexture(b, node))),
     vscode.commands.registerCommand("redcode.openGameFileAsJson", () => withBridge(openGameFileAsJson)),
     vscode.commands.registerCommand("redcode.searchGameFiles", () => withBridge(searchGameFiles)),
@@ -1141,7 +1145,13 @@ async function openAssetInEditor(node: AssetNode): Promise<void> {
     await withBridge(async () => undefined);
     return;
   }
-  await vscode.commands.executeCommand("vscode.openWith", gameUri(node.file.name), cr2wViewTypeFor(node.file.name));
+  await vscode.commands.executeCommand("vscode.openWith", gameUri(node.file.name), soundViewTypeFor(node.file.name) ?? cr2wViewTypeFor(node.file.name));
+}
+
+/** The audio player for a .wem or .opus, the sound list for an .opusinfo, else undefined. */
+function soundViewTypeFor(file: string): string | undefined {
+  const ext = path.extname(file).toLowerCase();
+  return ext === ".wem" || ext === ".opus" ? AudioViewType : ext === ".opusinfo" ? SoundsViewType : undefined;
 }
 
 async function openAssetAsJson(b: BridgeClient, node: AssetNode): Promise<void> {
@@ -1257,6 +1267,11 @@ async function openProjectFile(node: ProjectNode): Promise<void> {
   }
   if (isTexture(node.file)) {
     await vscode.commands.executeCommand("vscode.openWith", vscode.Uri.file(node.file), textureViewTypeFor(node.file));
+    return;
+  }
+  const sound = soundViewTypeFor(node.file);
+  if (sound) {
+    await vscode.commands.executeCommand("vscode.openWith", vscode.Uri.file(node.file), sound);
     return;
   }
   if (opensInCr2wEditor(node.file)) {

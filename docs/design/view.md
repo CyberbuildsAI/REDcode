@@ -27,10 +27,20 @@ A 3D view of meshes, so a modder sees what a `.mesh` is without Blender. **Done 
 
 ## V2 Audio player
 
-Listening to the game's sounds and a mod's own, in the editor.
+Listening to the game's sounds and a mod's own, in the editor. **Built 2026-10-14**, hand test pending: `src/audio.ts` (no VS Code imports), `src/audioPlayer.ts`, `media/audio/`, and REDbridge 0.7.2 `sound.events`.
 
-- `.wem` files and the sounds an `.opusinfo` lists, from the project or the game, export to WAV through `project.export` into the cache and play in a webview with a waveform, play, loop and the length. WAV files in `source/raw` already play in VS Code's own preview.
-- Unverified: how the game's sounds are spread over `.wem` and `.opus` packages, and how long an `.opusinfo` export takes. Settled at the start of V2.
+Settled at the start of V2, against the game:
+
+| Kind | Where | How REDcode plays it |
+|---|---|---|
+| Voice lines and some music, `.wem` with readable paths | `lang_en_voice.archive` (most), `audio_1_general.archive` | `project.export` writes Ogg Vorbis in about 0.1 s; cached by modification time, like the 3D view's `.glb` |
+| Sound effects, 73,139 sounds in 1,879 `.opuspak` files | `audio_2_soundbanks.archive`, indexed by `sfx_container.opusinfo` (2 MB) | Read straight from the pack: each sound is a RIFF header and then a plain Ogg Opus stream, which the webview plays as it is. WolvenKit's export of the index writes nothing unless given sound hashes, so it is not used |
+| Wwise soundbanks, 202 `.bnk` | `audio_2_soundbanks.archive` | Not covered |
+
+- **V2a, one sound.** `.wem` and `.opus` open in the player by default, from the project, Game Assets or the redcode-game scheme; WAV, Ogg, MP3 and FLAC get it under Open With and keep VS Code's preview. The page shows the waveform (click or drag to seek), play, loop, the time, codec, channels and rate, and Save writes what is playing to a file.
+- **V2b, the sound effects.** An `.opusinfo` opens as a list of its events with each event's sounds as numbered variations; **REDcode: Browse Game Sounds** opens the game's own index. The index groups sounds under event hashes, and an event's hash is Wwise's FNV-1 of its lower-case name, so REDbridge's `sound.events` (0.7.2) serves WolvenKit's event list (game 1.6) with hashes: 14,476 of the 20,569 groups get a name, 16,127 events have sounds. Filter by name, tag or hash; a click plays; arrow keys step; Copy Hash and Save. Without 0.7.2 the list shows hashes only and says so. The pack comes out of the archives into the cache on first use (a few ms); a project's `.opusinfo` reads packs beside it first.
+- **MCP**: `sound_events` (find events by words) and `sound_extract` (write an event's variations, or sounds by hash, as `.opus`).
+- **Found**: the .opusinfo layout follows WolvenKit's `OpusInfo`. Chrome lets the page play only after a click in it, which every path here starts with.
 
 ## V3 TweakDB browser
 

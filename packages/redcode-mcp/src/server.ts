@@ -8,11 +8,13 @@
 // REDcode is set up the server needs no configuration. stdout is the MCP channel; logs go to stderr.
 
 import * as fs from "node:fs";
+import * as os from "node:os";
 import * as path from "node:path";
 import { McpServer, type ToolCallback } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z, type ZodRawShape } from "zod";
+import { audioFormat, GameSoundIndex, opusSound, parseOpusInfo, wwiseHash, type OpusIndex } from "../../../extensions/redcode/src/audio";
 import { BridgeClient } from "../../../extensions/redcode/src/bridgeClient";
 import type { PatchOp } from "../../../extensions/redcode/src/types";
 
@@ -222,6 +224,64 @@ tool("archive_extract_from_mod", "Extract resources from a mod .archive on disk,
 
 tool("hash_fnv1a64", "The FNV1a64 hash of a string, as the game uses for paths and names.", { value: z.string() }, (a, b) => b.fnv1a64(a.value));
 tool("hash_resolve", "The game path for a known hash, if the hash list knows it.", { hash: z.string().describe("Decimal hash string.") }, (a, b) => b.resolve(a.hash));
+
+// sounds: voice lines are .wem files (project_export makes them Ogg); sound effects sit in .opuspak
+// files indexed by sfx_container.opusinfo, grouped under Wwise events.
+const soundCache = path.join(os.tmpdir(), "redcode-mcp", "sounds");
+let soundIndex: OpusIndex | undefined;
+async function gameSounds(b: BridgeClient): Promise<OpusIndex> {
+  if (!soundIndex) {
+    const file = path.join(soundCache, "sfx_container.opusinfo");
+    if (!fs.existsSync(file)) await b.extract(GameSoundIndex, file);
+    soundIndex = parseOpusInfo(fs.readFileSync(file));
+  }
+  return soundIndex;
+}
+
+tool("sound_events", "Find the game's sound effect events by name or tag (words must all match), with the hashes of each event's sounds (its variations). Names come from WolvenKit's event list (game 1.6), so a newer event may be missing. Bridge 0.7.2.", {
+  query: z.string().optional().describe("Words to match in the event name or tags, such as 'revol reload'. Empty lists all."),
+  limit: z.number().optional().describe("Most events to return (default 100)."),
+}, async (a, b) => {
+  const [events, index] = [await b.soundEvents(), await gameSounds(b)];
+  const groups = new Map(index.groups.filter((g) => g.sounds.length > 0).map((g) => [g.hash, g.sounds]));
+  const words = (a.query ?? "").toLowerCase().split(/\s+/).filter(Boolean);
+  const hits = events.events.filter((e) => groups.has(e.hash) && words.every((w) => `${e.name} ${e.tags.join(" ")}`.toLowerCase().includes(w)));
+  return { total: hits.length, events: hits.slice(0, a.limit ?? 100).map((e) => ({ ...e, sounds: groups.get(e.hash)!.map((i) => index.hashes[i]) })) };
+});
+
+tool("sound_extract", "Write game sound effects as .opus files (Ogg Opus, 48 kHz) named by sound hash: every variation of an event, by name or hash, or single sounds by hash. Voice lines are .wem files instead: use project_export.", {
+  event: z.string().optional().describe("An event name, such as w_gun_npc_nova_reload, or its decimal hash."),
+  sounds: z.array(z.number()).optional().describe("Or sound hashes."),
+  outDir: z.string().describe("The folder to write into."),
+}, async (a, b) => {
+  const index = await gameSounds(b);
+  let picks: number[];
+  if (a.event) {
+    const hash = /^\d+$/.test(a.event) ? Number(a.event) : wwiseHash(a.event);
+    const group = index.groups.find((g) => g.hash === hash && g.sounds.length > 0);
+    if (!group) throw new Error(`No event ${a.event} (hash ${hash}) in the sound index`);
+    picks = group.sounds;
+  } else if (a.sounds?.length) {
+    const at = new Map(Array.from(index.hashes, (h, i) => [h, i]));
+    picks = a.sounds.map((h) => {
+      const i = at.get(h);
+      if (i === undefined) throw new Error(`No sound ${h} in the sound index`);
+      return i;
+    });
+  } else {
+    throw new Error("event or sounds is required");
+  }
+  fs.mkdirSync(a.outDir, { recursive: true });
+  const written = [];
+  for (const i of picks) {
+    const bytes = await opusSound(b, soundCache, { gamePath: GameSoundIndex }, index, i);
+    const file = path.join(a.outDir, `${index.hashes[i]}.opus`);
+    fs.writeFileSync(file, bytes);
+    const f = audioFormat(bytes);
+    written.push({ file, bytes: bytes.length, channels: f.channels });
+  }
+  return { written };
+});
 
 // document sessions
 tool("cr2w_open", `Open a CR2W file as a document session for node-by-node reading and patching. A file on disk is editable; a game path opens read-only (save it with cr2w_save and outFile to get an editable copy). Returns the session id to pass to the other cr2w_* tools. ${PathRules}`, {

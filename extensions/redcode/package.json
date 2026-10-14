@@ -254,6 +254,51 @@
           }
         ],
         "priority": "default"
+      },
+      {
+        "viewType": "redcode.audio",
+        "displayName": "REDcode Audio",
+        "selector": [
+          {
+            "filenamePattern": "*.wem"
+          },
+          {
+            "filenamePattern": "*.opus"
+          }
+        ],
+        "priority": "default"
+      },
+      {
+        "viewType": "redcode.audioOption",
+        "displayName": "REDcode Audio",
+        "selector": [
+          {
+            "filenamePattern": "*.wav"
+          },
+          {
+            "filenamePattern": "*.ogg"
+          },
+          {
+            "filenamePattern": "*.oga"
+          },
+          {
+            "filenamePattern": "*.mp3"
+          },
+          {
+            "filenamePattern": "*.flac"
+          }
+        ],
+        "priority": "option"
+      },
+      {
+        "viewType": "redcode.sounds",
+        "displayName": "REDcode Game Sounds",
+        "selector": [
+          {
+            "filenamePattern": "*.opusinfo"
+          }
+        ],
+        "priority": "default"
       }
     ],
     "viewsContainers": {
@@ -344,6 +389,12 @@
         "title": "Search game files",
         "category": "REDcode",
         "icon": "$(search)"
+      },
+      {
+        "command": "redcode.browseSounds",
+        "title": "Browse Game Sounds",
+        "category": "REDcode",
+        "icon": "$(unmute)"
       },
       {
         "command": "redcode.addToProject",
@@ -574,6 +625,11 @@
           "command": "redcode.clearProjectFilter",
           "when": "view == redcode.project && redcode.projectFiltered",
           "group": "navigation@3"
+        },
+        {
+          "command": "redcode.browseSounds",
+          "when": "view == redcode.assets && redcode.gameLoaded",
+          "group": "2_browse@1"
         }
       ],
       "view/item/context": [
@@ -757,6 +813,10 @@
         },
         {
           "command": "redcode.filterAssets",
+          "when": "redcode.gameLoaded"
+        },
+        {
+          "command": "redcode.browseSounds",
           "when": "redcode.gameLoaded"
         }
       ]

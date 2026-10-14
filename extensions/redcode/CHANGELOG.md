@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+- **Audio player** (C5 V2).
+  - A `.wem`, from the project or straight from Game Assets, opens in a player. It has a waveform you click or drag to seek, Play, Loop, the time, codec, channels and rate, and Save. REDbridge exports the `.wem` to Ogg into REDcode's cache, again only when the file is newer.
+  - `.opus` files open in the same player. WAV, Ogg, MP3 and FLAC offer it under Open With and keep VS Code's preview.
+- **Game sounds** (C5 V2). **REDcode: Browse Game Sounds**, also in the Game Assets `...` menu, opens the game's sound effect index, `sfx_container.opusinfo`. Clicking that file opens it too. It shows 73,139 sounds as a list of 16,127 events, each with its sounds as numbered variations.
+  - Filter by event name, tag or hash. A click plays, the arrow keys step through the list, and Copy Hash and Save act on the sound now playing.
+  - Each sound plays straight from its `.opuspak`, which is extracted into the cache on first use.
+  - Event names need REDbridge 0.7.2 (`sound.events`, WolvenKit's event list for game 1.6, about 14,500 names). On an older bridge the list shows hashes only.
+  - MCP tools `sound_events` and `sound_extract`.
+- README: an exported `.wem` is Ogg, not WAV.
+
 ## 0.7.0 (2026-10-14)
 
 C5 starts: the mesh viewer. Needs REDbridge 0.7.0, as 0.6.1 did.

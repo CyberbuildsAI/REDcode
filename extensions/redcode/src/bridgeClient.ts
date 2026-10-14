@@ -6,7 +6,7 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { EventEmitter } from "node:events";
 import * as readline from "node:readline";
 import { createMessageConnection, StreamMessageReader, StreamMessageWriter, type MessageConnection } from "vscode-jsonrpc/node";
-import type { ArchiveInfo, BridgeInfo, DocumentInfo, ExtractManyResult, ExtractResult, FileList, HashResult, ExportOptions, JsonResult, ModArchiveInfo, ModkitResult, PackResult, NodeInfo, PatchOp, PatchResult, ResolveResult, SearchResult, TreeResult, TypeDescription } from "./types";
+import type { ArchiveInfo, BridgeInfo, DocumentInfo, ExtractManyResult, ExtractResult, FileList, HashResult, ExportOptions, JsonResult, ModArchiveInfo, ModkitResult, SoundEvents, PackResult, NodeInfo, PatchOp, PatchResult, ResolveResult, SearchResult, TreeResult, TypeDescription } from "./types";
 
 export interface BridgeOptions {
   /** Path to REDbridge.exe. */
@@ -190,6 +190,11 @@ export class BridgeClient extends EventEmitter<BridgeEvents> {
   /** Imports a raw file under rawDir back into archiveDir, through WolvenKit's importer. keep: an existing file keeps its settings. Bridge 0.7.0. */
   importFile(file: string, rawDir: string, archiveDir: string, keep = true): Promise<ModkitResult> {
     return this.call("project.import", { file, rawDir, archiveDir, keep });
+  }
+
+  /** The sound event names WolvenKit knows, with their Wwise hashes, which name the groups in an .opusinfo. Bridge 0.7.2. */
+  soundEvents(): Promise<SoundEvents> {
+    return this.call("sound.events", {});
   }
 
   // ---- cr2w document sessions (bridge 0.5.0) -------------------------------------------

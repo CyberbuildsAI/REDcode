@@ -193,6 +193,13 @@ export interface ExportOptions {
   meshLodFilter?: boolean;
 }
 
+/** sound.events (bridge 0.7.2): event names with their Wwise hashes (FNV-1 of the lower-case name). */
+export interface SoundEvents {
+  gameVersion: string | null;
+  count: number;
+  events: { name: string; hash: number; tags: string[] }[];
+}
+
 /** project.export and project.import: whether WolvenKit reported success, and the files written, relative to the target folder. */
 export interface ModkitResult {
   ok: boolean;

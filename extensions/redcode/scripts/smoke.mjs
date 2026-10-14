@@ -40,6 +40,10 @@ try {
   await step(`cr2w.toJson ${first.name}`, () => bridge.toJson(first.name, out));
   await step("hash.fnv1a64", () => bridge.fnv1a64(first.name));
   await step("hash.resolve", () => bridge.resolve(first.hash));
+  await step("sound.events (bridge 0.7.2)", async () => {
+    const r = await bridge.soundEvents().catch((e) => ({ error: e.message }));
+    return r.error ? `skipped: ${r.error}` : `${r.count} events, ${r.events[0].name} = ${r.events[0].hash}`;
+  });
   const root = await step("archive.tree (root)", async () => {
     const t = await bridge.tree("");
     return t.folders.map((f) => `${f.name}:${f.files}`).join(" ") + ` files=${t.files.length}`;
