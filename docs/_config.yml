@@ -30,5 +30,7 @@ nav:
     url: /design/cr2w-editor.html
   - title: Ship
     url: /design/ship.html
+  - title: View
+    url: /design/view.html
   - title: MCP
     url: /mcp.html
