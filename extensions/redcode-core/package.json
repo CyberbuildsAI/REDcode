@@ -143,6 +143,34 @@
         "icon": "$(package)"
       },
       {
+        "command": "redcode.packAndInstall",
+        "title": "Pack and Install",
+        "category": "REDcode",
+        "icon": "$(rocket)"
+      },
+      {
+        "command": "redcode.install",
+        "title": "Install",
+        "category": "REDcode"
+      },
+      {
+        "command": "redcode.uninstall",
+        "title": "Uninstall",
+        "category": "REDcode"
+      },
+      {
+        "command": "redcode.installHot",
+        "title": "Install to the Hot Folder (Red Hot Tools)",
+        "category": "REDcode",
+        "icon": "$(flame)"
+      },
+      {
+        "command": "redcode.runGame",
+        "title": "Run Game",
+        "category": "REDcode",
+        "icon": "$(play)"
+      },
+      {
         "command": "redcode.openGameFileAsJson",
         "title": "Open game file as JSON",
         "category": "REDcode"
@@ -268,6 +296,31 @@
           "group": "navigation@0"
         },
         {
+          "command": "redcode.packAndInstall",
+          "when": "view == redcode.project && redcode.projectOpen",
+          "group": "navigation@0"
+        },
+        {
+          "command": "redcode.installHot",
+          "when": "view == redcode.project && redcode.projectOpen && redcode.hotTools",
+          "group": "navigation@0"
+        },
+        {
+          "command": "redcode.runGame",
+          "when": "view == redcode.project",
+          "group": "navigation@0"
+        },
+        {
+          "command": "redcode.install",
+          "when": "view == redcode.project && redcode.projectOpen",
+          "group": "1_ship@1"
+        },
+        {
+          "command": "redcode.uninstall",
+          "when": "view == redcode.project && redcode.projectOpen",
+          "group": "1_ship@2"
+        },
+        {
           "command": "redcode.newProject",
           "when": "view == redcode.project",
           "group": "navigation@1"
@@ -357,6 +410,10 @@
       ],
       "commandPalette": [
         {
+          "command": "redcode.installHot",
+          "when": "redcode.projectOpen && redcode.hotTools"
+        },
+        {
           "command": "redcode.addToProject",
           "when": "false"
         },
@@ -444,6 +501,17 @@
           "type": "boolean",
           "default": false,
           "description": "Pack as a REDmod under packed/mods/<mod name> instead of a plain archive under packed/archive/pc/mod, as WolvenKit's REDmod option does."
+        },
+        "redcode.launch": {
+          "type": "string",
+          "enum": ["auto", "steam", "exe"],
+          "enumDescriptions": [
+            "Through Steam when the game is in a Steam library, else the exe",
+            "Always through Steam (steam://rungameid/1091500)",
+            "Always bin\\x64\\Cyberpunk2077.exe directly"
+          ],
+          "default": "auto",
+          "description": "How REDcode: Run Game starts the game. A REDmod project (redcode.pack.redmod) adds -modded."
         }
       }
     },

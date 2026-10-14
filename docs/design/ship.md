@@ -51,6 +51,21 @@ Test: the owner's TestMod, with its `.ent`, atlas, localization and tweak files.
 
 ## S2 Install and run
 
+Agreed 2026-10-13, after looking at the owner's game folder: Vortex has marked `archive/pc/mod`, and REDdeck deploys with its own manifest. A third tool copying files in would go unseen by both, so **Install goes through REDdeck when it is installed**, and copies directly only when it is not. REDdeck 0.21.0 exports a small API from `activate()` for this, found at runtime with `extensions.getExtension("edgemodders.reddeck").exports`:
+
+| Call | Does |
+|---|---|
+| `apiVersion` | 1; REDcode refuses anything else and offers the direct install |
+| `gamePath()` | The folder REDdeck deploys to; REDcode notes it when it differs from `redcode.gamePath` |
+| `projectMod(projectFile)` | The id of the mod that follows the project, for Uninstall |
+| `installProject(projectFile)` | Adds the packed output as version dev, or refreshes that mod in place (order kept) and turns it on |
+| `pendingMods(except)` | Mods with changes waiting, so REDcode asks before a deploy takes them along |
+| `deploy()` | REDdeck's own Deploy, with its questions and its message |
+| `turnOff(id)` | For Uninstall, followed by `deploy()` |
+
+The same install is `reddeck install-project` on REDdeck's command line and the `reddeck_install_project` MCP tool. The direct install, the hot folder and Run game are REDcode's own, as below.
+
+
 - **REDcode: Install** copies `packed` onto `redcode.gamePath` and writes `.redcode/installed.json`. **REDcode: Uninstall** removes what that file lists. **REDcode: Pack and Install** chains the two. A hot variant, offered when `archive/pc/hot` exists or Red Hot Tools is detected under `bin/x64/plugins` (unverified until tested), sends the archive there.
 - **REDcode: Run game** launches the game. Starting `bin/x64/Cyberpunk2077.exe` directly works for GOG; a Steam install may want `steam://rungameid/1091500` so Steam's overlay and achievements come along. Both are offered, the choice remembered in a setting.
 

@@ -1,5 +1,6 @@
 // REDcode Core: owns the bridge process for this VS Code window, the project, and the views.
 
+import { spawn } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as vscode from "vscode";
@@ -24,7 +25,9 @@ import {
 import { Cr2wEditorProvider, Cr2wPropertiesView, Cr2wViewType, cr2wViewTypeFor, opensInCr2wEditor } from "./cr2wEditor";
 import { GameFileSystem, gameUri } from "./gameFs";
 import { compareJson, formatDifference, type JsonComparison } from "./jsonDiff";
+import { hasRedHotTools, installDirect, installHot, launchTarget, planInstall, readRecord, uninstallDirect } from "./install";
 import { packProject, type PackSummary } from "./pack";
+import { findREDdeck } from "./reddeck";
 import { createProject, findProject, gamePathOf, projectPathFor, type ProjectInfo } from "./project";
 import { ProjectExplorer, type ProjectNode } from "./projectExplorer";
 import { isTexture, TextureViewer, TextureViewType } from "./textureViewer";
@@ -101,6 +104,11 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("redcode.saveJsonToProject", () => withBridge(saveJsonToProject)),
     vscode.commands.registerCommand("redcode.newProject", () => newProject()),
     vscode.commands.registerCommand("redcode.pack", () => packCommand()),
+    vscode.commands.registerCommand("redcode.install", () => shipCommand(() => installCommand())),
+    vscode.commands.registerCommand("redcode.packAndInstall", () => shipCommand(async () => (await packCommand()) && installCommand())),
+    vscode.commands.registerCommand("redcode.uninstall", () => shipCommand(() => uninstallCommand())),
+    vscode.commands.registerCommand("redcode.installHot", () => shipCommand(() => installHotCommand())),
+    vscode.commands.registerCommand("redcode.runGame", () => shipCommand(() => runGameCommand())),
     vscode.tasks.registerTaskProvider("redcode", { provideTasks: () => provideTasks(), resolveTask: (task) => resolveTask(task) }),
     vscode.commands.registerCommand("redcode.refreshProject", () => detectProject()),
     vscode.commands.registerCommand("redcode.refreshAssets", () => assets.refresh()),
@@ -111,6 +119,7 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.workspace.onDidChangeWorkspaceFolders(() => detectProject()),
     vscode.window.onDidChangeActiveTextEditor(() => updateJsonContext()),
     vscode.workspace.onDidChangeConfiguration((e) => {
+      if (e.affectsConfiguration("redcode.gamePath")) updateHotToolsContext();
       // Settings often change one after another; restart once they settle.
       if (["redcode.gamePath", "redcode.bridgePath", "redcode.dotnetRoot"].some((s) => e.affectsConfiguration(s)) && !updating) {
         clearTimeout(restartTimer);
@@ -120,6 +129,7 @@ export function activate(context: vscode.ExtensionContext): void {
   );
 
   detectProject();
+  updateHotToolsContext();
   startBridge(context);
 }
 
@@ -217,7 +227,8 @@ async function runPack(extra?: (line: string) => void): Promise<PackSummary> {
   return summary;
 }
 
-async function packCommand(): Promise<void> {
+/** REDcode: Pack. True when the pack succeeded, so Pack and Install can go on. */
+async function packCommand(): Promise<boolean> {
   let summary: PackSummary;
   try {
     summary = await runPack();
@@ -225,7 +236,7 @@ async function packCommand(): Promise<void> {
     const message = e instanceof Error ? e.message : String(e);
     log.appendLine(`Pack failed: ${message}`);
     void vscode.window.showErrorMessage(`REDcode: ${message}`, "Show log").then((pick) => pick && log.show(true));
-    return;
+    return false;
   }
   // Show the archive in the Project view, or the packed folder for a resources-only mod.
   const shown = explorer.nodeFor(summary.archive ?? summary.packedDir);
@@ -237,12 +248,162 @@ async function packCommand(): Promise<void> {
     summary.misplacedTweaks.length ? `${summary.misplacedTweaks.map((t) => path.basename(t)).join(", ")} ${summary.misplacedTweaks.length === 1 ? "is" : "are"} not under r6\\tweaks, so TweakXL will not load ${summary.misplacedTweaks.length === 1 ? "it" : "them"}` : "",
   ].filter(Boolean);
   if (problems.length > 0) {
-    const pick = await vscode.window.showWarningMessage(`REDcode: packed, but ${problems.join("; and ")}.`, "Show log");
-    if (pick) log.show(true);
-    return;
+    // Not awaited: Pack and Install goes on while the warning stays up.
+    void vscode.window.showWarningMessage(`REDcode: packed, but ${problems.join("; and ")}.`, "Show log").then((pick) => pick && log.show(true));
+    return true;
   }
   const what = summary.archive ? `${summary.archiveFiles.toLocaleString()} file(s) into ${path.basename(summary.archive)}` : "resources only, no archive";
   vscode.window.setStatusBarMessage(`$(package) REDcode: packed ${what}`, 6000);
+  return true;
+}
+
+// ---- install, uninstall, run ------------------------------------------------------------------
+
+/** Runs a ship command, turning a thrown error into a message with Show log. */
+async function shipCommand(fn: () => Promise<unknown>): Promise<void> {
+  try {
+    await fn();
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    log.appendLine(`Error: ${message}`);
+    void vscode.window.showErrorMessage(`REDcode: ${message}`, "Show log").then((pick) => pick && log.show(true));
+  }
+}
+
+function gameFolder(): string {
+  const gamePath = vscode.workspace.getConfiguration("redcode").get<string>("gamePath", "");
+  if (!gamePath || !fs.existsSync(path.join(gamePath, "bin", "x64", "Cyberpunk2077.exe"))) {
+    throw new Error(`redcode.gamePath (${gamePath || "empty"}) is not the Cyberpunk 2077 folder: it has no bin\\x64\\Cyberpunk2077.exe.`);
+  }
+  return gamePath;
+}
+
+function packedExists(p: ProjectInfo): boolean {
+  const packed = path.join(p.dir, "packed");
+  return fs.existsSync(packed) && fs.readdirSync(packed).length > 0;
+}
+
+/**
+ * REDcode: Install. Through REDdeck when it is installed, so REDdeck's manifest, conflicts and undo
+ * cover the mod; otherwise a direct copy recorded in .redcode/installed.json.
+ */
+async function installCommand(): Promise<void> {
+  const p = requireProject();
+  if (!packedExists(p)) {
+    const pick = await vscode.window.showWarningMessage(`${p.name} has not been packed yet.`, "Pack and Install");
+    if (pick) await vscode.commands.executeCommand("redcode.packAndInstall");
+    return;
+  }
+  const found = await findREDdeck();
+  if ("api" in found) {
+    const deck = found.api;
+    const ours = vscode.workspace.getConfiguration("redcode").get<string>("gamePath", "");
+    if (deck.gamePath() && ours && path.resolve(deck.gamePath()).toLowerCase() !== path.resolve(ours).toLowerCase()) {
+      log.appendLine(`Note: REDdeck deploys to ${deck.gamePath()}, while redcode.gamePath is ${ours}. Install goes where REDdeck deploys.`);
+    }
+    const r = deck.installProject(p.file);
+    log.appendLine(`${r.added ? "Added" : "Refreshed"} ${r.name} in REDdeck (${r.files} files, mod id ${r.id})`);
+    const others = deck.pendingMods(r.id);
+    if (others.length > 0) {
+      const pick = await vscode.window.showWarningMessage(
+        `Deploying ${r.name} also deploys changes waiting in REDdeck for ${others.join(", ")}.`,
+        { modal: true, detail: "Deploy puts the whole list REDdeck has into the game. Cancel to leave it for later; the mod is in REDdeck already." },
+        "Deploy all",
+      );
+      if (pick !== "Deploy all") {
+        log.appendLine(`Install: ${r.name} is in REDdeck; not deployed, at your choice.`);
+        return;
+      }
+    }
+    // REDdeck asks about changed files itself and reports the deploy with its own message.
+    const result = await deck.deploy();
+    if (result) {
+      log.appendLine(`REDdeck deployed: ${result.linked} added, ${result.removed} removed, ${result.kept} unchanged${result.skipped.length ? `; skipped ${result.skipped.join(", ")}` : ""}${result.conflicts ? `; ${result.conflicts} conflict(s), resolved by order` : ""}`);
+    } else {
+      log.appendLine(`Install: REDdeck did not deploy (refused or cancelled); ${r.name} is in its library.`);
+    }
+    return;
+  }
+  if ("tooOld" in found) {
+    const pick = await vscode.window.showWarningMessage(
+      `REDdeck ${found.tooOld} is too old to install projects for REDcode; 0.21.0 or newer can. Install directly into the game instead?`,
+      "Install directly",
+    );
+    if (pick !== "Install directly") return;
+  }
+  await installDirectCommand(p);
+}
+
+async function installDirectCommand(p: ProjectInfo): Promise<void> {
+  const gamePath = gameFolder();
+  const planned = planInstall(p, gamePath);
+  if (planned.foreign.length > 0) {
+    const pick = await vscode.window.showWarningMessage(
+      `${planned.foreign.length} file(s) from ${p.name} are already in the game folder, put there by something other than REDcode.`,
+      { modal: true, detail: `${planned.foreign.slice(0, 8).join("\n")}${planned.foreign.length > 8 ? "\n..." : ""}\n\nREDcode backs them up in the project's .redcode folder and puts them back on Uninstall.` },
+      "Back up and replace",
+    );
+    if (pick !== "Back up and replace") return;
+  }
+  const record = await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: `Installing ${p.name}` }, async () => installDirect(p, gamePath, (l) => log.appendLine(l)));
+  vscode.window.setStatusBarMessage(`$(check) REDcode: installed ${record.files.length} file(s) into the game`, 6000);
+}
+
+/** REDcode: Uninstall: turn the mod off in REDdeck and deploy, or remove the direct copy. */
+async function uninstallCommand(): Promise<void> {
+  const p = requireProject();
+  const found = await findREDdeck();
+  const id = "api" in found ? found.api.projectMod(p.file) : undefined;
+  if ("api" in found && id) {
+    found.api.turnOff(id);
+    const result = await found.api.deploy();
+    log.appendLine(result ? `Uninstalled ${p.name} through REDdeck: ${result.removed} file(s) removed` : `Uninstall: ${p.name} is off in REDdeck; not deployed yet.`);
+    return;
+  }
+  if (readRecord(p)) {
+    const removed = uninstallDirect(p, (l) => log.appendLine(l));
+    vscode.window.setStatusBarMessage(`$(check) REDcode: removed ${removed} file(s) from the game`, 6000);
+    return;
+  }
+  void vscode.window.showInformationMessage(`${p.name} is not installed${"api" in found ? " in REDdeck or" : ""} by REDcode.`);
+}
+
+/** REDcode: Install to hot folder: the packed archive into archive/pc/hot, which Red Hot Tools reloads in a running game. */
+async function installHotCommand(): Promise<void> {
+  const p = requireProject();
+  const gamePath = gameFolder();
+  if (!hasRedHotTools(gamePath)) {
+    throw new Error("Red Hot Tools is not installed in the game (red4ext/plugins/RedHotTools), and without it the hot folder does nothing.");
+  }
+  const files = installHot(p, gamePath);
+  log.appendLine(`Hot install: ${files.join(", ")} into ${path.join(gamePath, "archive", "pc", "hot")}`);
+  vscode.window.setStatusBarMessage(`$(flame) REDcode: ${files.join(", ")} in the hot folder; Red Hot Tools reloads it`, 6000);
+}
+
+/** REDcode: Run game: through Steam for a Steam install, else the exe, with -modded for a REDmod project. */
+async function runGameCommand(): Promise<void> {
+  const gamePath = gameFolder();
+  const config = vscode.workspace.getConfiguration("redcode");
+  const how = config.get<"auto" | "steam" | "exe">("launch", "auto");
+  const target = launchTarget(gamePath, how, config.get<boolean>("pack.redmod", false));
+  if (target.kind === "steam") {
+    log.appendLine(`Run game: ${target.url}`);
+    await vscode.env.openExternal(vscode.Uri.parse(target.url));
+    return;
+  }
+  log.appendLine(`Run game: ${target.exe} ${target.args.join(" ")}`);
+  const child = spawn(target.exe, target.args, { cwd: path.dirname(target.exe), detached: true, stdio: "ignore" });
+  child.on("error", (e) => {
+    log.appendLine(`Could not start the game: ${e.message}`);
+    void vscode.window.showErrorMessage(`REDcode: could not start the game. ${e.message}`);
+  });
+  child.unref();
+}
+
+/** Context key for the hot install command: true when the game has Red Hot Tools. */
+function updateHotToolsContext(): void {
+  const gamePath = vscode.workspace.getConfiguration("redcode").get<string>("gamePath", "");
+  void vscode.commands.executeCommand("setContext", "redcode.hotTools", !!gamePath && hasRedHotTools(gamePath));
 }
 
 /** The redcode task type: one task per project folder, "pack", offered as the default build task. */

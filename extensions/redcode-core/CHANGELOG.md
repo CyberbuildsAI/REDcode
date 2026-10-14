@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Install, Pack and Install, Uninstall and Run Game. With REDdeck 0.21.0 or newer installed, Install hands the packed project to REDdeck, which adds it as a mod (version dev), refreshes the same mod on every later install and deploys it with its own manifest, conflict check and undo; REDcode asks first when other mods have changes waiting. Without REDdeck, Install copies `packed` into the game itself, records the files in the project's `.redcode/installed.json`, backs up any file that was already there and puts it back on Uninstall. **Install to the Hot Folder** sends the archive to `archive/pc/hot` when Red Hot Tools is in the game. **Run Game** starts it through Steam for a Steam install, else the exe, with `-modded` for a REDmod project (`redcode.launch`).
+
 - The bridge commands name REDbridge, as REDdeck's do: **REDcode: Restart REDbridge**, **Update REDbridge**, **Install REDbridge** and **Show REDbridge log** (the command IDs are unchanged, so keybindings keep working).
 - The status bar shows the running bridge's version beside the file count; it was only in the tooltip.
 - Pack: cleaning `packed` deletes its files and then the empty folders, so a folder that something has open (a File Explorer window, a terminal) no longer fails the pack with EPERM. Tweak files outside `r6/tweaks` are reported, since TweakXL does not read them there. Resources follow WolvenKit's rules exactly, checked against a WolvenKit pack of the same project: a `.tweak` file outside `r6/tweaks` is left out, and a REDmod gets its `.script` and `.ws` files under `mods/<name>/scripts`, which were dropped before. One deviation: `.tweak` files in `r6/tweaks` are packed, where WolvenKit leaves them out.
