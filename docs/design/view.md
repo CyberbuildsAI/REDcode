@@ -4,7 +4,7 @@ title: View (C5)
 
 # View: meshes, sound, TweakDB, LocKeys, and the REDnode loop
 
-Draft 0.1, 2026-10-14. The C5 phase of the [design](../design.html): seeing and looking up what a mod is made of, without leaving REDcode. Five steps, each a commit or two with a hand test on the owner's machine, in the order below. Each step is detailed when its turn comes, as with [Ship (C4)](ship.html).
+Draft 0.2, 2026-10-14, agreed with the owner the same day (decisions at the end). The C5 phase of the [design](../design.html): seeing and looking up what a mod is made of, without leaving REDcode. Five steps, each a commit or two with a hand test on the owner's machine, in the order below. Each step is detailed when its turn comes, as with [Ship (C4)](ship.html).
 
 ## Two sources: the files, and the running game
 
@@ -69,13 +69,21 @@ Edit a REDnode mod in REDcode, deploy it into the running game without a restart
 
 ## Deferred
 
-- **A WolvenKit-compatible script runner** (`.wscript`), listed for C5 in the design. Moved after V5: the assistant plus the MCP tools cover most of what scripts were for, and a JavaScript runner fits the Node stack better than WolvenKit's C# scripting. To revisit with the owner.
 - **Textures on meshes** beyond flat colours, if the export's material files turn out to be costly to map: V1 ships geometry first.
 - **Animations** played on a rig in the mesh viewer: needs the rig and `.anims` export, a later step.
 
-## Open questions for the owner
+## Decisions
 
-1. Mesh viewer as a mode of the CR2W editor (proposed), or a separate viewer?
-2. "New tweak from this record" in YAML (TweakXL's common form, proposed) or `.tweak`?
-3. The order V1 to V5, or the REDnode loop earlier?
-4. The script runner deferred as above, or dropped?
+Agreed with the owner, 2026-10-14:
+
+1. The mesh viewer is a mode of the CR2W editor, as the atlas and the table are; `.glb` and `.gltf` files open in the same viewer.
+2. **New tweak from this record** writes YAML, TweakXL's common form.
+3. The order is V1 to V5, with the REDnode loop last.
+4. **The script runner is dropped**, on the owner's condition that what WolvenKit's scripts do can reasonably be done another way, such as by asking an agent. Checked against WolvenKit's `ScriptFunctions`:
+
+   | WolvenKit scripts do | In REDcode |
+   |---|---|
+   | Read game files; convert to and from JSON, and between YAML and JSON | An agent with the MCP tools (`archive_*`, `cr2w_to_json`, `cr2w_from_json`); YAML and JSON it converts itself |
+   | Batch export, import, pack, and value edits over many files | An agent with `project_export`, `project_import`, `project_pack` and the `cr2w_*` document tools |
+   | Templates: named presets for new objects | Partly: `cr2w_create_instance` gives the game's defaults; named presets do not exist yet |
+   | Hooks: a script run by itself on every export, import or save | **Not covered**: an agent acts when asked. If a mod needs "always do X after import", it comes back as a small REDcode setting or task, not a script runner |
