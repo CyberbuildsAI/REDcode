@@ -246,6 +246,11 @@
         "icon": "$(desktop-download)"
       },
       {
+        "command": "redcode.extractToProject",
+        "title": "Extract from a Mod Archive into the Project",
+        "category": "REDcode"
+      },
+      {
         "command": "redcode.openProjectFileAsJson",
         "title": "Open as JSON",
         "category": "REDcode"
@@ -466,6 +471,10 @@
         },
         {
           "command": "redcode.import",
+          "when": "false"
+        },
+        {
+          "command": "redcode.extractToProject",
           "when": "false"
         },
         {

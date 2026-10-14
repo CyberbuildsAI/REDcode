@@ -172,6 +172,11 @@ export class BridgeClient extends EventEmitter<BridgeEvents> {
     return this.call("texture.imageToPng", { file, outFile });
   }
 
+  /** Extracts resources (by path or hash) from a mod archive on disk. No game needed. Bridge 0.7.1. */
+  extractFromMod(archivePath: string, items: { path: string; outFile: string }[]): Promise<ExtractManyResult> {
+    return this.call("archive.extractFromMod", { archivePath, items });
+  }
+
   /** Lists the resources inside a mod archive on disk. No game needed. Bridge 0.4.0. */
   openMod(path: string): Promise<ModArchiveInfo> {
     return this.call("archive.openMod", { path });

@@ -215,6 +215,11 @@ tool("archive_open_mod", "List the resources inside a mod .archive on disk. No g
   path: z.string().describe("The .archive file."),
 }, (a, b) => b.openMod(a.path));
 
+tool("archive_extract_from_mod", "Extract resources from a mod .archive on disk, by game path or hash, to files of your choosing; for a project, outFile is source/archive/<game path>. Missing or failing resources are listed, the rest are written. No game needed. Bridge 0.7.1.", {
+  archivePath: z.string().describe("The .archive file."),
+  items: z.array(z.object({ path: z.string().describe("Game path (base\\...) or decimal hash."), outFile: z.string() })),
+}, (a, b) => b.extractFromMod(a.archivePath, a.items));
+
 tool("hash_fnv1a64", "The FNV1a64 hash of a string, as the game uses for paths and names.", { value: z.string() }, (a, b) => b.fnv1a64(a.value));
 tool("hash_resolve", "The game path for a known hash, if the hash list knows it.", { hash: z.string().describe("Decimal hash string.") }, (a, b) => b.resolve(a.hash));
 

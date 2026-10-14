@@ -128,6 +128,7 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("redcode.runGame", () => shipCommand(() => runGameCommand())),
     vscode.commands.registerCommand("redcode.export", (node: ProjectNode) => withBridge((b) => modkitCommand(b, node, "export"))),
     vscode.commands.registerCommand("redcode.import", (node: ProjectNode) => withBridge((b) => modkitCommand(b, node, "import"))),
+    vscode.commands.registerCommand("redcode.extractToProject", (args: ExtractToProjectArgs) => extractToProject(args)),
     vscode.tasks.registerTaskProvider("redcode", { provideTasks: () => provideTasks(), resolveTask: (task) => resolveTask(task) }),
     vscode.commands.registerCommand("redcode.refreshProject", () => detectProject()),
     vscode.commands.registerCommand("redcode.refreshAssets", () => assets.refresh()),
@@ -493,6 +494,80 @@ async function modkitCommand(b: BridgeClient, node: ProjectNode, action: "export
   } else {
     vscode.window.setStatusBarMessage(`$(check) REDcode: ${verb} ${files.length} file(s), ${written.length} written`, 6000);
   }
+}
+
+// ---- extract to project, for REDdeck ----------------------------------------------------------
+
+/** The arguments of redcode.extractToProject, REDcode request #1 from REDdeck. */
+interface ExtractToProjectArgs {
+  /** A .archive file on disk, such as a mod in REDdeck's library. */
+  archive: string;
+  /** Resource paths (base\...) or hashes inside it. */
+  paths: string[];
+  /** Replace files the project already has. Off: they are left alone and listed as kept. */
+  overwrite?: boolean;
+}
+
+/** What redcode.extractToProject returns: project-relative paths, so the caller can show them. */
+interface ExtractToProjectResult {
+  written: string[];
+  /** Already in the project and left alone, because overwrite was off. */
+  kept: string[];
+  /** Not in the archive, or failed to extract. */
+  failed: string[];
+}
+
+/**
+ * REDcode: extract resources from a mod archive on disk into the open project's source/archive, at
+ * their game paths. Called by REDdeck by name, with no UI of its own beyond the Project view refresh;
+ * REDdeck asks the user and calls again with overwrite for the kept ones.
+ */
+async function extractToProject(args: ExtractToProjectArgs): Promise<ExtractToProjectResult> {
+  const p = requireProject();
+  if (!args?.archive || !Array.isArray(args.paths)) {
+    throw new Error("redcode.extractToProject needs { archive, paths }");
+  }
+  if (!bridge?.running) {
+    throw new Error('The REDbridge process is not running. Run "REDcode: Restart REDbridge".');
+  }
+  // A hash gets its name from the archive's own listing, so the file lands at its path.
+  const listing = (await bridge.openMod(args.archive)).items;
+  const byHash = new Map(listing.map((i) => [i.hash, i.name]));
+  const result: ExtractToProjectResult = { written: [], kept: [], failed: [] };
+  const items: { path: string; outFile: string }[] = [];
+  for (const asked of args.paths) {
+    const gamePath = byHash.get(asked) ?? asked.replace(/\//g, "\\");
+    if (/^\d+$/.test(gamePath)) {
+      result.failed.push(asked); // a hash the archive does not name
+      continue;
+    }
+    const outFile = projectPathFor(p, gamePath);
+    if (!args.overwrite && fs.existsSync(outFile)) {
+      result.kept.push(path.relative(p.dir, outFile));
+      continue;
+    }
+    items.push({ path: gamePath, outFile });
+  }
+  if (items.length > 0) {
+    let r;
+    try {
+      r = await bridge.extractFromMod(args.archive, items);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      const code = (e as { code?: unknown })?.code;
+      throw new Error(code === -32601 || /method not found/i.test(message) ? 'Extracting from a mod archive needs REDbridge 0.7.1 or newer. Run "REDcode: Update REDbridge".' : message);
+    }
+    const failed = new Set(r.failed.map((f) => f.toLowerCase()));
+    for (const it of items) {
+      if (failed.has(it.path.toLowerCase())) result.failed.push(it.path);
+      else result.written.push(path.relative(p.dir, it.outFile));
+    }
+  }
+  log.appendLine(`Extract to project from ${path.basename(args.archive)}: ${result.written.length} written, ${result.kept.length} already in the project, ${result.failed.length} failed${result.failed.length ? ` (${result.failed.join(", ")})` : ""}`);
+  explorer.refresh();
+  const first = result.written[0] ? explorer.nodeFor(path.join(p.dir, result.written[0])) : undefined;
+  if (first) await projectView.reveal(first, { select: true, focus: false, expand: true }).then(undefined, () => undefined);
+  return result;
 }
 
 /** A file an import rewrote and the CR2W editor has open is reloaded, unless it has unsaved edits. */
