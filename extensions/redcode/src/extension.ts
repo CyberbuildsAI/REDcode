@@ -120,6 +120,7 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("redcode.openProjectFile", (node: ProjectNode) => openProjectFile(node)),
     vscode.commands.registerCommand("redcode.openProjectFileAsJson", (node: ProjectNode) => withBridge((b) => openProjectFileAsJson(b, node))),
     vscode.commands.registerCommand("redcode.openProjectFileInEditor", (node: ProjectNode) => node.kind === "file" && vscode.commands.executeCommand("vscode.openWith", vscode.Uri.file(node.file), cr2wViewTypeFor(node.file))),
+    vscode.commands.registerCommand("redcode.copyProjectPath", (node: ProjectNode) => copyProjectPath(node)),
     vscode.commands.registerCommand("redcode.revealInExplorer", (node: ProjectNode) => revealInExplorer(node)),
     vscode.commands.registerCommand("redcode.deleteProjectFile", (node: ProjectNode) => deleteProjectFile(node)),
     vscode.commands.registerCommand("redcode.saveJsonToProject", () => withBridge(saveJsonToProject)),
@@ -1233,7 +1234,17 @@ async function openTexture(b: BridgeClient, node: AssetNode): Promise<void> {
 }
 
 async function copyAssetPath(node: AssetNode): Promise<void> {
-  await vscode.env.clipboard.writeText(node.kind === "file" ? node.file.name : node.path);
+  await copyText(node.kind === "file" ? node.file.name : node.path);
+}
+
+/** Copy Path in the Project view: the full path on disk of a file, folder, root or the project folder. */
+async function copyProjectPath(node: ProjectNode): Promise<void> {
+  await copyText(node.kind === "file" ? node.file : node.dir);
+}
+
+async function copyText(text: string): Promise<void> {
+  await vscode.env.clipboard.writeText(text);
+  vscode.window.setStatusBarMessage(`$(copy) Copied ${text}`, 3000);
 }
 
 // ---- commands: project files --------------------------------------------------------------

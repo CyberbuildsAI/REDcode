@@ -10,8 +10,10 @@ Click the REDcode icon in the activity bar.
 
 | View | What it shows |
 |---|---|
-| **Project** | The open WolvenKit project: `Archive` (game files added to the project), `Raw` (exports and imports), `Resources` (scripts and tweaks copied as they are), `Packed` (build output). Click a texture (`.xbm`) to view it, another game file to open it as JSON, a text file to edit it. Right-click: Open as JSON, Reveal in File Explorer. Edit the JSON and use **Save JSON to Project** (the icon in the editor title) to rebuild the game file from it |
+| **Project** | The open WolvenKit project: `Archive` (game files added to the project), `Raw` (exports and imports), `Resources` (scripts and tweaks copied as they are), `Packed` (build output). Click a texture (`.xbm`) to view it, another game file to open it as JSON, a text file to edit it. Right-click: Open as JSON, Copy Path, Reveal in File Explorer. Edit the JSON and use **Save JSON to Project** (the icon in the editor title) to rebuild the game file from it |
 | **Game Assets** | The game archives as a folder tree, expanded on demand, with file counts. Click a texture to view it, another file to open it as JSON. Right-click: Add to Project, Extract to..., Open Texture, Open as JSON, Copy Game Path. The search icon opens search-as-you-type |
+
+On hover, files and folders in both trees show a copy button. In Game Assets it copies the game path (`base\gameplay\...`). In the Project view it copies the full path on disk. The status bar shows what was copied.
 
 Both trees have a **Filter** button in their title bar. Type a path or a pattern, and the tree narrows to the matching files while you type. The folders on the way to them open, and a chain of single folders shows as one row. Enter keeps the filter, and the message above the tree shows the pattern and the count. **Clear Filter** returns to the full tree. A pattern is words separated by spaces, and a file must match them all. A plain word matches anywhere in the path, so `osprey mesh` finds the Nokota Osprey's meshes. `*` and `?` are wildcards, so `ep1\weapons\*.xbm` or `*.inkatlas` work, and `/` works as well as `\`. Case does not matter. Game Assets shows at most 5,000 matches and says so when there are more. Add to Project on a folder in a filtered tree takes only the matching files under it.
 

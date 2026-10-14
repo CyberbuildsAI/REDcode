@@ -375,7 +375,14 @@
       {
         "command": "redcode.copyAssetPath",
         "title": "Copy Game Path",
-        "category": "REDcode"
+        "category": "REDcode",
+        "icon": "$(copy)"
+      },
+      {
+        "command": "redcode.copyProjectPath",
+        "title": "Copy Path",
+        "category": "REDcode",
+        "icon": "$(copy)"
       },
       {
         "command": "redcode.openProjectFileInEditor",
@@ -603,6 +610,11 @@
         {
           "command": "redcode.copyAssetPath",
           "when": "view == redcode.assets && viewItem =~ /^asset/",
+          "group": "inline@2"
+        },
+        {
+          "command": "redcode.copyAssetPath",
+          "when": "view == redcode.assets && viewItem =~ /^asset/",
           "group": "3_copy@1"
         },
         {
@@ -636,14 +648,24 @@
           "group": "2_open@1"
         },
         {
-          "command": "redcode.revealInExplorer",
+          "command": "redcode.copyProjectPath",
           "when": "view == redcode.project && viewItem =~ /^project/",
           "group": "inline@1"
         },
         {
+          "command": "redcode.revealInExplorer",
+          "when": "view == redcode.project && viewItem =~ /^project/",
+          "group": "inline@2"
+        },
+        {
           "command": "redcode.deleteProjectFile",
           "when": "view == redcode.project && viewItem =~ /^project(File|Folder)/",
-          "group": "inline@2"
+          "group": "inline@3"
+        },
+        {
+          "command": "redcode.copyProjectPath",
+          "when": "view == redcode.project && viewItem =~ /^project/",
+          "group": "3_reveal@0"
         },
         {
           "command": "redcode.revealInExplorer",
@@ -695,6 +717,10 @@
         },
         {
           "command": "redcode.copyAssetPath",
+          "when": "false"
+        },
+        {
+          "command": "redcode.copyProjectPath",
           "when": "false"
         },
         {
