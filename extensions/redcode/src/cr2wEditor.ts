@@ -9,6 +9,7 @@ import * as path from "node:path";
 import * as vscode from "vscode";
 import type { BridgeClient } from "./bridgeClient";
 import { gamePathOfUri } from "./gameFs";
+import { meshGlbFor, meshPayload } from "./meshExport";
 import { ProjectFolders } from "./project";
 import type { TextureViewer } from "./textureViewer";
 import type { DocumentInfo, PatchOp, PatchResult } from "./types";
@@ -225,7 +226,7 @@ export class Cr2wEditorProvider implements vscode.CustomEditorProvider<Cr2wDocum
 
   /** What a page may load: the editor's media and the converted PNGs. */
   get resourceRoots(): vscode.Uri[] {
-    return [this.media, this.textures.root];
+    return [this.media, vscode.Uri.joinPath(this.context.extensionUri, "media", "mesh"), this.textures.root];
   }
 
   /**
@@ -412,6 +413,13 @@ export class Cr2wEditorProvider implements vscode.CustomEditorProvider<Cr2wDocum
             const png = await this.texturePng(this.requireBridge(), document.gamePath ? undefined : document.uri.fsPath, m.depot ?? "");
             return reply(m.id, { png, src: webview.asWebviewUri(vscode.Uri.file(png)).toString() });
           }
+          case "meshPayload": {
+            // The open mesh, exported to a cached .glb (the saved file: unsaved edits show after a save).
+            const cache = path.join(this.textures.root.fsPath, "mesh");
+            const r = await meshGlbFor(this.requireBridge(), cache, document.gamePath ? { gamePath: document.gamePath } : { file: document.uri.fsPath });
+            if (!r.cached) this.log.appendLine(`cr2w editor: exported ${document.name} to ${r.glb} for the 3D view`);
+            return reply(m.id, { ...meshPayload(r.glb), path: r.glb, cached: r.cached, dirty: document.log.length > 0 });
+          }
           case "documentTexture": {
             // The open file itself, for the texture view: the game's copy, or the file on disk.
             const bridge = this.requireBridge();
@@ -492,11 +500,13 @@ export class Cr2wEditorProvider implements vscode.CustomEditorProvider<Cr2wDocum
     const nonce = Array.from({ length: 24 }, () => "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[Math.floor(Math.random() * 62)]).join("");
     const script = webview.asWebviewUri(vscode.Uri.joinPath(media, "editor.js"));
     const style = webview.asWebviewUri(vscode.Uri.joinPath(media, "editor.css"));
+    // The 3D viewer (three.js) loads first, so the mesh mode is there when the document arrives; the sidebar skips it.
+    const viewer = sidebar ? "" : `<script nonce="${nonce}" src="${webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, "media", "mesh", "viewer.js"))}"></script>\n`;
     return `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${webview.cspSource} data:; style-src ${webview.cspSource}; script-src 'nonce-${nonce}'; font-src ${webview.cspSource};">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${webview.cspSource} data: blob:; style-src ${webview.cspSource}; script-src 'nonce-${nonce}'; font-src ${webview.cspSource}; connect-src data: blob:;">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="${style}">
 <title>CR2W</title>
@@ -522,7 +532,7 @@ export class Cr2wEditorProvider implements vscode.CustomEditorProvider<Cr2wDocum
   <span id="selected" class="meta"></span>
   <input id="search" type="search" placeholder="search values and names" title="Finds values and property names anywhere in the file. Enter to search, Esc to clear.">
 </footer>
-<script nonce="${nonce}" src="${script}"></script>
+${viewer}<script nonce="${nonce}" src="${script}"></script>
 </body>
 </html>`;
   }

@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- **3D mesh viewer** (C5 V1). A `.mesh`, from the project or straight from Game Assets, opens in the CR2W editor on a 3D view, with **Tree** one click away: orbit, pan and zoom, a ground grid, wireframe, the bounding box, the LOD to show, each submesh on or off with its material and triangle count, and the size in metres. `.glb` and `.gltf` files, such as an export in Raw, open in the same viewer. The mesh is exported to a `.glb` in REDcode's cache through REDbridge's exporter, again only when the file is newer, so the view shows the saved file and refreshes after a save. Submeshes are coloured by material for now; textures come later. three.js is bundled into the extension, under its MIT licence, so nothing loads from the network.
+
 ## 0.6.1 (2026-10-14)
 
 Needs REDbridge 0.7.0; `redcode.extractToProject` needs 0.7.1 and says so on an older bridge.

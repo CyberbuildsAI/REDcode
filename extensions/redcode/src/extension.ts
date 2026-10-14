@@ -27,6 +27,7 @@ import { GameFileSystem, gameUri } from "./gameFs";
 import { compareJson, formatDifference, type JsonComparison } from "./jsonDiff";
 import { hasRedHotTools, installDirect, installHot, launchTarget, planInstall, readRecord, uninstallDirect } from "./install";
 import { targetsUnder } from "./modkit";
+import { MeshViewer } from "./meshViewer";
 import { packProject, type PackSummary } from "./pack";
 import { findREDdeck } from "./reddeck";
 import { createProject, findProject, gamePathOf, projectPathFor, type ProjectInfo } from "./project";
@@ -106,6 +107,7 @@ export function activate(context: vscode.ExtensionContext): void {
     textures.register(),
     cr2w.register(),
     new Cr2wPropertiesView(cr2w).register(),
+    new MeshViewer(context.extensionUri, log).register(),
     vscode.commands.registerCommand("redcode.openTexture", (node: AssetNode) => withBridge((b) => openTexture(b, node))),
     vscode.commands.registerCommand("redcode.openGameFileAsJson", () => withBridge(openGameFileAsJson)),
     vscode.commands.registerCommand("redcode.searchGameFiles", () => withBridge(searchGameFiles)),

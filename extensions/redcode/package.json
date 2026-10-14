@@ -37,8 +37,13 @@
     "languages": [
       {
         "id": "tweak",
-        "aliases": ["TweakXL", "tweak"],
-        "extensions": [".tweak"],
+        "aliases": [
+          "TweakXL",
+          "tweak"
+        ],
+        "extensions": [
+          ".tweak"
+        ],
         "configuration": "./language-configuration/tweak.json"
       }
     ],
@@ -60,16 +65,123 @@
         "viewType": "redcode.cr2w",
         "displayName": "REDcode CR2W Editor",
         "selector": [
-          { "filenamePattern": "*.ent" }, { "filenamePattern": "*.app" }, { "filenamePattern": "*.mesh" }, { "filenamePattern": "*.inkatlas" },
-          { "filenamePattern": "*.mi" }, { "filenamePattern": "*.mt" }, { "filenamePattern": "*.mlsetup" }, { "filenamePattern": "*.mltemplate" },
-          { "filenamePattern": "*.mlmask" }, { "filenamePattern": "*.anims" }, { "filenamePattern": "*.animgraph" }, { "filenamePattern": "*.rig" },
-          { "filenamePattern": "*.morphtarget" }, { "filenamePattern": "*.inkwidget" }, { "filenamePattern": "*.inkmenu" }, { "filenamePattern": "*.inkstyle" },
-          { "filenamePattern": "*.scene" }, { "filenamePattern": "*.quest" }, { "filenamePattern": "*.questphase" }, { "filenamePattern": "*.streamingsector" },
-          { "filenamePattern": "*.streamingblock" }, { "filenamePattern": "*.physicalscene" }, { "filenamePattern": "*.workspot" }, { "filenamePattern": "*.cubemap" },
-          { "filenamePattern": "*.texarray" }, { "filenamePattern": "*.envprobe" }, { "filenamePattern": "*.es" }, { "filenamePattern": "*.gamedef" },
-          { "filenamePattern": "*.lipmap" }, { "filenamePattern": "*.fp" }, { "filenamePattern": "*.cminimap" }, { "filenamePattern": "*.inkanim" },
-          { "filenamePattern": "*.inkfontfamily" }, { "filenamePattern": "*.inkcharcustomization" }, { "filenamePattern": "*.garmentlayerparams" },
-          { "filenamePattern": "*.behavior" }, { "filenamePattern": "*.effect" }, { "filenamePattern": "*.particle" }, { "filenamePattern": "*.w2mesh" }
+          {
+            "filenamePattern": "*.ent"
+          },
+          {
+            "filenamePattern": "*.app"
+          },
+          {
+            "filenamePattern": "*.mesh"
+          },
+          {
+            "filenamePattern": "*.inkatlas"
+          },
+          {
+            "filenamePattern": "*.mi"
+          },
+          {
+            "filenamePattern": "*.mt"
+          },
+          {
+            "filenamePattern": "*.mlsetup"
+          },
+          {
+            "filenamePattern": "*.mltemplate"
+          },
+          {
+            "filenamePattern": "*.mlmask"
+          },
+          {
+            "filenamePattern": "*.anims"
+          },
+          {
+            "filenamePattern": "*.animgraph"
+          },
+          {
+            "filenamePattern": "*.rig"
+          },
+          {
+            "filenamePattern": "*.morphtarget"
+          },
+          {
+            "filenamePattern": "*.inkwidget"
+          },
+          {
+            "filenamePattern": "*.inkmenu"
+          },
+          {
+            "filenamePattern": "*.inkstyle"
+          },
+          {
+            "filenamePattern": "*.scene"
+          },
+          {
+            "filenamePattern": "*.quest"
+          },
+          {
+            "filenamePattern": "*.questphase"
+          },
+          {
+            "filenamePattern": "*.streamingsector"
+          },
+          {
+            "filenamePattern": "*.streamingblock"
+          },
+          {
+            "filenamePattern": "*.physicalscene"
+          },
+          {
+            "filenamePattern": "*.workspot"
+          },
+          {
+            "filenamePattern": "*.cubemap"
+          },
+          {
+            "filenamePattern": "*.texarray"
+          },
+          {
+            "filenamePattern": "*.envprobe"
+          },
+          {
+            "filenamePattern": "*.es"
+          },
+          {
+            "filenamePattern": "*.gamedef"
+          },
+          {
+            "filenamePattern": "*.lipmap"
+          },
+          {
+            "filenamePattern": "*.fp"
+          },
+          {
+            "filenamePattern": "*.cminimap"
+          },
+          {
+            "filenamePattern": "*.inkanim"
+          },
+          {
+            "filenamePattern": "*.inkfontfamily"
+          },
+          {
+            "filenamePattern": "*.inkcharcustomization"
+          },
+          {
+            "filenamePattern": "*.garmentlayerparams"
+          },
+          {
+            "filenamePattern": "*.behavior"
+          },
+          {
+            "filenamePattern": "*.effect"
+          },
+          {
+            "filenamePattern": "*.particle"
+          },
+          {
+            "filenamePattern": "*.w2mesh"
+          }
         ],
         "priority": "default"
       },
@@ -77,7 +189,15 @@
         "viewType": "redcode.cr2wOption",
         "displayName": "REDcode CR2W Editor",
         "selector": [
-          { "filenamePattern": "*.xbm" }, { "filenamePattern": "*.json" }, { "filenamePattern": "*.csv" }
+          {
+            "filenamePattern": "*.xbm"
+          },
+          {
+            "filenamePattern": "*.json"
+          },
+          {
+            "filenamePattern": "*.csv"
+          }
         ],
         "priority": "option"
       },
@@ -101,10 +221,39 @@
         "viewType": "redcode.textureOption",
         "displayName": "REDcode Texture",
         "selector": [
-          { "filenamePattern": "*.png" }, { "filenamePattern": "*.jpg" }, { "filenamePattern": "*.jpeg" },
-          { "filenamePattern": "*.bmp" }, { "filenamePattern": "*.tif" }, { "filenamePattern": "*.tiff" }
+          {
+            "filenamePattern": "*.png"
+          },
+          {
+            "filenamePattern": "*.jpg"
+          },
+          {
+            "filenamePattern": "*.jpeg"
+          },
+          {
+            "filenamePattern": "*.bmp"
+          },
+          {
+            "filenamePattern": "*.tif"
+          },
+          {
+            "filenamePattern": "*.tiff"
+          }
         ],
         "priority": "option"
+      },
+      {
+        "viewType": "redcode.mesh",
+        "displayName": "REDcode Mesh",
+        "selector": [
+          {
+            "filenamePattern": "*.glb"
+          },
+          {
+            "filenamePattern": "*.gltf"
+          }
+        ],
+        "priority": "default"
       }
     ],
     "viewsContainers": {
@@ -271,7 +420,10 @@
         "command": "redcode.saveJsonToProject",
         "title": "Save JSON to Project",
         "category": "REDcode",
-        "icon": { "light": "images/save-to-project-light.svg", "dark": "images/save-to-project.svg" }
+        "icon": {
+          "light": "images/save-to-project-light.svg",
+          "dark": "images/save-to-project.svg"
+        }
       },
       {
         "command": "redcode.refreshProject",
@@ -568,14 +720,27 @@
         },
         "redcode.export.textureFormat": {
           "type": "string",
-          "enum": ["png", "tga", "dds", "bmp", "jpg", "tiff"],
+          "enum": [
+            "png",
+            "tga",
+            "dds",
+            "bmp",
+            "jpg",
+            "tiff"
+          ],
           "default": "png",
           "description": "The image format Export to Raw writes for textures (.xbm), as WolvenKit's XBM export type."
         },
         "redcode.export.meshFormat": {
           "type": "string",
-          "enum": ["glb", "gltf"],
-          "enumDescriptions": ["One binary file", "A .gltf with its .bin beside it"],
+          "enum": [
+            "glb",
+            "gltf"
+          ],
+          "enumDescriptions": [
+            "One binary file",
+            "A .gltf with its .bin beside it"
+          ],
           "default": "glb",
           "description": "The glTF form Export to Raw writes for meshes."
         },
@@ -591,7 +756,11 @@
         },
         "redcode.launch": {
           "type": "string",
-          "enum": ["auto", "steam", "exe"],
+          "enum": [
+            "auto",
+            "steam",
+            "exe"
+          ],
           "enumDescriptions": [
             "Through Steam when the game is in a Steam library, else the exe",
             "Always through Steam (steam://rungameid/1091500)",
@@ -605,11 +774,15 @@
     "taskDefinitions": [
       {
         "type": "redcode",
-        "required": ["action"],
+        "required": [
+          "action"
+        ],
         "properties": {
           "action": {
             "type": "string",
-            "enum": ["pack"],
+            "enum": [
+              "pack"
+            ],
             "description": "What to run: pack the open project into its packed folder."
           }
         }
@@ -629,9 +802,10 @@
     ]
   },
   "scripts": {
+    "vscode:prepublish": "node esbuild.mjs",
     "build": "node esbuild.mjs",
     "watch": "node esbuild.mjs --watch",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p webview/tsconfig.json --noEmit",
     "smoke": "node scripts/smoke.mjs"
   },
   "dependencies": {
@@ -639,8 +813,10 @@
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
+    "@types/three": "0.170.0",
     "@types/vscode": "1.70.0",
     "esbuild": "^0.28.2",
+    "three": "0.170.0",
     "typescript": "~5.9.3"
   }
 }

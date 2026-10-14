@@ -86,7 +86,10 @@
   let table = null;             // { path, type, entryType, keys } when the file is a localization table
   let atlas = null;             // { slots, slot, parts, image } when the file is an inkTextureAtlas (see the atlas section)
   // "table" and "atlas" replace the tree; "texture" is the tree with the image above the grid.
-  const isSpecial = () => mode === "table" || mode === "atlas";
+  const isSpecial = () => mode === "table" || mode === "atlas" || mode === "mesh";
+  // The file's own view, which the header button switches to and from the tree: table, atlas or mesh (3D).
+  let home = null;
+  const HomeLabels = { table: "Table", atlas: "Atlas", mesh: "3D" };
 
   const status = (text, kind = "") => { const s = $("status"); s.textContent = text; s.className = kind; };
   const join = (a, b) => (a ? `${a}.${b}` : b);
@@ -126,7 +129,11 @@
     table = await detectTable().catch(() => null);
     atlas = table ? null : await detectAtlas().catch((e) => { status(e.message, "error"); return null; });
     if (table || atlas) {
-      mode = table ? "table" : "atlas";
+      mode = home = table ? "table" : "atlas";
+      $("view").hidden = false;
+    } else if (info.type === "CMesh" && window.REDcodeMesh) {
+      // A mesh opens on the 3D view; the tree is one click away.
+      mode = home = "mesh";
       $("view").hidden = false;
     } else if (info.type === "CBitmapTexture") {
       // A texture: the image above the grid, and the setup fields selected, since they are what gets edited.
@@ -153,7 +160,10 @@
 
   async function reloadAll(reason) {
     nodes.clear();
-    if (reason === "save" || reason === "revert") textureEl = null;
+    if (reason === "save" || reason === "revert") {
+      textureEl = null;
+      meshShown = false; // export again, so the 3D view shows the saved file
+    }
     try {
       await fetchNode("");
       renderTree();
@@ -168,11 +178,15 @@
   async function render(force = false) {
     document.body.classList.toggle("table-mode", mode === "table");
     document.body.classList.toggle("atlas-mode", mode === "atlas");
-    $("view").textContent = isSpecial() ? "Tree" : table ? "Table" : "Atlas";
+    document.body.classList.toggle("mesh-mode", mode === "mesh");
+    $("view").textContent = isSpecial() ? "Tree" : HomeLabels[home] ?? "Tree";
+    if (mode !== "mesh") disposeMesh();
     if (mode === "table") {
       await renderTable();
     } else if (mode === "atlas") {
       await renderAtlas();
+    } else if (mode === "mesh") {
+      await renderMesh();
     } else {
       await select(selected, force);
     }
@@ -182,7 +196,45 @@
   async function rerender() {
     if (mode === "table") await renderTable();
     else if (mode === "atlas") await renderAtlas();
+    else if (mode === "mesh") return; // the 3D view shows the saved file; it reloads after a save
     else await renderGrid();
+  }
+
+  // ---- mesh view (CMesh) ----------------------------------------------------------------------
+  // The extension exports the saved file to a .glb in its cache (REDbridge's project.export) and sends
+  // the bytes; the bundled viewer (media/mesh/viewer.js) draws them. Unsaved edits show after a save.
+  let meshView = null;
+  let meshShown = false;
+
+  function disposeMesh() {
+    meshView?.dispose();
+    meshView = null;
+    meshShown = false;
+  }
+
+  /** Mounts the 3D view once; an undo or an edit keeps it (and its camera), a save or revert builds it again. */
+  async function renderMesh() {
+    if (meshShown) return;
+    const grid = $("grid");
+    disposeMesh();
+    $("propsLabel").textContent = `${info.type}  ·  3D`;
+    grid.replaceChildren(el("div", "note", "Exporting the mesh…"));
+    try {
+      const payload = await request("meshPayload");
+      const source = payload.json ? { json: payload.json } : { data: base64ToBuffer(payload.data) };
+      meshView = await window.REDcodeMesh.mount(grid, source, payload.dirty ? "Shows the saved file; save to see your edits" : "");
+      meshShown = true;
+      status(payload.cached ? "" : `Exported to ${payload.path}`);
+    } catch (e) {
+      grid.replaceChildren(el("div", "error", `Could not show the mesh: ${e.message}`));
+    }
+  }
+
+  function base64ToBuffer(b64) {
+    const bin = atob(b64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return bytes.buffer;
   }
 
   // ---- tree --------------------------------------------------------------------------------
@@ -1099,7 +1151,7 @@
   // ---- wiring ----------------------------------------------------------------------------------
   $("json").addEventListener("click", () => vscode.postMessage({ type: "openAsJson" }));
   $("view").addEventListener("click", () => {
-    mode = isSpecial() ? "tree" : table ? "table" : "atlas";
+    mode = isSpecial() ? "tree" : home ?? "tree";
     if (mode === "tree" && selected) expandTo(selected);
     void render(true);
   });

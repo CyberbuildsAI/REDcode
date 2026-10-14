@@ -9,3 +9,6 @@ dist/
 *.dll
 *.exe
 rtti-dump*
+
+# built by extensions/redcode/esbuild.mjs
+extensions/redcode/media/mesh/

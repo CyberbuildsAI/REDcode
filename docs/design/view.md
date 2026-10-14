@@ -18,7 +18,7 @@ REDcode reads offline first, since that works while a mod is being written. The 
 
 ## V1 Mesh viewer
 
-A 3D view of meshes, so a modder sees what a `.mesh` is without Blender.
+A 3D view of meshes, so a modder sees what a `.mesh` is without Blender. **Built 2026-10-14**, hand test pending: `webview/meshViewer.ts` (bundled with three.js 0.170.0 into `media/mesh/viewer.js`, its licence beside it), the CR2W editor's `mesh` mode, `src/meshExport.ts` (export to the cache through `project.export` with all LODs and no materials, again only when the source is newer; a `.gltf` sent with its buffers inline) and `src/meshViewer.ts` (the `.glb` and `.gltf` viewer). Checked in Chrome on `tower.mesh` from the owner's project (7 submeshes, 338 triangles) and the Nokota Osprey from the game (LOD 1 44,459 triangles, LOD 2 4,638). Found: WolvenKit names nodes `submesh_NN_LOD_N` with LOD 1 the most detailed, exports one LOD unless the LOD filter is off, and keeps each submesh's material name in the mesh's extras.
 
 - **A mode of the CR2W editor**, as the atlas and the table are: a `.mesh` opens on the 3D view with **Tree** one click away. `.glb` and `.gltf` files in `source/raw` open in the same viewer, since VS Code has none.
 - **The model comes from the export REDcode already has.** The bridge's `project.export` (0.7.0) writes a `.glb`; for a game file the extension extracts it into a cache first. No new bridge method.

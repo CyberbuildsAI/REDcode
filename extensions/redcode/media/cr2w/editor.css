@@ -138,3 +138,27 @@ body[data-mode="sidebar"] #body { grid-template-columns: 1fr; }
 body[data-mode="sidebar"] .prow { grid-template-columns: minmax(90px, 32%) 1fr auto; }
 body[data-mode="sidebar"] .prow .ptype { display: none; }
 body[data-mode="sidebar"] #grid { padding: 4px 8px 16px; }
+
+/* mesh mode: the 3D view fills the pane; the tree is one click away */
+body.mesh-mode #tree, body.mesh-mode #splitter { display: none; }
+body.mesh-mode #body { grid-template-columns: 1fr; }
+body.mesh-mode #props { display: flex; flex-direction: column; overflow: hidden; }
+body.mesh-mode #grid { flex: 1; min-height: 0; padding: 0 12px 8px; display: flex; flex-direction: column; }
+.meshview { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.meshview > .toolbar { flex-wrap: wrap; }
+.meshview .toolbar select { background: var(--vscode-input-background); color: var(--vscode-input-foreground); border: 1px solid var(--vscode-input-border, var(--line)); padding: 2px 6px; font: inherit; font-size: 12px; }
+.meshview .toolbar button.on { border-color: var(--accent); color: var(--accent); }
+.meshbody { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr minmax(180px, 24%); gap: 8px; }
+.meshstage { position: relative; min-height: 0; border: 1px solid var(--line); overflow: hidden; }
+.meshstage canvas { display: block; }
+.meshstage .note { padding: 24px; color: var(--dim); }
+.meshside { overflow: auto; border: 1px solid var(--line); }
+.meshside .part { display: flex; gap: 6px; align-items: center; padding: 2px 8px; cursor: pointer; font-size: 12px; white-space: nowrap; }
+.meshside .part:hover { background: var(--vscode-list-hoverBackground); }
+.meshside .swatch { width: 10px; height: 10px; flex: none; border: 1px solid var(--line); }
+.meshside .part .name { flex: 1; overflow: hidden; text-overflow: ellipsis; font-family: var(--mono); }
+.meshside .part .size { color: var(--dim); font-family: var(--mono); font-size: 11px; }
+
+/* the .glb/.gltf viewer page */
+body.meshfile { display: flex; flex-direction: column; height: 100vh; margin: 0; }
+.meshfile-main { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 8px 12px; }
