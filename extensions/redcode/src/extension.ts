@@ -65,6 +65,18 @@ let offeredDotnet = false;
 
 export function activate(context: vscode.ExtensionContext): void {
   log = vscode.window.createOutputChannel("REDcode");
+  // REDcode was edgemodders.redcode-core until 0.6.0. With both loaded, the old one holds the view,
+  // editor and setting ids, and this one would fail halfway with "already registered" errors.
+  if (vscode.extensions.getExtension("edgemodders.redcode-core")) {
+    log.appendLine("REDcode Core (edgemodders.redcode-core), the old name of this extension, is still installed or still loaded. Uninstall it and reload the window.");
+    void vscode.window
+      .showErrorMessage("REDcode: the old REDcode Core extension is still installed or loaded, and the two cannot run together. Uninstall REDcode Core, then reload the window.", "Show REDcode Core", "Reload Window")
+      .then((pick) => {
+        if (pick === "Show REDcode Core") void vscode.commands.executeCommand("workbench.extensions.search", "@installed edgemodders.redcode-core");
+        else if (pick === "Reload Window") void vscode.commands.executeCommand("workbench.action.reloadWindow");
+      });
+    return;
+  }
   status = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 50);
   status.command = "redcode.showLog";
   status.show();

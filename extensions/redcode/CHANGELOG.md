@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- When the old REDcode Core extension is still installed or still loaded, REDcode says so and offers to show it and to reload the window, instead of failing to start with "already registered" errors and missing views. Found when 0.6.0 was installed into windows that still had REDcode Core 0.3.1 loaded.
 - Project view: PNG, JPG, BMP and TIFF files open in REDcode's texture viewer, with the checkerboard behind transparency, Fit, 1:1 and Pixels. In VS Code's own preview a black texture on a dark theme could not be seen. Elsewhere in VS Code those formats keep VS Code's preview; REDcode Texture is offered under Open With. PNG, JPG and BMP need no bridge.
 
 ## 0.6.0 (2026-10-14)
