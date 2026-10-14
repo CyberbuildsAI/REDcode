@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.7.0 (2026-10-14)
+
+C5 starts: the mesh viewer. Needs REDbridge 0.7.0, as 0.6.1 did.
 
 - **3D mesh viewer** (C5 V1). A `.mesh`, from the project or straight from Game Assets, opens in the CR2W editor on a 3D view, with **Tree** one click away: orbit, pan and zoom, a ground grid, wireframe, the bounding box, the LOD to show, each submesh on or off with its material and triangle count, and the size in metres. `.glb` and `.gltf` files, such as an export in Raw, open in the same viewer. The mesh is exported to a `.glb` in REDcode's cache through REDbridge's exporter, again only when the file is newer, so the view shows the saved file and refreshes after a save. Submeshes are coloured by material for now; textures come later. three.js is bundled into the extension, under its MIT licence, so nothing loads from the network.
 - **Filter** in the Game Assets and Project views. The filter button in each view's title bar opens an input box, and the tree narrows to the matching files as you type. It does not leave the tree, as Search does. Words separated by spaces must all match. Plain words match anywhere in the path. `*` and `?` are wildcards (`ep1\weapons\*.mesh`, `*.inkatlas`). `/` and `\` are the same, and case does not matter. The folders on the way to the matches open by themselves, up to 300 matches, and single-folder chains fold into one row. The filter stays until **Clear Filter**, the button that appears next to it, and the message above the tree shows the pattern and the match count. Game Assets asks the bridge for the pattern's longest plain fragment and shows up to 5,000 files. Add to Project on a filtered folder takes only its matching files.
