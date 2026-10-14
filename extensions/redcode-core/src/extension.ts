@@ -35,9 +35,10 @@ import type { BridgeInfo, GameFileInfo } from "./types";
 
 /**
  * The oldest REDbridge this extension works with. The CR2W editor needs the document session methods
- * (0.5.0) and textures the right way up (0.5.1), so an older bridge is refused with Update REDbridge offered.
+ * (0.5.0), textures the right way up (0.5.1) and Pack needs project.pack (0.6.1), so an older bridge is
+ * refused with Update REDbridge offered.
  */
-const MinBridgeVersion = "0.5.1";
+const MinBridgeVersion = "0.6.1";
 
 let bridge: BridgeClient | undefined;
 let project: ProjectInfo | undefined;

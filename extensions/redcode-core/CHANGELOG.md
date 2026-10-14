@@ -1,16 +1,15 @@
 # Changelog
 
-## Unreleased
+## 0.5.0 (2026-10-14)
+
+C4's first half: a mod packed, installed and started from REDcode. Needs REDbridge 0.6.1 or newer; the extension refuses an older bridge and offers Update REDbridge.
 
 - Install, Pack and Install, Uninstall and Run Game. With REDdeck 0.21.0 or newer installed, Install hands the packed project to REDdeck, which adds it as a mod (version dev), refreshes the same mod on every later install and deploys it with its own manifest, conflict check and undo; REDcode asks first when other mods have changes waiting. Without REDdeck, Install copies `packed` into the game itself, records the files in the project's `.redcode/installed.json`, backs up any file that was already there and puts it back on Uninstall. **Install to the Hot Folder** sends the archive to `archive/pc/hot` when Red Hot Tools is in the game. **Run Game** starts it through Steam for a Steam install, else the exe, with `-modded` for a REDmod project (`redcode.launch`).
-
 - The bridge commands name REDbridge, as REDdeck's do: **REDcode: Restart REDbridge**, **Update REDbridge**, **Install REDbridge** and **Show REDbridge log** (the command IDs are unchanged, so keybindings keep working).
 - The status bar shows the running bridge's version beside the file count; it was only in the tooltip.
 - Pack: cleaning `packed` deletes its files and then the empty folders, so a folder that something has open (a File Explorer window, a terminal) no longer fails the pack with EPERM. Tweak files outside `r6/tweaks` are reported, since TweakXL does not read them there. Resources follow WolvenKit's rules exactly, checked against a WolvenKit pack of the same project: a `.tweak` file outside `r6/tweaks` is left out, and a REDmod gets its `.script` and `.ws` files under `mods/<name>/scripts`, which were dropped before. One deviation: `.tweak` files in `r6/tweaks` are packed, where WolvenKit leaves them out.
-
 - Update bridge on a git checkout first looks for REDbridge processes from other VS Code windows on the same exe, which hold the files the build replaces, and offers to stop them. Without this the build failed with MSB3021. Those windows say the bridge is being updated elsewhere and restart it on the new build when the update finishes. A bridge that stops for any other reason shows a toast with Restart bridge and Show log.
 - Pack: **REDcode: Pack**, the package button on the Project view, or the `redcode: pack` build task (Ctrl+Shift+B) packs the project the way WolvenKit does. `packed` is emptied first (`redcode.pack.clean`), `source/archive` becomes `packed/archive/pc/mod/<mod name>.archive` through the bridge, ArchiveXL files go beside it and other resources keep their paths under `packed`. `redcode.pack.redmod` lays it out as a REDmod instead. Paths with capital letters or spaces are reported. Needs REDbridge 0.6.1.
-
 - Project view: the project is the root node, named after the project with the mod name and version beside it, and Reveal in File Explorer on it opens the project folder. Open in CR2W Editor is offered for textures only, since a click already opens the editor for everything else.
 - Properties view: follows an editor that opens after every editor was closed. It listened to tab changes, which fire before the document is registered.
 
