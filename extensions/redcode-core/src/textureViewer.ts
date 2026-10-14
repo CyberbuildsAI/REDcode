@@ -10,7 +10,9 @@ import type { BridgeClient } from "./bridgeClient";
 
 export const TextureViewType = "redcode.texture";
 
-const TextureExtensions = new Set([".xbm"]);
+/** .xbm is a game texture; .tga and .dds are plain images (an exported texture in source/raw) VS Code cannot show itself. */
+const TextureExtensions = new Set([".xbm", ".tga", ".dds"]);
+export const isGameTexture = (file: string) => path.extname(file).toLowerCase() === ".xbm";
 
 /** True for the file types the viewer can show. */
 export function isTexture(file: string): boolean {
@@ -79,8 +81,9 @@ export class TextureViewer implements vscode.CustomReadonlyEditorProvider<Textur
     panel.webview.html = messageHtml(panel.webview, `Converting ${path.basename(file)}`, "");
     try {
       const png = this.pngForFile(file);
-      const result = await bridge.fileToPng(file, png);
-      this.log.appendLine(`texture.fileToPng ${file} -> ${result.file} (${result.bytes.toLocaleString()} bytes)`);
+      const game = isGameTexture(file);
+      const result = game ? await bridge.fileToPng(file, png) : await bridge.imageToPng(file, png);
+      this.log.appendLine(`texture.${game ? "fileToPng" : "imageToPng"} ${file} -> ${result.file} (${result.bytes.toLocaleString()} bytes)`);
       const folder = vscode.workspace.getWorkspaceFolder(doc.uri);
       const subtitle = folder ? path.relative(folder.uri.fsPath, file) : file;
       this.present(panel, { title: path.basename(file), subtitle, png });
@@ -90,7 +93,9 @@ export class TextureViewer implements vscode.CustomReadonlyEditorProvider<Textur
       panel.webview.html = messageHtml(
         panel.webview,
         `Could not show ${path.basename(file)}`,
-        isMethodMissing(e) ? "Viewing project textures needs REDbridge 0.3.0 or newer. Run npm run bridge:update in the REDcode folder, then REDcode: Restart REDbridge." : message,
+        isMethodMissing(e)
+          ? `Viewing ${isGameTexture(file) ? "project textures needs REDbridge 0.3.0" : ".tga and .dds images needs REDbridge 0.7.0"} or newer. Run REDcode: Update REDbridge.`
+          : message,
       );
     }
   }

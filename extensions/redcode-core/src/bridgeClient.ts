@@ -167,6 +167,11 @@ export class BridgeClient extends EventEmitter<BridgeEvents> {
     return this.call("project.pack", { dir, outDir, modName });
   }
 
+  /** Converts a plain image (TGA, DDS, TIFF, BMP, JPG, PNG) to PNG for viewing. Bridge 0.7.0. */
+  imageToPng(file: string, outFile: string): Promise<ExtractResult> {
+    return this.call("texture.imageToPng", { file, outFile });
+  }
+
   /** Lists the resources inside a mod archive on disk. No game needed. Bridge 0.4.0. */
   openMod(path: string): Promise<ModArchiveInfo> {
     return this.call("archive.openMod", { path });

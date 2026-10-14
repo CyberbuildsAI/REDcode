@@ -87,6 +87,12 @@
         "selector": [
           {
             "filenamePattern": "*.xbm"
+          },
+          {
+            "filenamePattern": "*.tga"
+          },
+          {
+            "filenamePattern": "*.dds"
           }
         ],
         "priority": "default"

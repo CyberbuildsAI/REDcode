@@ -3,7 +3,7 @@
 import * as path from "node:path";
 import * as vscode from "vscode";
 import type { BridgeClient } from "./bridgeClient";
-import { isTexture } from "./textureViewer";
+import { isGameTexture } from "./textureViewer";
 import type { GameFileInfo } from "./types";
 
 export type AssetNode =
@@ -34,7 +34,7 @@ export class AssetBrowser implements vscode.TreeDataProvider<AssetNode> {
     item.description = `${f.size.toLocaleString()} B`;
     item.tooltip = `${f.name}\n${f.archive}\n${f.size.toLocaleString()} bytes, hash ${f.hash}`;
     item.iconPath = iconFor(f.name);
-    if (isTexture(f.name)) {
+    if (isGameTexture(f.name)) {
       item.contextValue = "assetFile.texture";
       item.command = { command: "redcode.openTexture", title: "Open Texture", arguments: [node] };
     } else {

@@ -1093,7 +1093,10 @@ async function openProjectFile(node: ProjectNode): Promise<void> {
     await withBridge((b) => openProjectFileAsJson(b, node));
     return;
   }
-  await vscode.window.showTextDocument(vscode.Uri.file(node.file), { preview: true });
+  // VS Code picks the editor: its image and audio preview for .png, .jpg, .wav and the like, the
+  // text editor for .gltf, .json and .yaml, its binary placeholder for the rest. Opening every file
+  // as text failed on a binary one such as an exported .png.
+  await vscode.commands.executeCommand("vscode.open", vscode.Uri.file(node.file), { preview: true });
 }
 
 async function openProjectFileAsJson(b: BridgeClient, node: ProjectNode): Promise<void> {
