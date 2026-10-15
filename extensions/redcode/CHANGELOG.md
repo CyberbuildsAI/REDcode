@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- The third-party notices are in one file, `ThirdPartyNotices.txt` (vscode-jsonrpc, three.js, opus-decoder, libopus); `THIRD_PARTY_NOTICES.md` is folded into it.
+
 ## 0.8.2 (2026-10-15)
 
 The first version on the VS Code Marketplace, as a Preview. Needs REDbridge 0.8.0.
