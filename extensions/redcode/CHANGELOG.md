@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+Needs REDbridge 0.8.0. REDcode refuses an older bridge and offers Update REDbridge, which downloads it.
+
+- **The game folder is found on first start.** When `redcode.gamePath` is not the game, REDcode offers the install REDdeck uses, or one it finds in any Steam library (from `libraryfolders.vdf`), GOG or the Epic launcher's manifests. **REDcode: Set Game Folder** lists the installs found or browses for one, and it is also a button in the empty Game Assets view. Before, a new machine got an empty Game Assets view with no hint.
+- A REDcode release needs its REDbridge released first. `redcode.minBridgeVersion` in `package.json` is the one place the minimum is written. `scripts/check-bridge-release.mjs` runs in `vscode:prepublish`, so `vsce package`, `vsce publish` and `ovsx publish` stop unless the latest REDbridge release on GitHub is at least that version and has its Windows zip. `REDCODE_SKIP_BRIDGE_CHECK=1` allows an offline development build.
+- Marketplace listing: marked Preview, a new README opening (what REDcode is, the credit to WolvenKit, what you need), more categories and keywords.
 - **Audio player** (C5 V2).
   - A `.wem`, from the project or straight from Game Assets, opens in a player. It has a waveform you click or drag to seek, Play, Loop, the time, codec, channels and rate, and Save. REDbridge exports the `.wem` to Ogg into REDcode's cache, again only when the file is newer.
   - `.opus` files open in the same player. WAV, Ogg, MP3 and FLAC offer it under Open With and keep VS Code's preview.

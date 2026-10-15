@@ -33,18 +33,21 @@ import { AudioPlayer, AudioViewType, SoundsViewType } from "./audioPlayer";
 import { GameSoundIndex } from "./audio";
 import { packProject, type PackSummary } from "./pack";
 import { findREDdeck } from "./reddeck";
+import { findGames, isGameFolder } from "./gameFinder";
 import { createProject, findProject, gamePathOf, projectPathFor, type ProjectInfo } from "./project";
 import { ProjectExplorer, type ProjectNode } from "./projectExplorer";
 import { isTexture, TextureViewer, textureViewTypeFor } from "./textureViewer";
 import type { BridgeInfo, GameFileInfo } from "./types";
 
 /**
- * The oldest REDbridge this extension works with. The CR2W editor needs the document session methods
- * (0.5.0), textures the right way up (0.5.1), Pack needs project.pack (0.6.1) and Export and Import
- * need project.export, project.import and texture.imageToPng (0.7.0), so an older bridge is
- * refused with Update REDbridge offered.
+ * The oldest REDbridge this extension works with, from redcode.minBridgeVersion in package.json. The
+ * CR2W editor needs the document session methods (0.5.0), textures the right way up (0.5.1), Pack
+ * needs project.pack (0.6.1), Export and Import need project.export, project.import and
+ * texture.imageToPng (0.7.0), the sound list's names sound.events (0.7.2) and TweakDB tweakdb.* (0.8.0).
+ * An older bridge is refused with Update REDbridge offered, and scripts/check-bridge-release.mjs stops
+ * a REDcode release until a REDbridge release this new is on GitHub for Update to fetch.
  */
-const MinBridgeVersion = "0.7.0";
+const MinBridgeVersion: string = (require("../package.json") as { redcode: { minBridgeVersion: string } }).redcode.minBridgeVersion;
 
 let bridge: BridgeClient | undefined;
 let project: ProjectInfo | undefined;
@@ -124,6 +127,7 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("redcode.openProjectFile", (node: ProjectNode) => openProjectFile(node)),
     vscode.commands.registerCommand("redcode.openProjectFileAsJson", (node: ProjectNode) => withBridge((b) => openProjectFileAsJson(b, node))),
     vscode.commands.registerCommand("redcode.openProjectFileInEditor", (node: ProjectNode) => node.kind === "file" && vscode.commands.executeCommand("vscode.openWith", vscode.Uri.file(node.file), cr2wViewTypeFor(node.file))),
+    vscode.commands.registerCommand("redcode.setGameFolder", () => setGameFolder()),
     vscode.commands.registerCommand("redcode.copyProjectPath", (node: ProjectNode) => copyProjectPath(node)),
     vscode.commands.registerCommand("redcode.openProjectFileWith", (node: ProjectNode) => openProjectFileWith(node)),
     vscode.commands.registerCommand("redcode.revealInExplorer", (node: ProjectNode) => revealInExplorer(node)),
@@ -164,6 +168,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
   detectProject();
   updateHotToolsContext();
+  void offerGameFolder();
   startBridge(context);
 }
 
@@ -302,6 +307,62 @@ async function shipCommand(fn: () => Promise<unknown>): Promise<void> {
     log.appendLine(`Error: ${message}`);
     void vscode.window.showErrorMessage(`REDcode: ${message}`, "Show log").then((pick) => pick && log.show(true));
   }
+}
+
+// ---- the game folder --------------------------------------------------------------------------
+
+/**
+ * When redcode.gamePath is not the game (on a first run it is the default Steam folder, which holds
+ * nothing on most machines), offer the install REDdeck uses, or one found on the machine.
+ */
+async function offerGameFolder(): Promise<void> {
+  if (isGameFolder(vscode.workspace.getConfiguration("redcode").get<string>("gamePath", ""))) return;
+  const deck = await findREDdeck().catch(() => undefined);
+  const fromDeck = deck && "api" in deck ? deck.api.gamePath() : undefined;
+  const found = isGameFolder(fromDeck) ? [{ path: fromDeck, source: "REDdeck" }] : await findGames();
+  if (found.length === 0) {
+    const pick = await vscode.window.showWarningMessage("REDcode needs your Cyberpunk 2077 folder to read the game's files.", "Choose Folder...");
+    if (pick) await setGameFolder();
+    return;
+  }
+  const first = found[0];
+  const pick = await vscode.window.showInformationMessage(`REDcode found Cyberpunk 2077 at ${first.path} (${first.source}). Use it?`, "Use It", found.length > 1 ? "Choose Another..." : "Choose Folder...");
+  if (pick === "Use It") await saveGameFolder(first.path);
+  else if (pick) await setGameFolder();
+}
+
+/** REDcode: Set Game Folder. The installs found on the machine, or any folder. */
+async function setGameFolder(): Promise<void> {
+  const current = vscode.workspace.getConfiguration("redcode").get<string>("gamePath", "");
+  const found = await findGames();
+  const items: (vscode.QuickPickItem & { dir?: string })[] = [
+    ...found.map((g) => ({ label: g.path, description: g.source + (g.path.toLowerCase() === current.toLowerCase() ? ", in use" : ""), dir: g.path })),
+    { label: "$(folder-opened) Browse...", description: "the folder that holds bin\\x64\\Cyberpunk2077.exe" },
+  ];
+  const pick = items.length === 1 ? items[0] : await vscode.window.showQuickPick(items, { title: "Cyberpunk 2077 folder", placeHolder: current ? `In use: ${current}` : "Pick the game install REDcode reads" });
+  if (!pick) return;
+  let dir = pick.dir;
+  if (!dir) {
+    const chosen = await vscode.window.showOpenDialog({ canSelectFolders: true, canSelectFiles: false, title: "The Cyberpunk 2077 folder", openLabel: "Use This Folder", defaultUri: current ? vscode.Uri.file(current) : undefined });
+    dir = chosen?.[0]?.fsPath;
+    if (!dir) return;
+  }
+  if (!isGameFolder(dir)) {
+    // The exe's own folder, or bin, picked by mistake: walk up to the game folder.
+    const up = [path.resolve(dir, ".."), path.resolve(dir, "..", "..")].find(isGameFolder);
+    if (!up) {
+      void vscode.window.showErrorMessage(`${dir} is not the Cyberpunk 2077 folder: it has no bin\\x64\\Cyberpunk2077.exe.`);
+      return;
+    }
+    dir = up;
+  }
+  await saveGameFolder(dir);
+}
+
+async function saveGameFolder(dir: string): Promise<void> {
+  // A user setting, so every project and window reads the same install; the change restarts the bridge.
+  await vscode.workspace.getConfiguration("redcode").update("gamePath", dir, vscode.ConfigurationTarget.Global);
+  log.appendLine(`redcode.gamePath set to ${dir}`);
 }
 
 function gameFolder(): string {

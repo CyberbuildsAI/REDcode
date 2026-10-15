@@ -1,8 +1,27 @@
-# REDcode
+# REDcode for Visual Studio Code
 
-The first REDcode extension. It runs [REDbridge](https://github.com/Edgemodders/REDbridge), the local process that hosts WolvenKit's engine, and lets you open any Cyberpunk 2077 game file as JSON from VS Code.
+REDcode for Visual Studio Code is a Cyberpunk 2077 modding workspace. You can do all of this in one window:
+- Browse the game's archives.
+- Add files to a WolvenKit project.
+- Edit CR2W files in a tree and property grid.
+- View textures, atlases, meshes in 3D, and sounds.
+- Export and import.
+- Pack, install and start the game.
 
-> **Status: C2.** Projects, the asset browser, add to project and extract. The CR2W editor and viewers come in C3.
+Projects are WolvenKit's own `.cpmodproj` projects, byte for byte, so they move freely between REDcode and WolvenKit.
+
+REDcode stands on [WolvenKit](https://github.com/WolvenKit/WolvenKit). Every game file is read and written by WolvenKit's libraries, which run in [REDbridge](https://github.com/Edgemodders/REDbridge), a small local process that REDcode starts and talks to. Credit for the file formats, the archive reader, the importers and exporters, and years of research belongs to the WolvenKit team and contributors.
+
+> **Preview.** What is here works and is tested against the game. New features land in small updates. Please report problems on [GitHub](https://github.com/Edgemodders/REDcode/issues).
+
+**What you need**
+- Windows.
+- Cyberpunk 2077: the Steam, GOG or Epic install.
+- The .NET 10 runtime. REDcode offers to install it when it is missing.
+
+On first start REDcode looks for the game, which you can change with **REDcode: Set Game Folder**. It also offers to download REDbridge for you.
+
+**For assistants.** REDcode's MCP server, [redcode-mcp](https://github.com/Edgemodders/REDcode/tree/main/packages/redcode-mcp), gives AI assistants such as Claude Code the same engine. They can browse the archives, read and patch CR2W files, export, pack and query TweakDB.
 
 ## Views
 
@@ -100,7 +119,7 @@ The rocket button in the Project view, **REDcode: Pack and Install**, packs and 
 
 | Setting | Default | Meaning |
 |---|---|---|
-| `redcode.gamePath` | The default Steam folder | The Cyberpunk 2077 install, the folder containing `bin`, `archive` and `r6` |
+| `redcode.gamePath` | The default Steam folder | The Cyberpunk 2077 install, the folder containing `bin`, `archive` and `r6`. When it is not the game, REDcode offers on start the install REDdeck uses or one it finds: every Steam library, GOG, Epic. **REDcode: Set Game Folder** changes it |
 | `redcode.bridgePath` | empty | Path to `REDbridge.exe`. Empty means a bridge bundled with the extension, or one on `PATH` |
 | `redcode.dotnetRoot` | empty | `DOTNET_ROOT` for the bridge when the .NET 10 runtime is installed per user |
 | `redcode.bridgeRepository` | `Edgemodders/REDbridge` | The GitHub repository whose releases Install REDbridge and Update REDbridge download |

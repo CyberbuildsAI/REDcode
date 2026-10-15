@@ -1,7 +1,8 @@
 {
   "name": "redcode",
   "displayName": "REDcode",
-  "description": "Cyberpunk 2077 modding in VS Code: projects, the game asset browser, and game files as JSON, through REDbridge.",
+  "description": "REDcode for Visual Studio Code: a Cyberpunk 2077 modding workspace on WolvenKit's engine. Browse the game's archives, edit CR2W files, view textures, meshes and sounds, export, import, pack and install WolvenKit projects.",
+  "preview": true,
   "version": "0.7.0",
   "publisher": "edgemodders",
   "preview": true,
@@ -19,14 +20,23 @@
   "engines": {
     "vscode": "^1.70.0"
   },
+  "redcode": {
+    "minBridgeVersion": "0.8.0"
+  },
   "categories": [
-    "Other"
+    "Other",
+    "Visualization",
+    "Programming Languages",
+    "Snippets"
   ],
   "keywords": [
     "cyberpunk",
+    "cyberpunk 2077",
     "modding",
     "wolvenkit",
+    "cr2w",
     "tweakxl",
+    "redmod",
     "redcode"
   ],
   "main": "./dist/extension.js",
@@ -335,7 +345,7 @@
       },
       {
         "view": "redcode.assets",
-        "contents": "The bridge is not running or no game is loaded.\n[Show REDbridge log](command:redcode.showLog)\n[Restart REDbridge](command:redcode.restartBridge)",
+        "contents": "The bridge is not running or no game is loaded.\n[Set Game Folder](command:redcode.setGameFolder)\n[Show REDbridge log](command:redcode.showLog)\n[Restart REDbridge](command:redcode.restartBridge)",
         "when": "!redcode.gameLoaded"
       }
     ],
@@ -500,6 +510,12 @@
         "title": "Refresh Game Assets",
         "category": "REDcode",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "redcode.setGameFolder",
+        "title": "Set Game Folder",
+        "category": "REDcode",
+        "icon": "$(folder-library)"
       },
       {
         "command": "redcode.restartBridge",
@@ -963,11 +979,12 @@
     ]
   },
   "scripts": {
-    "vscode:prepublish": "node esbuild.mjs",
+    "vscode:prepublish": "node scripts/check-bridge-release.mjs && node esbuild.mjs",
     "build": "node esbuild.mjs",
     "watch": "node esbuild.mjs --watch",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p webview/tsconfig.json --noEmit",
-    "smoke": "node scripts/smoke.mjs"
+    "smoke": "node scripts/smoke.mjs",
+    "release:check": "node scripts/check-bridge-release.mjs"
   },
   "dependencies": {
     "vscode-jsonrpc": "^9.0.3"
