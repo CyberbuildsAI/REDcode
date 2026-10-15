@@ -1,0 +1,80 @@
+# Publishes one of this repo's extensions when its version tag is pushed:
+#   REDcode:          git tag v0.7.1 && git push origin v0.7.1
+#   REDnode HUD theme: git tag theme-v0.3.1 && git push origin theme-v0.3.1
+# Checks the tag against the extension's package.json, builds and packages it (REDcode for Windows
+# x64, since REDbridge is Windows only; the theme for every platform), publishes to the VS Code
+# Marketplace (VSCE_PAT) and Open VSX (OVSX_PAT) and makes the GitHub release with the vsix and the
+# CHANGELOG section. Both tokens are Edgemodders organisation secrets, shared with REDdeck's workflow.
+name: Publish
+
+on:
+  push:
+    tags: ["v*", "theme-v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Which extension, and the tag matches it
+        run: |
+          case "${GITHUB_REF_NAME}" in
+            theme-v*) dir=extensions/rednode-hud-theme; version="${GITHUB_REF_NAME#theme-v}"; target=""; title="REDnode HUD" ;;
+            v*)       dir=extensions/redcode;           version="${GITHUB_REF_NAME#v}";       target="--target win32-x64"; title="REDcode" ;;
+          esac
+          name=$(node -p "require('./${dir}/package.json').name")
+          have=$(node -p "require('./${dir}/package.json').version")
+          if [ "${have}" != "${version}" ]; then
+            echo "::error::Tag ${GITHUB_REF_NAME} does not match ${dir}/package.json version ${have}"
+            exit 1
+          fi
+          {
+            echo "DIR=${dir}"; echo "VERSION=${version}"; echo "TARGET=${target}"; echo "TITLE=${title}"
+            echo "VSIX=${GITHUB_WORKSPACE}/dist/${name}-${version}.vsix"
+          } >> "$GITHUB_ENV"
+
+      - run: npm ci
+
+      - name: Typecheck
+        if: env.DIR == 'extensions/redcode'
+        run: npm run typecheck --workspace extensions/redcode
+
+      - name: Package
+        run: |
+          mkdir -p dist
+          cd "${DIR}"
+          "${GITHUB_WORKSPACE}/node_modules/.bin/vsce" package --no-dependencies ${TARGET} --out "${VSIX}"
+
+      - name: VS Code Marketplace
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: node_modules/.bin/vsce publish --packagePath "${VSIX}"
+
+      - name: Open VSX
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+        run: |
+          if [ -z "${OVSX_PAT}" ]; then
+            echo "::warning::OVSX_PAT is not set; not published to Open VSX"
+            exit 0
+          fi
+          node_modules/.bin/ovsx publish "${VSIX}" --pat "${OVSX_PAT}"
+
+      - name: GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          notes=$(node -e "const s=require('fs').readFileSync(process.argv[2],'utf8');const m=s.split(/^## /m).find(p=>p.startsWith(process.argv[1]+' ')||p.startsWith(process.argv[1]+'\n'));console.log(m?m.split('\n').slice(1).join('\n').trim():'')" "${VERSION}" "${DIR}/CHANGELOG.md")
+          gh release create "${GITHUB_REF_NAME}" "${VSIX}" --title "${TITLE} ${VERSION}" --notes "${notes}"

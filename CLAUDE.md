@@ -14,6 +14,10 @@ REDcode is a Cyberpunk 2077 modding IDE built on VS Code, wrapping WolvenKit's C
 - **MCP server (2026-10-12):** `packages/redcode-mcp` exposes every bridge method as MCP tools over stdio for assistants (Claude Code, REDagent); it bundles `bridgeClient.ts` from the extension source, which is why that file stays free of VS Code imports. Build with `npm run mcp:build`; test with an MCP client against the game, not by hand. Docs: `docs/mcp.md`.
 - **C0 findings (2026-10-11):** the Redscript IDE extension is `jac3km4.redscript-ide-vscode` on the Microsoft Marketplace and is **not** on Open VSX, so the branded fork (C7) must either bundle it with the author's permission or depend on it being published there. The WolvenKit team will be contacted once a working proof of concept exists, not before. The .NET side of C0 (building WolvenKit's libraries) is tracked in REDbridge.
 
+## Store releases
+
+- **`.github/workflows/publish.yml` (added 2026-10-15 by the REDdeck session, at the owner's request):** pushing `vX.Y.Z` publishes REDcode (Windows x64, `"preview": true`) and `theme-vX.Y.Z` publishes the REDnode HUD theme, each to the VS Code Marketplace and Open VSX with the Edgemodders organisation secrets `VSCE_PAT` and `OVSX_PAT`, and makes the GitHub release from the extension's CHANGELOG section. The tag must match the extension's `package.json` version. So a REDcode release tag now also goes to both stores: do not also run `gh release create` by hand. REDcode is not on the stores yet: its first store release is the next `v` tag, when the Unreleased work is ready. `extensions/redcode/ThirdPartyNotices.txt` covers the bundled vscode-jsonrpc; update it when a bundled package changes.
+
 ## Conventions
 
 - Commit straight to `main` and push, in small logical commits. Agree the plan in chat first. PRs only for large or risky changes.
