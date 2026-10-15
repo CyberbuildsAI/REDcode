@@ -32,7 +32,7 @@ import { MeshViewer } from "./meshViewer";
 import { AudioPlayer, AudioViewType, SoundsViewType } from "./audioPlayer";
 import { GameSoundIndex } from "./audio";
 import { packProject, type PackSummary } from "./pack";
-import { findREDdeck } from "./reddeck";
+import { findREDdeck, runningREDdeck } from "./reddeck";
 import { findGames, isGameFolder } from "./gameFinder";
 import { createProject, findProject, gamePathOf, projectPathFor, type ProjectInfo } from "./project";
 import { ProjectExplorer, type ProjectNode } from "./projectExplorer";
@@ -70,6 +70,8 @@ let updating = false;
 let offeredInstall = false;
 let offeredUpdate = false;
 let offeredDotnet = false;
+/** Set in deactivate, so work that started at activation does not prompt in a closing window. */
+let deactivated = false;
 
 export function activate(context: vscode.ExtensionContext): void {
   log = vscode.window.createOutputChannel("REDcode");
@@ -173,6 +175,7 @@ export function activate(context: vscode.ExtensionContext): void {
 }
 
 export function deactivate(): void {
+  deactivated = true;
   bridge?.stop();
   watcher?.dispose();
 }
@@ -317,9 +320,10 @@ async function shipCommand(fn: () => Promise<unknown>): Promise<void> {
  */
 async function offerGameFolder(): Promise<void> {
   if (isGameFolder(vscode.workspace.getConfiguration("redcode").get<string>("gamePath", ""))) return;
-  const deck = await findREDdeck().catch(() => undefined);
-  const fromDeck = deck && "api" in deck ? deck.api.gamePath() : undefined;
+  // REDdeck's folder only if REDdeck is running already: activating it here races a window reload.
+  const fromDeck = runningREDdeck()?.gamePath();
   const found = isGameFolder(fromDeck) ? [{ path: fromDeck, source: "REDdeck" }] : await findGames();
+  if (deactivated) return;
   if (found.length === 0) {
     const pick = await vscode.window.showWarningMessage("REDcode needs your Cyberpunk 2077 folder to read the game's files.", "Choose Folder...");
     if (pick) await setGameFolder();

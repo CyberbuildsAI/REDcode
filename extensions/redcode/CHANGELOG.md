@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- The first-run game folder offer no longer activates REDdeck to ask for its game path; it asks only when REDdeck is already running, and stops once REDcode is deactivated. Activating REDdeck there raced a window reload, and VS Code warned that REDdeck's output channel went into a disposed store. Found while looking into an intermittent startup abort (exit code 134) of the development host, whose cause is still unverified.
+
 ## 0.8.0 (2026-10-15)
 
 The first Marketplace release, as a Preview. C5 V2, the audio player, is done. Needs REDbridge 0.8.0. REDcode refuses an older bridge and offers Update REDbridge, which downloads it.

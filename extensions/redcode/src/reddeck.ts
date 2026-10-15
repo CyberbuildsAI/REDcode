@@ -18,6 +18,17 @@ export interface REDdeckApi {
 
 export type REDdeckLookup = { api: REDdeckApi } | { missing: true } | { tooOld: string };
 
+/**
+ * REDdeck's API only when REDdeck is already running, never activating it: for things REDcode does
+ * by itself at startup, where activating another extension can race a window reload (VS Code then
+ * warns that REDdeck's output channel was added to a disposed store).
+ */
+export function runningREDdeck(): REDdeckApi | undefined {
+  const ext = vscode.extensions.getExtension<Partial<REDdeckApi> | undefined>(REDdeckId);
+  const api = ext?.isActive ? ext.exports : undefined;
+  return api && api.apiVersion === 1 && typeof api.gamePath === "function" ? (api as REDdeckApi) : undefined;
+}
+
 /** REDdeck's API, activating REDdeck if needed. tooOld names the installed version when its API is not version 1. */
 export async function findREDdeck(): Promise<REDdeckLookup> {
   const ext = vscode.extensions.getExtension<Partial<REDdeckApi> | undefined>(REDdeckId);
