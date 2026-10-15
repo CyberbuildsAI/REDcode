@@ -77,4 +77,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           notes=$(node -e "const s=require('fs').readFileSync(process.argv[2],'utf8');const m=s.split(/^## /m).find(p=>p.startsWith(process.argv[1]+' ')||p.startsWith(process.argv[1]+'\n'));console.log(m?m.split('\n').slice(1).join('\n').trim():'')" "${VERSION}" "${DIR}/CHANGELOG.md")
-          gh release create "${GITHUB_REF_NAME}" "${VSIX}" --title "${TITLE} ${VERSION}" --notes "${notes}"
+          # A theme release never becomes the repo's Latest release, which stays REDcode's.
+          latest=""; case "${GITHUB_REF_NAME}" in theme-v*) latest="--latest=false" ;; esac
+          gh release create "${GITHUB_REF_NAME}" "${VSIX}" --title "${TITLE} ${VERSION}" --notes "${notes}" ${latest}
