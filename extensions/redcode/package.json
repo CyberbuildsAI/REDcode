@@ -5,7 +5,6 @@
   "preview": true,
   "version": "0.7.0",
   "publisher": "edgemodders",
-  "preview": true,
   "license": "MIT",
   "icon": "images/icon.png",
   "galleryBanner": {
@@ -987,6 +986,7 @@
     "release:check": "node scripts/check-bridge-release.mjs"
   },
   "dependencies": {
+    "opus-decoder": "0.7.12",
     "vscode-jsonrpc": "^9.0.3"
   },
   "devDependencies": {

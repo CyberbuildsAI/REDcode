@@ -1,9 +1,9 @@
 // The audio player page (C5 V2). One sound with a waveform, play, loop and its length; for an
 // .opusinfo, the game's sound effects as a list of events to filter, each click playing one.
 // The host sends the bytes as base64. The page decodes them once, draws the waveform from the
-// samples and plays the same samples through Web Audio. An <audio> element is not used: VS Code's
-// media build refuses Ogg Opus there ("no supported source"), which Chrome plays. When the
-// decoder behind decodeAudioData lacks a codec too, Opus goes through WebCodecs' own decoder.
+// samples and plays the same samples through Web Audio. VS Code's webview decodes no Opus at all
+// (<audio>, decodeAudioData and WebCodecs all refused it in the owner's test), so the host sends
+// Opus as WAV; the format line still describes the original.
 (() => {
   const vscode = acquireVsCodeApi();
   const $ = (id) => document.getElementById(id);
@@ -62,88 +62,9 @@
     return bytes;
   }
 
-  async function decode(bytes, codec) {
+  async function decode(bytes) {
     ctx ??= new AudioContext();
-    try {
-      return { buffer: await ctx.decodeAudioData(bytes.buffer.slice(0)), by: "Web Audio" };
-    } catch (e) {
-      if (codec !== "Opus" || typeof AudioDecoder === "undefined") throw e;
-      return { buffer: await decodeOpus(bytes), by: "WebCodecs" };
-    }
-  }
-
-  /** The packets of an Ogg stream, joined across pages by their lacing values. */
-  function oggPackets(u8) {
-    const packets = [];
-    let parts = [];
-    let o = 0;
-    while (o + 27 <= u8.length) {
-      if (u8[o] !== 0x4f || u8[o + 1] !== 0x67 || u8[o + 2] !== 0x67 || u8[o + 3] !== 0x53) throw new Error(`No Ogg page at byte ${o}`);
-      const segments = u8[o + 26];
-      let p = o + 27 + segments;
-      for (let s = 0; s < segments; s++) {
-        const len = u8[o + 27 + s];
-        parts.push(u8.subarray(p, p + len));
-        p += len;
-        if (len < 255) {
-          const size = parts.reduce((n, x) => n + x.length, 0);
-          const packet = new Uint8Array(size);
-          let at = 0;
-          for (const x of parts) {
-            packet.set(x, at);
-            at += x.length;
-          }
-          packets.push(packet);
-          parts = [];
-        }
-      }
-      o = p;
-    }
-    return packets;
-  }
-
-  /** Ogg Opus to an AudioBuffer through WebCodecs, which decodes Opus itself rather than through ffmpeg. */
-  async function decodeOpus(bytes) {
-    const packets = oggPackets(bytes);
-    const head = packets[0];
-    if (!head || String.fromCharCode(...head.subarray(0, 8)) !== "OpusHead") throw new Error("Not an Ogg Opus stream");
-    const channels = head[9];
-    const decoded = [];
-    let failure = null;
-    const decoder = new AudioDecoder({
-      output: (data) => {
-        const planes = [];
-        for (let c = 0; c < data.numberOfChannels; c++) {
-          const plane = new Float32Array(data.numberOfFrames);
-          data.copyTo(plane, { planeIndex: c, format: "f32-planar" });
-          planes.push(plane);
-        }
-        decoded.push(planes);
-        data.close();
-      },
-      error: (e) => (failure = e),
-    });
-    decoder.configure({ codec: "opus", sampleRate: 48000, numberOfChannels: channels, description: head });
-    let timestamp = 0;
-    // packets[1] is OpusTags; the audio follows.
-    for (const p of packets.slice(2)) {
-      decoder.decode(new EncodedAudioChunk({ type: "key", timestamp, data: p }));
-      timestamp += 20000;
-    }
-    await decoder.flush();
-    decoder.close();
-    if (failure) throw failure;
-    const frames = decoded.reduce((n, planes) => n + planes[0].length, 0);
-    const out = ctx.createBuffer(channels, Math.max(1, frames), 48000);
-    for (let c = 0; c < channels; c++) {
-      const target = out.getChannelData(c);
-      let at = 0;
-      for (const planes of decoded) {
-        target.set(planes[Math.min(c, planes.length - 1)], at);
-        at += planes[0].length;
-      }
-    }
-    return out;
+    return ctx.decodeAudioData(bytes.buffer.slice(0));
   }
 
   async function load(m, what) {
@@ -157,16 +78,16 @@
     $("waveNote").hidden = true;
     $("save").disabled = false;
     const f = m.format || {};
-    const info = [f.codec, f.channels ? (f.channels === 1 ? "mono" : f.channels === 2 ? "stereo" : `${f.channels} channels`) : "", f.sampleRate ? `${(f.sampleRate / 1000).toLocaleString()} kHz` : "", `${bytes.length.toLocaleString()} bytes`].filter(Boolean).join("  ·  ");
+    const info = [f.codec, f.channels ? (f.channels === 1 ? "mono" : f.channels === 2 ? "stereo" : `${f.channels} channels`) : "", f.sampleRate ? `${(f.sampleRate / 1000).toLocaleString()} kHz` : "", `${(m.size ?? bytes.length).toLocaleString()} bytes`].filter(Boolean).join("  ·  ");
     $("info").textContent = info;
     draw();
     try {
-      const r = await decode(bytes, f.codec);
+      const decoded = await decode(bytes);
       if (current !== what) return;
-      buffer = r.buffer;
+      buffer = decoded;
       duration = buffer.duration;
       peaks = peaksOf(buffer, 2048);
-      $("info").title = `Decoded by ${r.by}`;
+      $("info").title = m.via ? `Played as WAV, ${m.via}` : "Decoded by the webview";
     } catch (e) {
       if (current === what) showError(`This ${f.codec || "file"} could not be decoded here: ${e.message || e}`);
       return;

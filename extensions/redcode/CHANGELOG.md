@@ -17,7 +17,7 @@ Needs REDbridge 0.8.0. REDcode refuses an older bridge and offers Update REDbrid
   - MCP tools `sound_events` and `sound_extract`.
 - TweakDB in the bridge client and the MCP server, ahead of the TweakDB view (C5 V3): `tweakTypes`, `tweakRecords`, `tweakRecord`, `tweakFlat`, `tweakSearch`, `tweakNames`, and MCP tools `tweakdb_types`, `tweakdb_records`, `tweakdb_record`, `tweakdb_flat`, `tweakdb_search`, `tweakdb_names`. Needs REDbridge 0.8.0.
 - **Open With...** in the Project view's right-click menu: VS Code's editor picker, which only the Explorer offered, so a `.wav` in Raw can open in the audio player.
-- The player plays through Web Audio from the decoded samples, not an `<audio>` element: VS Code's media build refused the game's Ogg Opus sounds there ("no supported source was found"), where Chrome plays them. When VS Code's decoder refuses Opus too, the page decodes it with WebCodecs. The format line's tooltip says which decoder ran.
+- The player plays through Web Audio from the decoded samples, not an `<audio>` element: VS Code's media build refused the game's Ogg Opus sounds there ("no supported source was found"), where Chrome plays them. VS Code's webview turned out to decode no Opus at all (`decodeAudioData` and WebCodecs refused it too), so REDcode decodes the game's Opus sounds itself with opus-decoder (MIT, libopus in WebAssembly) and plays them as 16-bit WAV, sample for sample the length WolvenKit's index records. Save still writes the original `.opus`. The decoder's notices are in `THIRD_PARTY_NOTICES.md`, with three.js's.
 - README: an exported `.wem` is Ogg, not WAV.
 
 ## 0.7.0 (2026-10-14)

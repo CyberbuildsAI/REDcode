@@ -6,7 +6,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as vscode from "vscode";
-import { audioFormat, opusSound, parseOpusInfo, wemOggFor, type OpusIndex } from "./audio";
+import { audioFormat, opusSound, opusToWav, parseOpusInfo, wemOggFor, type OpusIndex } from "./audio";
 import type { BridgeClient } from "./bridgeClient";
 import type { ExportSource } from "./exportCache";
 import { gamePathOfUri } from "./gameFs";
@@ -14,6 +14,17 @@ import { gamePathOfUri } from "./gameFs";
 export const AudioViewType = "redcode.audio";
 export const AudioOptionViewType = "redcode.audioOption";
 export const SoundsViewType = "redcode.sounds";
+
+/**
+ * What the page gets for a sound: the bytes it can decode, and the format of the original. Opus
+ * becomes WAV here, since VS Code's webview decodes no Opus; Save still writes the original.
+ */
+async function playable(bytes: Buffer): Promise<{ data: string; mime: string; size: number; format: ReturnType<typeof audioFormat>; via?: string }> {
+  const format = audioFormat(bytes);
+  if (format.codec !== "Opus") return { data: bytes.toString("base64"), mime: format.mime, size: bytes.length, format };
+  const wav = await opusToWav(bytes);
+  return { data: wav.toString("base64"), mime: "audio/wav", size: bytes.length, format, via: "decoded from Opus by REDcode" };
+}
 
 export class AudioPlayer implements vscode.CustomReadonlyEditorProvider {
   /** Event hash to name and tags, from REDbridge's sound.events (0.7.2), loaded once. */
@@ -77,8 +88,7 @@ export class AudioPlayer implements vscode.CustomReadonlyEditorProvider {
         bytes = Buffer.from(await vscode.workspace.fs.readFile(uri));
       }
       playing = { bytes, name: saveName };
-      const format = audioFormat(bytes);
-      void webview.postMessage({ type: "audio", title: name, subtitle, data: bytes.toString("base64"), mime: format.mime, format });
+      void webview.postMessage({ type: "audio", title: name, subtitle, ...(await playable(bytes)) });
     };
 
     const sendSounds = async () => {
@@ -116,8 +126,7 @@ export class AudioPlayer implements vscode.CustomReadonlyEditorProvider {
             if (!index || m.index === undefined) throw new Error("No sound index is loaded");
             const bytes = await opusSound(this.requireBridge(), this.cacheRoot, source, index, m.index);
             playing = { bytes, name: `${index.hashes[m.index]}.opus` };
-            const format = audioFormat(bytes);
-            return reply({ data: bytes.toString("base64"), mime: format.mime, format });
+            return reply(await playable(bytes));
           }
           case "copy":
             await vscode.env.clipboard.writeText(m.text ?? "");

@@ -5,9 +5,14 @@
 //   Ogg Vorbis file in about 0.1 s, and the webview plays that.
 // - Sound effects, 73,000 of them in 1,879 .opuspak files indexed by sfx_container.opusinfo. The
 //   index gives each sound's pack, offset and length; a sound is a RIFF header and then a plain Ogg
-//   Opus stream, which the webview plays as it is. The index also groups the sounds under Wwise event
-//   hashes, and an event's hash is FNV-1 of its name, so REDbridge's sound.events (0.7.2) names them.
+//   Opus stream. The index also groups the sounds under Wwise event hashes, and an event's hash is
+//   FNV-1 of its name, so REDbridge's sound.events (0.7.2) names them.
 // The .opusinfo layout follows WolvenKit's OpusInfo (WolvenKit.Modkit, RED4/Tools/OpusInfo.cs).
+//
+// VS Code's webview cannot decode Opus (its media build refuses it in <audio>, decodeAudioData and
+// WebCodecs alike, found in the owner's test), so Opus is decoded here and the page gets 16-bit WAV.
+// The Ogg pages are read below; the packets go to opus-decoder (MIT, libopus in WebAssembly, BSD).
+// ogg-opus-decoder would read the pages too, but it depends on codec-parser, which is LGPL.
 
 import * as fs from "node:fs";
 import * as path from "node:path";
@@ -17,6 +22,99 @@ import { cachedExport, sourceFile, type CachedExport, type ExportSource } from "
 /** A .wem as an .ogg in the cache, exported again only when the .wem is newer. */
 export function wemOggFor(bridge: BridgeClient, cacheRoot: string, source: ExportSource): Promise<CachedExport> {
   return cachedExport(bridge, cacheRoot, source, ".ogg", {}, "Ogg");
+}
+
+/** The packets of an Ogg stream, joined across pages by their lacing values. */
+export function oggPackets(ogg: Uint8Array): Uint8Array[] {
+  const packets: Uint8Array[] = [];
+  let parts: Uint8Array[] = [];
+  let o = 0;
+  while (o + 27 <= ogg.length) {
+    if (ogg[o] !== 0x4f || ogg[o + 1] !== 0x67 || ogg[o + 2] !== 0x67 || ogg[o + 3] !== 0x53) throw new Error(`No Ogg page at byte ${o}`);
+    const segments = ogg[o + 26];
+    let p = o + 27 + segments;
+    for (let s = 0; s < segments; s++) {
+      const len = ogg[o + 27 + s];
+      parts.push(ogg.subarray(p, p + len));
+      p += len;
+      if (len < 255) {
+        packets.push(Buffer.concat(parts));
+        parts = [];
+      }
+    }
+    o = p;
+  }
+  return packets;
+}
+
+/** The granule position of an Ogg stream's last page: for Opus, the samples at 48 kHz, pre-skip included. */
+function lastGranule(ogg: Uint8Array): bigint {
+  const view = Buffer.from(ogg.buffer, ogg.byteOffset, ogg.byteLength);
+  let granule = 0n;
+  let o = 0;
+  while (o + 27 <= view.length && view.toString("latin1", o, o + 4) === "OggS") {
+    granule = view.readBigInt64LE(o + 6);
+    const segments = view[o + 26];
+    let size = 0;
+    for (let s = 0; s < segments; s++) size += view[o + 27 + s];
+    o += 27 + segments + size;
+  }
+  return granule;
+}
+
+/** An Ogg Opus stream as a 16-bit PCM WAV at 48 kHz, which any webview decodes. */
+export async function opusToWav(ogg: Uint8Array): Promise<Buffer> {
+  const packets = oggPackets(ogg);
+  const head = Buffer.from(packets[0] ?? []);
+  if (head.subarray(0, 8).toString("latin1") !== "OpusHead") throw new Error("Not an Ogg Opus stream: no OpusHead");
+  // OpusHead: version, channels, pre-skip, input rate, gain, mapping family, then the mapping table.
+  const channels = head[9];
+  const preSkip = head.readUInt16LE(10);
+  const family = head[18];
+  // An ES module: loaded on first use, and bundled by esbuild. One decoder per stream, since the
+  // channel layout and pre-skip are set when it is made.
+  const { OpusDecoder } = await import("opus-decoder");
+  const decoder = new OpusDecoder({
+    channels,
+    preSkip,
+    ...(family > 0 ? { streamCount: head[19], coupledStreamCount: head[20], channelMappingTable: [...head.subarray(21, 21 + channels)] } : {}),
+  });
+  await decoder.ready;
+  let decoded;
+  try {
+    // packets[1] is OpusTags; the audio follows.
+    decoded = decoder.decodeFrames(packets.slice(2));
+  } finally {
+    decoder.free();
+  }
+  const { channelData, samplesDecoded: decodedCount, sampleRate, errors } = decoded;
+  if (decodedCount === 0) throw new Error(`The Opus stream did not decode${errors?.length ? `: ${errors[0].message}` : ""}`);
+  // The last page's granule position, less the pre-skip, is the stream's length; the last packet
+  // can decode past it.
+  const end = Number(lastGranule(ogg)) - preSkip;
+  const samplesDecoded = end > 0 && end < decodedCount ? end : decodedCount;
+  const data = samplesDecoded * channels * 2;
+  const wav = Buffer.alloc(44 + data);
+  wav.write("RIFF", 0, "latin1");
+  wav.writeUInt32LE(36 + data, 4);
+  wav.write("WAVEfmt ", 8, "latin1");
+  wav.writeUInt32LE(16, 16);
+  wav.writeUInt16LE(1, 20); // PCM
+  wav.writeUInt16LE(channels, 22);
+  wav.writeUInt32LE(sampleRate, 24);
+  wav.writeUInt32LE(sampleRate * channels * 2, 28);
+  wav.writeUInt16LE(channels * 2, 32);
+  wav.writeUInt16LE(16, 34);
+  wav.write("data", 36, "latin1");
+  wav.writeUInt32LE(data, 40);
+  let o = 44;
+  for (let i = 0; i < samplesDecoded; i++) {
+    for (let c = 0; c < channels; c++, o += 2) {
+      const s = Math.max(-1, Math.min(1, channelData[c][i]));
+      wav.writeInt16LE(Math.round(s < 0 ? s * 0x8000 : s * 0x7fff), o);
+    }
+  }
+  return wav;
 }
 
 export interface AudioFormat {
