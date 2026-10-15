@@ -10,6 +10,7 @@
   - Each sound plays straight from its `.opuspak`, which is extracted into the cache on first use.
   - Event names need REDbridge 0.7.2 (`sound.events`, WolvenKit's event list for game 1.6, about 14,500 names). On an older bridge the list shows hashes only.
   - MCP tools `sound_events` and `sound_extract`.
+- TweakDB in the bridge client and the MCP server, ahead of the TweakDB view (C5 V3): `tweakTypes`, `tweakRecords`, `tweakRecord`, `tweakFlat`, `tweakSearch`, `tweakNames`, and MCP tools `tweakdb_types`, `tweakdb_records`, `tweakdb_record`, `tweakdb_flat`, `tweakdb_search`, `tweakdb_names`. Needs REDbridge 0.8.0.
 - **Open With...** in the Project view's right-click menu: VS Code's editor picker, which only the Explorer offered, so a `.wav` in Raw can open in the audio player.
 - The player plays through Web Audio from the decoded samples, not an `<audio>` element: VS Code's media build refused the game's Ogg Opus sounds there ("no supported source was found"), where Chrome plays them. When VS Code's decoder refuses Opus too, the page decodes it with WebCodecs. The format line's tooltip says which decoder ran.
 - README: an exported `.wem` is Ogg, not WAV.

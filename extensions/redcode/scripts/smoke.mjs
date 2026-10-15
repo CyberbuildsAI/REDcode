@@ -44,6 +44,13 @@ try {
     const r = await bridge.soundEvents().catch((e) => ({ error: e.message }));
     return r.error ? `skipped: ${r.error}` : `${r.count} events, ${r.events[0].name} = ${r.events[0].hash}`;
   });
+  await step("tweakdb (bridge 0.8.0)", async () => {
+    const names = await bridge.tweakNames(["0x0000000BF5E188EC"]).catch((e) => ({ error: e.message }));
+    if (names.error) return `skipped: ${names.error}`;
+    const flat = await bridge.tweakFlat("Items.money.quality");
+    const clothing = await bridge.tweakRecords({ type: "Clothing", flats: ["displayName"], limit: 1, resolveLocKeys: true });
+    return `${names["0x0000000BF5E188EC"]}, quality ${flat.value}, ${clothing.total} clothing records`;
+  });
   const root = await step("archive.tree (root)", async () => {
     const t = await bridge.tree("");
     return t.folders.map((f) => `${f.name}:${f.files}`).join(" ") + ` files=${t.files.length}`;

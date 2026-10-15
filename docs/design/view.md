@@ -46,18 +46,21 @@ Settled at the start of V2, against the game:
 
 Looking up records and flats while writing a mod: `Items.Preset_Yinglong_Default`, its type, every flat with its value, and the records it points to.
 
-- **REDbridge 0.8.0 `tweakdb` methods** over WolvenKit's TweakDB reader, on the game's `tweakdb.bin` and `tweakdb_ep1.bin`, loaded once when first asked:
+**Bridge methods and MCP tools built 2026-10-14** (REDbridge 0.8.0, `BridgeApi.TweakDB.cs`; client methods `tweak*` in `bridgeClient.ts`; MCP `tweakdb_*`), ahead of the view because other sessions' agents need TweakDB reads. The view is next.
+
+- **REDbridge 0.8.0 `tweakdb` methods** over WolvenKit's TweakDB reader, on the game's `tweakdb_ep1.bin` (`tweakdb.bin` when there is none), loaded once when first asked:
 
   | Method | Returns |
   |---|---|
-  | `tweakdb.records(type?, prefix?, offset, limit)` | Record paths, by type or path prefix, paged |
+  | `tweakdb.records(type?, prefix?, flats?, offset, limit, resolveLocKeys?, language?)` | Records by type (subtypes included, short names like `Clothing` work) or path prefix, paged, each with the flats asked for (`["*"]` for all). This is the shape EDGEmat asked for in REDbridge issue #4 |
   | `tweakdb.record(path)` | The record's type and every flat with its type and value; ids as paths where names are known |
   | `tweakdb.flat(path)` | One flat's type and value |
-  | `tweakdb.search(text, limit)` | Records and flats whose path contains the text |
+  | `tweakdb.search(text, type?, limit)` | Records whose path contains every word |
   | `tweakdb.types()` | Record types with their record counts |
-  | `tweakdb.names(ids)` | Paths for TweakDB ids, from WolvenKit's names list |
+  | `tweakdb.names(ids)` | Paths for TweakDB ids, from WolvenKit's names list, matched on the low 40 bits; needs no load |
 
   The same methods are what REDnode's T3 waits for (reads through `kernel.bridge()` without the game) and what REDbridge request #3 asks for (`tweakdb.names`), so one piece of bridge work serves REDcode, REDnode and REDagent.
+- **Measured** on the owner's game: 193,354 records of 843 types, loaded in about 12 s; after that, the 1,997 clothing records with four flats and their display names come back in 37 ms. A record's flats are found by extending the record's hash with `.name`, as WolvenKit's `GetFullRecord` does, so every record reads, named or not. Values: record links as paths (a `0x` id when the names list does not know it), LocKeys as `{ key, text }` with the text from the base and Phantom Liberty `onscreens.json` when asked, resource references as paths, enums as names, structs in WolvenKit's JSON. Unverified: whether the game loads `tweakdb_ep1.bin` or `tweakdb.bin` without Phantom Liberty installed; the bridge takes the first it finds.
 - **REDcode**: a TweakDB view in the REDcode activity bar (by type, then by path; a search box) and a record page with its flats, where a foreign key opens the record it names. **New tweak from this record** writes a TweakXL YAML file under `source/resources/r6/tweaks/<mod>/` that clones or edits the record, ready to change and pack. Hovering a record path in a `.yaml` or `.tweak` file shows its type and main flats.
 - **Live, with V5**: the record page shows the running game's value beside the file's, and **Try in game** sets a flat through REDnode's T2, which REDnode undoes when the mod stops.
 - **No TweakDB data in this repository**, as in REDnode: everything is read from the player's game.

@@ -225,6 +225,43 @@ tool("archive_extract_from_mod", "Extract resources from a mod .archive on disk,
 tool("hash_fnv1a64", "The FNV1a64 hash of a string, as the game uses for paths and names.", { value: z.string() }, (a, b) => b.fnv1a64(a.value));
 tool("hash_resolve", "The game path for a known hash, if the hash list knows it.", { hash: z.string().describe("Decimal hash string.") }, (a, b) => b.resolve(a.hash));
 
+// TweakDB, offline: the game's tweakdb_ep1.bin as shipped, without mods. The running game, with every
+// mod's changes, is REDnode's tweakdb module.
+const TweakRules = "TweakDB as the game ships it, read offline from r6/cache/tweakdb_ep1.bin (no mods; REDnode reads the live one). The first TweakDB call loads it, about 12 s; later calls take milliseconds. Paths look like Items.money; ids are 0x hex hashes (path null when WolvenKit's names list does not know one). Flat values are plain JSON: record links as paths (0x id when unknown), LocKeys as { key, text } (text with resolveLocKeys), resource references as paths. Bridge 0.8.0.";
+
+tool("tweakdb_types", `The TweakDB record types with their record counts, most first. ${TweakRules}`, {}, (_a, b) => b.tweakTypes());
+
+tool("tweakdb_records", `TweakDB records by type (gamedataClothing_Record or the short form Clothing; subtypes included, so Item covers clothing and weapons) and/or path prefix, paged, each with only the flats asked for. ${TweakRules}`, {
+  type: z.string().optional().describe("Record type, such as Clothing, WeaponItem, Vehicle or gamedataCharacter_Record."),
+  prefix: z.string().optional().describe("Path prefix, such as Items. or Vehicle.v_sport2."),
+  flats: z.array(z.string()).optional().describe('Flat names to include, such as ["entityName", "appearanceName", "displayName"]; ["*"] for all.'),
+  offset: z.number().optional(),
+  limit: z.number().optional().describe("Default 200, at most 20000."),
+  resolveLocKeys: z.boolean().optional().describe("Fill LocKey text, such as an item's displayName."),
+  language: z.string().optional().describe("Localization folder for the text, default en-us."),
+}, (a, b) => b.tweakRecords(a));
+
+tool("tweakdb_record", `One TweakDB record, by path or id, with every flat: name, RED type and value. ${TweakRules}`, {
+  path: z.string().describe("Record path (Items.money) or id (0x0000000BF5E188EC)."),
+  resolveLocKeys: z.boolean().optional(),
+  language: z.string().optional(),
+}, (a, b) => b.tweakRecord(a.path, a.resolveLocKeys ?? false, a.language ?? "en-us"));
+
+tool("tweakdb_flat", `One TweakDB flat by its full path (Record.flat, such as Items.money.quality) or id. ${TweakRules}`, {
+  path: z.string(),
+  resolveLocKeys: z.boolean().optional(),
+}, (a, b) => b.tweakFlat(a.path, a.resolveLocKeys ?? false));
+
+tool("tweakdb_search", `TweakDB records whose path contains every word, any case, optionally of one type. ${TweakRules}`, {
+  text: z.string().describe("Words, such as 'jacket' or 'quadra type66'."),
+  type: z.string().optional(),
+  limit: z.number().optional(),
+}, (a, b) => b.tweakSearch(a.text, a.type, a.limit ?? 200));
+
+tool("tweakdb_names", "Paths for TweakDB ids (0x hex or decimal) from WolvenKit's names list, null when unknown. Only the low 40 bits count, so ids with a flat-buffer offset match. Needs no TweakDB load. Bridge 0.8.0.", {
+  ids: z.array(z.string()),
+}, (a, b) => b.tweakNames(a.ids));
+
 // sounds: voice lines are .wem files (project_export makes them Ogg); sound effects sit in .opuspak
 // files indexed by sfx_container.opusinfo, grouped under Wwise events.
 const soundCache = path.join(os.tmpdir(), "redcode-mcp", "sounds");

@@ -193,6 +193,63 @@ export interface ExportOptions {
   meshLodFilter?: boolean;
 }
 
+// ---- tweakdb (bridge 0.8.0): TweakDB as the game ships it, read from r6/cache/tweakdb_ep1.bin ----
+
+/** A flat's value: plain JSON. Record links are paths (or a 0x id when unknown), LocKeys { key, text }, references paths, structs WolvenKit's JSON. */
+export type TweakValue = string | number | boolean | null | TweakLocKey | TweakValue[] | { [key: string]: unknown };
+
+export interface TweakLocKey {
+  key: string;
+  text: string | null;
+}
+
+export interface TweakTypes {
+  file: string;
+  records: number;
+  loadSeconds: number;
+  types: { type: string; count: number }[];
+}
+
+export interface TweakRecord {
+  id: string;
+  /** null when WolvenKit's names list does not know the id. */
+  path: string | null;
+  type: string;
+  flats: Record<string, TweakValue> | null;
+}
+
+export interface TweakRecords {
+  total: number;
+  offset: number;
+  items: TweakRecord[];
+}
+
+export interface TweakRecordsQuery {
+  /** A RED class (gamedataClothing_Record) or its short form (Clothing); subtypes are included. */
+  type?: string;
+  prefix?: string;
+  /** Flat names to include with each record; ["*"] for all. */
+  flats?: string[];
+  offset?: number;
+  limit?: number;
+  resolveLocKeys?: boolean;
+  language?: string;
+}
+
+export interface TweakRecordFull {
+  id: string;
+  path: string | null;
+  type: string;
+  flats: { name: string; type: string; value: TweakValue }[];
+}
+
+export interface TweakFlatValue {
+  id: string;
+  path: string | null;
+  type: string;
+  value: TweakValue;
+}
+
 /** sound.events (bridge 0.7.2): event names with their Wwise hashes (FNV-1 of the lower-case name). */
 export interface SoundEvents {
   gameVersion: string | null;

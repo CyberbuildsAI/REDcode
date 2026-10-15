@@ -6,7 +6,7 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { EventEmitter } from "node:events";
 import * as readline from "node:readline";
 import { createMessageConnection, StreamMessageReader, StreamMessageWriter, type MessageConnection } from "vscode-jsonrpc/node";
-import type { ArchiveInfo, BridgeInfo, DocumentInfo, ExtractManyResult, ExtractResult, FileList, HashResult, ExportOptions, JsonResult, ModArchiveInfo, ModkitResult, SoundEvents, PackResult, NodeInfo, PatchOp, PatchResult, ResolveResult, SearchResult, TreeResult, TypeDescription } from "./types";
+import type { ArchiveInfo, BridgeInfo, DocumentInfo, ExtractManyResult, ExtractResult, FileList, HashResult, ExportOptions, JsonResult, ModArchiveInfo, ModkitResult, SoundEvents, TweakFlatValue, TweakRecordFull, TweakRecords, TweakRecordsQuery, TweakTypes, PackResult, NodeInfo, PatchOp, PatchResult, ResolveResult, SearchResult, TreeResult, TypeDescription } from "./types";
 
 export interface BridgeOptions {
   /** Path to REDbridge.exe. */
@@ -195,6 +195,33 @@ export class BridgeClient extends EventEmitter<BridgeEvents> {
   /** The sound event names WolvenKit knows, with their Wwise hashes, which name the groups in an .opusinfo. Bridge 0.7.2. */
   soundEvents(): Promise<SoundEvents> {
     return this.call("sound.events", {});
+  }
+
+  // ---- tweakdb (bridge 0.8.0): read offline from the game's tweakdb.bin, loaded on the first call (about 12 s) ----
+
+  tweakTypes(): Promise<TweakTypes> {
+    return this.call("tweakdb.types", {});
+  }
+
+  tweakRecords(query: TweakRecordsQuery): Promise<TweakRecords> {
+    return this.call("tweakdb.records", { ...query });
+  }
+
+  tweakRecord(path: string, resolveLocKeys = false, language = "en-us"): Promise<TweakRecordFull> {
+    return this.call("tweakdb.record", { path, resolveLocKeys, language });
+  }
+
+  tweakFlat(path: string, resolveLocKeys = false, language = "en-us"): Promise<TweakFlatValue> {
+    return this.call("tweakdb.flat", { path, resolveLocKeys, language });
+  }
+
+  tweakSearch(text: string, type?: string, limit = 200): Promise<TweakRecords> {
+    return this.call("tweakdb.search", { text, type: type ?? null, limit });
+  }
+
+  /** Paths for TweakDB ids (0x hex or decimal); only the low 40 bits count. Needs no TweakDB load. */
+  tweakNames(ids: string[]): Promise<Record<string, string | null>> {
+    return this.call("tweakdb.names", { ids });
   }
 
   // ---- cr2w document sessions (bridge 0.5.0) -------------------------------------------
