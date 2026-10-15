@@ -36,6 +36,7 @@ import { findREDdeck, runningREDdeck } from "./reddeck";
 import { findGames, isGameFolder } from "./gameFinder";
 import { TweakDb, TweakHover, TweakTree, type TweakNode } from "./tweakView";
 import { TweakRecordPanel } from "./tweakRecordPanel";
+import { createApi, type REDcodeApi } from "./api";
 import { shortType, tweakYaml, type TweakMode } from "./tweakYaml";
 import { createProject, findProject, gamePathOf, ProjectFolders, projectPathFor, type ProjectInfo } from "./project";
 import { ProjectExplorer, type ProjectNode } from "./projectExplorer";
@@ -66,6 +67,8 @@ let tweakDb: TweakDb;
 let tweakTree: TweakTree;
 let tweakView: vscode.TreeView<TweakNode>;
 let tweakPanel: TweakRecordPanel;
+/** Fires when the open project changes, for REDcodeApi.onDidChangeProject. */
+const projectChanged = new vscode.EventEmitter<ProjectInfo | undefined>();
 let textures: TextureViewer;
 let cr2wEditor: Cr2wEditorProvider;
 let watcher: vscode.FileSystemWatcher | undefined;
@@ -80,7 +83,8 @@ let offeredDotnet = false;
 /** Set in deactivate, so work that started at activation does not prompt in a closing window. */
 let deactivated = false;
 
-export function activate(context: vscode.ExtensionContext): void {
+/** REDcode's API for other extensions (src/api.ts, docs/api.md); undefined when REDcode did not start. */
+export function activate(context: vscode.ExtensionContext): REDcodeApi | undefined {
   log = vscode.window.createOutputChannel("REDcode");
   // REDcode was edgemodders.redcode-core until 0.6.0 and edgemodders.redcode until 0.8.1 (the
   // Marketplace refused that name, taken by another publisher). With an old one loaded beside this
@@ -98,7 +102,7 @@ export function activate(context: vscode.ExtensionContext): void {
         if (pick === "Show It") void vscode.commands.executeCommand("workbench.extensions.search", `@installed ${old.id}`);
         else if (pick === "Reload Window") void vscode.commands.executeCommand("workbench.action.reloadWindow");
       });
-    return;
+    return undefined;
   }
   status = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 50);
   status.command = "redcode.showLog";
@@ -195,6 +199,24 @@ export function activate(context: vscode.ExtensionContext): void {
   updateHotToolsContext();
   void offerGameFolder();
   startBridge(context);
+
+  return createApi({
+    version: String((context.extension.packageJSON as { version?: string }).version ?? "0.0.0"),
+    getBridge: () => bridge,
+    gamePath: () => {
+      const g = vscode.workspace.getConfiguration("redcode").get<string>("gamePath", "");
+      return isGameFolder(g) ? g : undefined;
+    },
+    project: () => project,
+    onDidChangeProject: projectChanged.event,
+    audioCache: path.join(storage.fsPath, "cache", "audio"),
+    importFile: apiImportFile,
+    pack: async () => {
+      const s = await runPack();
+      explorer.refresh();
+      return { packedDir: s.packedDir, archive: s.archive, archiveFiles: s.archiveFiles };
+    },
+  });
 }
 
 export function deactivate(): void {
@@ -215,6 +237,7 @@ function detectProject(): void {
     }
   }
   void vscode.commands.executeCommand("setContext", "redcode.projectOpen", project !== undefined);
+  projectChanged.fire(project);
 
   watcher?.dispose();
   watcher = undefined;
@@ -868,6 +891,19 @@ async function extractToProject(args: ExtractToProjectArgs): Promise<ExtractToPr
 }
 
 /** A file an import rewrote and the CR2W editor has open is reloaded, unless it has unsaved edits. */
+/** REDcodeApi.importFile: one raw file back into source/archive, as Import from Raw does, without its prompts. */
+async function apiImportFile(file: string): Promise<{ ok: boolean; written: string[] }> {
+  const p = requireProject();
+  if (!bridge?.running) throw new Error('REDbridge is not running. Run "REDcode: Restart REDbridge".');
+  const archiveDir = path.join(p.dir, ProjectFolders.archive);
+  const r = await bridge.importFile(path.resolve(file), path.join(p.dir, ProjectFolders.raw), archiveDir, vscode.workspace.getConfiguration("redcode").get<boolean>("import.keepSettings", true));
+  const written = r.written.map((w) => path.join(archiveDir, w));
+  log.appendLine(`Imported ${path.relative(p.dir, file)} for another extension: ${written.length ? r.written.join(", ") : "nothing written"}`);
+  explorer.refresh();
+  await reloadImported(written);
+  return { ok: r.ok, written };
+}
+
 async function reloadImported(written: string[]): Promise<void> {
   if (!bridge?.running) return;
   for (const f of written) {

@@ -261,3 +261,15 @@ export function wwiseHash(name: string): number {
 
 /** The game's sound effect index. */
 export const GameSoundIndex = "base\\sound\\soundbanks\\sfx_container.opusinfo";
+
+let gameIndex: { bridge: BridgeClient; index: Promise<OpusIndex> } | undefined;
+
+/** The game's sound effect index, extracted into the cache and parsed once per bridge process. */
+export function gameSoundIndex(bridge: BridgeClient, cacheRoot: string): Promise<OpusIndex> {
+  if (gameIndex?.bridge !== bridge) {
+    const index = sourceFile(bridge, cacheRoot, { gamePath: GameSoundIndex }).then(({ file }) => parseOpusInfo(fs.readFileSync(file)));
+    index.catch(() => (gameIndex = undefined));
+    gameIndex = { bridge, index };
+  }
+  return gameIndex.index;
+}

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **An API for other extensions** (REDcode issue #4, for EDGEwave). `activate()` returns `REDcodeApi` version 1 (`src/api.ts`, docs/api.md): the bridge, the game folder, the open project and its changes, the game's sound effect index with event names, any sound by reference as audio a webview decodes (WAV for sound effects and Opus, Ogg Vorbis for `.wem`), import of a raw file, and pack.
+- **Open in EDGEwave** in the audio player and the sound list runs EDGEwave's `edgewave.openSound` with the sound now playing, and offers to install EDGEwave when it is missing.
 - **Import from Raw no longer offers `.wav`**, and Export no longer offers `.opusinfo` (REDcode issue #5). WolvenKit's library imports nothing from a WAV (its `ImportWav` only logs "Use WolvenKit to import opus.") and exports nothing from an `.opusinfo` without sound hashes, so both silently wrote nothing. Sound effect import will come through a REDbridge method over WolvenKit's `OpusTools`.
 - **TweakDB view** (C5 V3). A TweakDB view in the REDcode sidebar lists record types with their counts and their records, with a filter that finds records by words of their path.
   - **The record page** shows a record's flats, with record links you can follow, Back and Forward, LocKey text, and resource paths that open the game file.
@@ -37,7 +39,7 @@ The first Marketplace release, as a Preview. C5 V2, the audio player, is done. N
 - **Game sounds** (C5 V2). **REDcode: Browse Game Sounds**, also in the Game Assets `...` menu, opens the game's sound effect index, `sfx_container.opusinfo`. Clicking that file opens it too. It shows 73,139 sounds as a list of 16,127 events, each with its sounds as numbered variations.
   - Filter by event name, tag or hash. A click plays, the arrow keys step through the list, and Copy Hash and Save act on the sound now playing.
   - Each sound plays straight from its `.opuspak`, which is extracted into the cache on first use.
-  - Event names need REDbridge 0.7.2 (`sound.events`, WolvenKit's event list for game 1.6, about 14,500 names). On an older bridge the list shows hashes only.
+  - Event names need REDbridge 0.7.2 (`sound.events`, WolvenKit's event list for game 1.6, names for about 10,900 of the 16,100 events with sounds). On an older bridge the list shows hashes only.
   - MCP tools `sound_events` and `sound_extract`.
 - TweakDB in the bridge client and the MCP server, ahead of the TweakDB view (C5 V3): `tweakTypes`, `tweakRecords`, `tweakRecord`, `tweakFlat`, `tweakSearch`, `tweakNames`, and MCP tools `tweakdb_types`, `tweakdb_records`, `tweakdb_record`, `tweakdb_flat`, `tweakdb_search`, `tweakdb_names`. Needs REDbridge 0.8.0.
 - **Open With...** in the Project view's right-click menu: VS Code's editor picker, which only the Explorer offered, so a `.wav` in Raw can open in the audio player.

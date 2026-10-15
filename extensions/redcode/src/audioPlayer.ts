@@ -9,6 +9,7 @@ import * as vscode from "vscode";
 import { audioFormat, opusSound, opusToWav, parseOpusInfo, wemOggFor, type OpusIndex } from "./audio";
 import type { BridgeClient } from "./bridgeClient";
 import type { ExportSource } from "./exportCache";
+import { openInEdgeWave } from "./edgewave";
 import { gamePathOfUri } from "./gameFs";
 
 export const AudioViewType = "redcode.audio";
@@ -115,7 +116,7 @@ export class AudioPlayer implements vscode.CustomReadonlyEditorProvider {
         void webview.postMessage({ type: "error", error: message });
       });
 
-    webview.onDidReceiveMessage(async (m: { type?: string; id?: number; index?: number; text?: string }) => {
+    webview.onDidReceiveMessage(async (m: { type?: string; id?: number; index?: number; text?: string; eventHash?: number }) => {
       const reply = (body: object) => void webview.postMessage({ type: "reply", id: m.id, ...body });
       try {
         switch (m.type) {
@@ -134,6 +135,15 @@ export class AudioPlayer implements vscode.CustomReadonlyEditorProvider {
             return;
           case "save":
             await this.save(playing, uri);
+            return;
+          case "edgewave":
+            // A sound effect by hash from the sound list; else this file, by game path or URI.
+            if (isIndex) {
+              if (!index || m.index === undefined) return;
+              await openInEdgeWave({ soundHash: index.hashes[m.index], eventHash: m.eventHash }, this.log);
+            } else {
+              await openInEdgeWave(source.gamePath ? { path: source.gamePath } : { uri: uri.toString() }, this.log);
+            }
             return;
         }
       } catch (e) {
@@ -163,7 +173,7 @@ export class AudioPlayer implements vscode.CustomReadonlyEditorProvider {
 <title>${name}</title>
 </head>
 <body>
-<header><span class="name" id="title">${name}</span><span class="meta" id="meta"></span><span class="spacer"></span><button id="copy" hidden title="Copy the hash of the sound now playing">Copy Hash</button><button id="save" disabled title="Save the sound now playing to a file">Save…</button></header>
+<header><span class="name" id="title">${name}</span><span class="meta" id="meta"></span><span class="spacer"></span><button id="copy" hidden title="Copy the hash of the sound now playing">Copy Hash</button><button id="save" disabled title="Save the sound now playing to a file">Save…</button><button id="edgewave" disabled title="Edit, mix or re-voice this sound in EDGEwave, the EDGE sound studio">Open in EDGEwave</button></header>
 <section class="player">
   <div class="wave"><canvas id="wave"></canvas><div class="note" id="waveNote">Loading…</div></div>
   <div class="toolbar"><button id="play">▶ Play</button><button id="loop" title="Play again from the start at the end">Loop</button><span id="time" class="dim">0:00.0 / 0:00.0</span><span id="playing"></span><span class="spacer"></span><span id="info" class="dim"></span></div>

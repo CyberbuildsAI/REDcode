@@ -77,6 +77,7 @@
     offset = 0;
     $("waveNote").hidden = true;
     $("save").disabled = false;
+    $("edgewave").disabled = false;
     const f = m.format || {};
     const info = [f.codec, f.channels ? (f.channels === 1 ? "mono" : f.channels === 2 ? "stereo" : `${f.channels} channels`) : "", f.sampleRate ? `${(f.sampleRate / 1000).toLocaleString()} kHz` : "", `${(m.size ?? bytes.length).toLocaleString()} bytes`].filter(Boolean).join("  ·  ");
     $("info").textContent = info;
@@ -246,6 +247,7 @@
   });
   $("save").addEventListener("click", () => vscode.postMessage({ type: "save", index: current?.index }));
   $("copy").addEventListener("click", () => current?.hash !== undefined && vscode.postMessage({ type: "copy", text: String(current.hash) }));
+  $("edgewave").addEventListener("click", () => vscode.postMessage({ type: "edgewave", index: current?.index, eventHash: current?.eventHash }));
 
   // Click or drag on the waveform to seek.
   const seek = (e) => {
@@ -361,7 +363,7 @@
     row?.classList.add("selected");
     row?.querySelector(`.chip[data-i="${i}"]`)?.classList.add("on");
     row?.scrollIntoView({ block: "nearest" });
-    const what = { title: r.n || `event ${r.h}`, index: i, hash: hashes[i], autoplay: true };
+    const what = { title: r.n || `event ${r.h}`, index: i, hash: hashes[i], eventHash: r.h, autoplay: true };
     current = what;
     $("waveNote").textContent = "Loading…";
     $("waveNote").hidden = false;

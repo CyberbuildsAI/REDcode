@@ -34,3 +34,5 @@ nav:
     url: /design/view.html
   - title: MCP
     url: /mcp.html
+  - title: Extension API
+    url: /api.html
