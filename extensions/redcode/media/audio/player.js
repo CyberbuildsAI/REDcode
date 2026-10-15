@@ -1,16 +1,25 @@
 // The audio player page (C5 V2). One sound with a waveform, play, loop and its length; for an
 // .opusinfo, the game's sound effects as a list of events to filter, each click playing one.
-// The host sends the bytes as base64; the page plays them from a blob URL and draws the waveform
-// from the decoded samples.
+// The host sends the bytes as base64. The page decodes them once, draws the waveform from the
+// samples and plays the same samples through Web Audio. An <audio> element is not used: VS Code's
+// media build refuses Ogg Opus there ("no supported source"), which Chrome plays. When the
+// decoder behind decodeAudioData lacks a codec too, Opus goes through WebCodecs' own decoder.
 (() => {
   const vscode = acquireVsCodeApi();
   const $ = (id) => document.getElementById(id);
-  const audio = new Audio();
   let ctx = null;
+  let buffer = null; // the decoded sound
   let peaks = null;
   let duration = 0;
-  let blobUrl = null;
-  let current = null; // { title, index? }
+  let current = null; // { title, index?, hash?, autoplay? }
+
+  // Playback state: a source node runs from startedAt (context time) at offset seconds into the sound.
+  let source = null;
+  let playing = false;
+  let looping = false;
+  let offset = 0;
+  let startedAt = 0;
+  let timer = 0;
 
   // ---- host messages ------------------------------------------------------------------------
   let nextId = 1;
@@ -45,7 +54,7 @@
     $("waveNote").hidden = false;
   }
 
-  // ---- playing one sound ----------------------------------------------------------------------
+  // ---- decoding ---------------------------------------------------------------------------------
   function bytesOf(base64) {
     const bin = atob(base64);
     const bytes = new Uint8Array(bin.length);
@@ -53,28 +62,114 @@
     return bytes;
   }
 
+  async function decode(bytes, codec) {
+    ctx ??= new AudioContext();
+    try {
+      return { buffer: await ctx.decodeAudioData(bytes.buffer.slice(0)), by: "Web Audio" };
+    } catch (e) {
+      if (codec !== "Opus" || typeof AudioDecoder === "undefined") throw e;
+      return { buffer: await decodeOpus(bytes), by: "WebCodecs" };
+    }
+  }
+
+  /** The packets of an Ogg stream, joined across pages by their lacing values. */
+  function oggPackets(u8) {
+    const packets = [];
+    let parts = [];
+    let o = 0;
+    while (o + 27 <= u8.length) {
+      if (u8[o] !== 0x4f || u8[o + 1] !== 0x67 || u8[o + 2] !== 0x67 || u8[o + 3] !== 0x53) throw new Error(`No Ogg page at byte ${o}`);
+      const segments = u8[o + 26];
+      let p = o + 27 + segments;
+      for (let s = 0; s < segments; s++) {
+        const len = u8[o + 27 + s];
+        parts.push(u8.subarray(p, p + len));
+        p += len;
+        if (len < 255) {
+          const size = parts.reduce((n, x) => n + x.length, 0);
+          const packet = new Uint8Array(size);
+          let at = 0;
+          for (const x of parts) {
+            packet.set(x, at);
+            at += x.length;
+          }
+          packets.push(packet);
+          parts = [];
+        }
+      }
+      o = p;
+    }
+    return packets;
+  }
+
+  /** Ogg Opus to an AudioBuffer through WebCodecs, which decodes Opus itself rather than through ffmpeg. */
+  async function decodeOpus(bytes) {
+    const packets = oggPackets(bytes);
+    const head = packets[0];
+    if (!head || String.fromCharCode(...head.subarray(0, 8)) !== "OpusHead") throw new Error("Not an Ogg Opus stream");
+    const channels = head[9];
+    const decoded = [];
+    let failure = null;
+    const decoder = new AudioDecoder({
+      output: (data) => {
+        const planes = [];
+        for (let c = 0; c < data.numberOfChannels; c++) {
+          const plane = new Float32Array(data.numberOfFrames);
+          data.copyTo(plane, { planeIndex: c, format: "f32-planar" });
+          planes.push(plane);
+        }
+        decoded.push(planes);
+        data.close();
+      },
+      error: (e) => (failure = e),
+    });
+    decoder.configure({ codec: "opus", sampleRate: 48000, numberOfChannels: channels, description: head });
+    let timestamp = 0;
+    // packets[1] is OpusTags; the audio follows.
+    for (const p of packets.slice(2)) {
+      decoder.decode(new EncodedAudioChunk({ type: "key", timestamp, data: p }));
+      timestamp += 20000;
+    }
+    await decoder.flush();
+    decoder.close();
+    if (failure) throw failure;
+    const frames = decoded.reduce((n, planes) => n + planes[0].length, 0);
+    const out = ctx.createBuffer(channels, Math.max(1, frames), 48000);
+    for (let c = 0; c < channels; c++) {
+      const target = out.getChannelData(c);
+      let at = 0;
+      for (const planes of decoded) {
+        target.set(planes[Math.min(c, planes.length - 1)], at);
+        at += planes[0].length;
+      }
+    }
+    return out;
+  }
+
   async function load(m, what) {
     const bytes = bytesOf(m.data);
+    stop();
     current = what;
-    audio.pause();
-    if (blobUrl) URL.revokeObjectURL(blobUrl);
-    blobUrl = URL.createObjectURL(new Blob([bytes], { type: m.mime }));
-    audio.src = blobUrl;
+    buffer = null;
     peaks = null;
     duration = 0;
+    offset = 0;
     $("waveNote").hidden = true;
     $("save").disabled = false;
     const f = m.format || {};
-    $("info").textContent = [f.codec, f.channels ? (f.channels === 1 ? "mono" : f.channels === 2 ? "stereo" : `${f.channels} channels`) : "", f.sampleRate ? `${(f.sampleRate / 1000).toLocaleString()} kHz` : "", `${bytes.length.toLocaleString()} bytes`].filter(Boolean).join("  ·  ");
+    const info = [f.codec, f.channels ? (f.channels === 1 ? "mono" : f.channels === 2 ? "stereo" : `${f.channels} channels`) : "", f.sampleRate ? `${(f.sampleRate / 1000).toLocaleString()} kHz` : "", `${bytes.length.toLocaleString()} bytes`].filter(Boolean).join("  ·  ");
+    $("info").textContent = info;
     draw();
     try {
-      ctx ??= new AudioContext();
-      const buffer = await ctx.decodeAudioData(bytes.buffer.slice(0));
+      const r = await decode(bytes, f.codec);
       if (current !== what) return;
+      buffer = r.buffer;
       duration = buffer.duration;
       peaks = peaksOf(buffer, 2048);
+      $("info").title = `Decoded by ${r.by}`;
     } catch (e) {
-      showError(`The webview could not decode this ${f.codec || "file"}: ${e.message || e}`);
+      if (current === what) showError(`This ${f.codec || "file"} could not be decoded here: ${e.message || e}`);
+      return;
     }
     draw();
     if (what.autoplay) play();
@@ -103,6 +198,71 @@
     return out;
   }
 
+  // ---- playing ----------------------------------------------------------------------------------
+  /** Seconds into the sound. */
+  function position() {
+    if (!playing || !ctx) return offset;
+    const t = ctx.currentTime - startedAt;
+    return looping && duration > 0 ? t % duration : Math.min(duration, t);
+  }
+
+  function play() {
+    if (!buffer || playing) return;
+    // The context can start suspended; say so if it stays that way, rather than playing silence.
+    void ctx.resume();
+    setTimeout(() => playing && ctx.state !== "running" && showError("Audio has not started: click Play again, or click in the player first."), 1000);
+    if (offset >= duration) offset = 0;
+    const node = ctx.createBufferSource();
+    node.buffer = buffer;
+    node.loop = looping;
+    node.connect(ctx.destination);
+    node.onended = () => {
+      if (source !== node) return; // stopped for a pause, a seek or another sound
+      source = null;
+      playing = false;
+      offset = 0;
+      update();
+    };
+    node.start(0, offset);
+    source = node;
+    startedAt = ctx.currentTime - offset;
+    playing = true;
+    $("waveNote").hidden = true;
+    update();
+  }
+
+  /** Stops the source and keeps the position. */
+  function stop() {
+    if (!source) return;
+    offset = position();
+    const node = source;
+    source = null;
+    playing = false;
+    try {
+      node.stop();
+    } catch {}
+    update();
+  }
+
+  function toggle() {
+    playing ? stop() : play();
+  }
+
+  function seekTo(t) {
+    const wasPlaying = playing;
+    stop();
+    offset = Math.max(0, Math.min(duration, t));
+    if (wasPlaying) play();
+    else draw();
+  }
+
+  function update() {
+    $("play").textContent = playing ? "❚❚ Pause" : "▶ Play";
+    clearInterval(timer);
+    timer = playing ? setInterval(draw, 50) : 0;
+    draw();
+  }
+
   const css = (name, fallback) => getComputedStyle(document.body).getPropertyValue(name).trim() || fallback;
 
   function draw() {
@@ -120,7 +280,7 @@
     const mid = h / 2;
     g.fillStyle = css("--line", "#262c3d");
     g.fillRect(0, Math.floor(mid), w, 1);
-    const t = audio.currentTime || 0;
+    const t = position();
     const played = duration > 0 ? (t / duration) * w : 0;
     if (peaks) {
       const n = peaks.length / 2;
@@ -153,42 +313,15 @@
     return `${m}:${r.toFixed(1).padStart(4, "0")}`;
   };
 
-  let frame = 0;
-  const tick = () => {
-    draw();
-    frame = audio.paused ? 0 : requestAnimationFrame(tick);
-  };
-  function play() {
-    if (!audio.src) return;
-    void audio.play().catch((e) => showError(`Could not play: ${e.message || e}`));
-  }
-  function toggle() {
-    audio.paused ? play() : audio.pause();
-  }
-  audio.addEventListener("play", () => {
-    $("waveNote").hidden = true;
-    $("play").textContent = "❚❚ Pause";
-    if (!frame) frame = requestAnimationFrame(tick);
-  });
-  audio.addEventListener("pause", () => {
-    $("play").textContent = "▶ Play";
-    draw();
-  });
-  audio.addEventListener("ended", () => {
-    $("play").textContent = "▶ Play";
-    draw();
-  });
-  // The clock also moves on timeupdate, which keeps firing when animation frames do not.
-  audio.addEventListener("timeupdate", () => frame || draw());
-  audio.addEventListener("loadedmetadata", () => {
-    if (!duration && isFinite(audio.duration)) duration = audio.duration;
-    draw();
-  });
-
   $("play").addEventListener("click", toggle);
   $("loop").addEventListener("click", () => {
-    audio.loop = !audio.loop;
-    $("loop").classList.toggle("on", audio.loop);
+    looping = !looping;
+    $("loop").classList.toggle("on", looping);
+    // A running source picks the change up from where it is.
+    if (playing) {
+      stop();
+      play();
+    }
   });
   $("save").addEventListener("click", () => vscode.postMessage({ type: "save", index: current?.index }));
   $("copy").addEventListener("click", () => current?.hash !== undefined && vscode.postMessage({ type: "copy", text: String(current.hash) }));
@@ -197,8 +330,7 @@
   const seek = (e) => {
     if (!duration) return;
     const r = $("wave").getBoundingClientRect();
-    audio.currentTime = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * duration;
-    draw();
+    seekTo(Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * duration);
   };
   let dragging = false;
   $("wave").addEventListener("pointerdown", (e) => {

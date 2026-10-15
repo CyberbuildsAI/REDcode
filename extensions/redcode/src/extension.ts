@@ -125,6 +125,7 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("redcode.openProjectFileAsJson", (node: ProjectNode) => withBridge((b) => openProjectFileAsJson(b, node))),
     vscode.commands.registerCommand("redcode.openProjectFileInEditor", (node: ProjectNode) => node.kind === "file" && vscode.commands.executeCommand("vscode.openWith", vscode.Uri.file(node.file), cr2wViewTypeFor(node.file))),
     vscode.commands.registerCommand("redcode.copyProjectPath", (node: ProjectNode) => copyProjectPath(node)),
+    vscode.commands.registerCommand("redcode.openProjectFileWith", (node: ProjectNode) => openProjectFileWith(node)),
     vscode.commands.registerCommand("redcode.revealInExplorer", (node: ProjectNode) => revealInExplorer(node)),
     vscode.commands.registerCommand("redcode.deleteProjectFile", (node: ProjectNode) => deleteProjectFile(node)),
     vscode.commands.registerCommand("redcode.saveJsonToProject", () => withBridge(saveJsonToProject)),
@@ -1245,6 +1246,18 @@ async function openTexture(b: BridgeClient, node: AssetNode): Promise<void> {
 
 async function copyAssetPath(node: AssetNode): Promise<void> {
   await copyText(node.kind === "file" ? node.file.name : node.path);
+}
+
+/** Open With... in the Project view: VS Code's editor picker, which only the Explorer offers by itself. */
+async function openProjectFileWith(node: ProjectNode): Promise<void> {
+  if (node.kind !== "file") return;
+  const uri = vscode.Uri.file(node.file);
+  try {
+    await vscode.commands.executeCommand("explorer.openWith", uri);
+  } catch {
+    await vscode.commands.executeCommand("vscode.open", uri);
+    await vscode.commands.executeCommand("workbench.action.reopenWithEditor");
+  }
 }
 
 /** Copy Path in the Project view: the full path on disk of a file, folder, root or the project folder. */

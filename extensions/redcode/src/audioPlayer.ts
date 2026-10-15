@@ -148,7 +148,7 @@ export class AudioPlayer implements vscode.CustomReadonlyEditorProvider {
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource}; script-src 'nonce-${nonce}'; media-src blob:;">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource}; script-src 'nonce-${nonce}';">
 <link rel="stylesheet" href="${asset("cr2w", "editor.css")}">
 <link rel="stylesheet" href="${asset("audio", "player.css")}">
 <title>${name}</title>

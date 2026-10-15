@@ -436,6 +436,11 @@
         "icon": "$(copy)"
       },
       {
+        "command": "redcode.openProjectFileWith",
+        "title": "Open With...",
+        "category": "REDcode"
+      },
+      {
         "command": "redcode.openProjectFileInEditor",
         "title": "Open in CR2W Editor",
         "category": "REDcode"
@@ -704,6 +709,11 @@
           "group": "2_open@1"
         },
         {
+          "command": "redcode.openProjectFileWith",
+          "when": "view == redcode.project && viewItem =~ /^projectFile/",
+          "group": "2_open@9"
+        },
+        {
           "command": "redcode.copyProjectPath",
           "when": "view == redcode.project && viewItem =~ /^project/",
           "group": "inline@1"
@@ -818,6 +828,10 @@
         {
           "command": "redcode.browseSounds",
           "when": "redcode.gameLoaded"
+        },
+        {
+          "command": "redcode.openProjectFileWith",
+          "when": "false"
         }
       ]
     },
