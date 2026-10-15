@@ -1,7 +1,10 @@
 # Changelog
 
-## Unreleased
+## 0.8.1 (2026-10-15)
 
+The first version on the VS Code Marketplace and Open VSX, as a Preview. 0.8.0 did not reach them: the Marketplace refused its display name. Needs REDbridge 0.8.0.
+
+- The display name is now **REDcode for Cyberpunk 2077**. Marketplace display names are unique across publishers, ignoring case, and "redcode" is taken by an extension for Core War's Redcode language. The id stays `edgemodders.redcode`, so settings, commands and keybindings are unchanged.
 - The first-run game folder offer no longer activates REDdeck to ask for its game path; it asks only when REDdeck is already running, and stops once REDcode is deactivated. Activating REDdeck there raced a window reload, and VS Code warned that REDdeck's output channel went into a disposed store. Found while looking into an intermittent startup abort (exit code 134) of the development host, whose cause is still unverified.
 
 ## 0.8.0 (2026-10-15)

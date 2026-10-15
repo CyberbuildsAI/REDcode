@@ -1,9 +1,9 @@
 {
   "name": "redcode",
-  "displayName": "REDcode",
+  "displayName": "REDcode for Cyberpunk 2077",
   "description": "REDcode for Visual Studio Code: a Cyberpunk 2077 modding workspace on WolvenKit's engine. Browse the game's archives, edit CR2W files, view textures, meshes and sounds, export, import, pack and install WolvenKit projects.",
   "preview": true,
-  "version": "0.8.0",
+  "version": "0.8.1",
   "publisher": "edgemodders",
   "license": "MIT",
   "icon": "images/icon.png",

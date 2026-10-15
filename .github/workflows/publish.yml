@@ -52,6 +52,11 @@ jobs:
         run: npm run typecheck --workspace extensions/redcode
 
       - name: Package
+        id: package
+        env:
+          # REDcode's vscode:prepublish asks GitHub for the latest REDbridge release; anonymous calls
+          # from shared runners hit the rate limit.
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           mkdir -p dist
           cd "${DIR}"
@@ -62,7 +67,9 @@ jobs:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
         run: node_modules/.bin/vsce publish --packagePath "${VSIX}"
 
+      # Each registry is tried even when another one failed; the run still fails if any of them did.
       - name: Open VSX
+        if: ${{ !cancelled() && steps.package.outcome == 'success' }}
         env:
           OVSX_PAT: ${{ secrets.OVSX_PAT }}
         run: |
@@ -73,6 +80,7 @@ jobs:
           node_modules/.bin/ovsx publish "${VSIX}" --pat "${OVSX_PAT}"
 
       - name: GitHub release
+        if: ${{ !cancelled() && steps.package.outcome == 'success' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
