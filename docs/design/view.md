@@ -27,7 +27,7 @@ A 3D view of meshes, so a modder sees what a `.mesh` is without Blender. **Done 
 
 ## V2 Audio player
 
-Listening to the game's sounds and a mod's own, in the editor. **Built 2026-10-14**, hand test pending: `src/audio.ts` (no VS Code imports), `src/audioPlayer.ts`, `media/audio/`, and REDbridge 0.7.2 `sound.events`.
+Listening to the game's sounds and a mod's own, in the editor. **Done 2026-10-15**, hand-tested by the owner and released in REDcode 0.8.0: `src/audio.ts` (no VS Code imports), `src/audioPlayer.ts`, `media/audio/`, and REDbridge 0.7.2 `sound.events`.
 
 Settled at the start of V2, against the game:
 
