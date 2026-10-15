@@ -7,13 +7,19 @@ import { walk } from "./pack";
 import { ProjectFolders, type ProjectInfo } from "./project";
 
 /** Game file types WolvenKit exports to an editable format. Everything else is JSON's job. */
+// .opusinfo is left out: WolvenKit exports nothing from it unless given sound hashes; the sound list
+// (Browse Game Sounds) plays and saves its sounds instead.
 export const ExportableExtensions = new Set([
   ".wem", ".mesh", ".w2mesh", ".xbm", ".csv", ".mlmask", ".cubemap", ".xcube", ".envprobe", ".texarray",
-  ".morphtarget", ".fnt", ".opusinfo", ".anims", ".inkatlas", ".physicalscene",
+  ".morphtarget", ".fnt", ".anims", ".inkatlas", ".physicalscene",
 ]);
 
-/** Raw file types WolvenKit imports back into a game file. */
-export const ImportableExtensions = new Set([".bmp", ".jpg", ".png", ".tga", ".tiff", ".dds", ".fbx", ".gltf", ".glb", ".ttf", ".wav", ".masklist", ".csv", ".re", ".cube"]);
+/**
+ * Raw file types WolvenKit imports back into a game file. Not .wav: WolvenKit.Modkit's ImportWav is a
+ * stub ("Use WolvenKit to import opus.") that writes nothing (REDcode issue #5). A sound effect import
+ * needs a REDbridge method over WolvenKit's OpusTools, which EDGEwave's A3 will ask for.
+ */
+export const ImportableExtensions = new Set([".bmp", ".jpg", ".png", ".tga", ".tiff", ".dds", ".fbx", ".gltf", ".glb", ".ttf", ".masklist", ".csv", ".re", ".cube"]);
 
 export const isExportable = (file: string) => ExportableExtensions.has(path.extname(file).toLowerCase());
 export const isImportable = (file: string) => ImportableExtensions.has(path.extname(file).toLowerCase());

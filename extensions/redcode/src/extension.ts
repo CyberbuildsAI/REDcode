@@ -545,7 +545,7 @@ async function modkitCommand(b: BridgeClient, node: ProjectNode, action: "export
     void vscode.window.showInformationMessage(
       action === "export"
         ? `Nothing to export in ${path.basename(target)}. Export takes meshes, textures, sounds, animations and the other types WolvenKit converts; open other files as JSON.`
-        : `Nothing to import in ${path.basename(target)}. Import takes images, glTF and GLB, FBX, WAV, CSV and the other types WolvenKit converts back; a folder import takes only files whose game file is already in source/archive, so the material textures a mesh export writes stay out of the mod. Import such a file on its own to add it.`,
+        : `Nothing to import in ${path.basename(target)}. Import takes images, glTF and GLB, FBX, CSV and the other types WolvenKit converts back (not WAV yet: WolvenKit's library cannot import sounds); a folder import takes only files whose game file is already in source/archive, so the material textures a mesh export writes stay out of the mod. Import such a file on its own to add it.`,
     );
     return;
   }

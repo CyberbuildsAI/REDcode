@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **Import from Raw no longer offers `.wav`**, and Export no longer offers `.opusinfo` (REDcode issue #5). WolvenKit's library imports nothing from a WAV (its `ImportWav` only logs "Use WolvenKit to import opus.") and exports nothing from an `.opusinfo` without sound hashes, so both silently wrote nothing. Sound effect import will come through a REDbridge method over WolvenKit's `OpusTools`.
 - **TweakDB view** (C5 V3). A TweakDB view in the REDcode sidebar lists record types with their counts and their records, with a filter that finds records by words of their path.
   - **The record page** shows a record's flats, with record links you can follow, Back and Forward, LocKey text, and resource paths that open the game file.
   - **New Tweak from This Record** writes a TweakXL YAML file into the project that clones or changes the record, with every flat listed and commented out.
