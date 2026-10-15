@@ -46,7 +46,7 @@ Settled at the start of V2, against the game:
 
 Looking up records and flats while writing a mod: `Items.Preset_Yinglong_Default`, its type, every flat with its value, and the records it points to.
 
-**Bridge methods and MCP tools built 2026-10-14** (REDbridge 0.8.0, `BridgeApi.TweakDB.cs`; client methods `tweak*` in `bridgeClient.ts`; MCP `tweakdb_*`), ahead of the view because other sessions' agents need TweakDB reads. The view is next.
+**Bridge methods and MCP tools built 2026-10-14** (REDbridge 0.8.0, `BridgeApi.TweakDB.cs`; client methods `tweak*` in `bridgeClient.ts`; MCP `tweakdb_*`), ahead of the view because other sessions' agents need TweakDB reads. The view is built too (2026-10-15, hand test pending): `src/tweakView.ts` (the view, its data cache and the hover), `src/tweakRecordPanel.ts` with `media/tweakdb/` (the record page), and `src/tweakYaml.ts` (no VS Code imports: New Tweak's YAML and value text). A type's records are fetched with `tweakdb.records` and filtered to the exact type, since the method includes subtypes, and grouped by the first part of the path above 200 records, at most 2,000 per group. Checked against the game: 843 types; Clothing has `Items` (1,991) and `TEST` (6); "quadra type66" finds 415 records in 38 ms; the record page follows links and back.
 
 - **REDbridge 0.8.0 `tweakdb` methods** over WolvenKit's TweakDB reader, on the game's `tweakdb_ep1.bin` (`tweakdb.bin` when there is none), loaded once when first asked:
 

@@ -1,0 +1,18 @@
+/* The TweakDB record page. Loaded after media/cr2w/editor.css, which gives the colours, header, buttons and table. */
+body { overflow: hidden; }
+header .meta { min-width: 0; }
+.tweakbar { padding: 6px 12px; }
+.tweakbar input { flex: 1; min-width: 180px; max-width: 420px; background: var(--vscode-input-background); color: var(--vscode-input-foreground); border: 1px solid var(--vscode-input-border, var(--line)); padding: 3px 8px; font: inherit; }
+.tweakbar input:focus { outline: 1px solid var(--accent); outline-offset: -1px; }
+.mono { font-family: var(--mono); font-size: 12px; }
+#flats { flex: 1; min-height: 0; overflow: auto; padding: 0 12px 16px; }
+#flats .note { padding: 24px; color: var(--dim); }
+table.flats th { top: 0; }
+table.flats td.key { font-family: var(--mono); }
+table.flats td.idx { font-size: 11px; }
+table.flats .value { display: inline; line-height: 1.6; }
+button.link { padding: 0; font-family: var(--mono); font-size: 12px; }
+button.link.resource { color: var(--accent); }
+button.plain { border: 0; padding: 0; font-family: var(--mono); font-size: 12px; color: inherit; }
+button.plain:hover { color: var(--accent); }
+.loc { color: var(--vscode-foreground); }

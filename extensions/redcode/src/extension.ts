@@ -34,7 +34,10 @@ import { GameSoundIndex } from "./audio";
 import { packProject, type PackSummary } from "./pack";
 import { findREDdeck, runningREDdeck } from "./reddeck";
 import { findGames, isGameFolder } from "./gameFinder";
-import { createProject, findProject, gamePathOf, projectPathFor, type ProjectInfo } from "./project";
+import { TweakDb, TweakHover, TweakTree, type TweakNode } from "./tweakView";
+import { TweakRecordPanel } from "./tweakRecordPanel";
+import { shortType, tweakYaml, type TweakMode } from "./tweakYaml";
+import { createProject, findProject, gamePathOf, ProjectFolders, projectPathFor, type ProjectInfo } from "./project";
 import { ProjectExplorer, type ProjectNode } from "./projectExplorer";
 import { isTexture, TextureViewer, textureViewTypeFor } from "./textureViewer";
 import type { BridgeInfo, GameFileInfo } from "./types";
@@ -59,6 +62,10 @@ let assets: AssetBrowser;
 let explorer: ProjectExplorer;
 let projectView: vscode.TreeView<ProjectNode>;
 let assetsView: vscode.TreeView<AssetNode>;
+let tweakDb: TweakDb;
+let tweakTree: TweakTree;
+let tweakView: vscode.TreeView<TweakNode>;
+let tweakPanel: TweakRecordPanel;
 let textures: TextureViewer;
 let cr2wEditor: Cr2wEditorProvider;
 let watcher: vscode.FileSystemWatcher | undefined;
@@ -99,6 +106,9 @@ export function activate(context: vscode.ExtensionContext): void {
   storage = context.globalStorageUri;
 
   assets = new AssetBrowser(() => bridge);
+  tweakDb = new TweakDb(() => bridge);
+  tweakTree = new TweakTree(tweakDb);
+  tweakPanel = new TweakRecordPanel(context.extensionUri, tweakDb, log, (gamePath) => void openGameFileByPath(gamePath));
   explorer = new ProjectExplorer(() => project);
   textures = new TextureViewer(() => bridge, storage, log);
   const cr2w = new Cr2wEditorProvider(
@@ -124,6 +134,13 @@ export function activate(context: vscode.ExtensionContext): void {
     new Cr2wPropertiesView(cr2w).register(),
     new MeshViewer(context.extensionUri, log).register(),
     new AudioPlayer(context.extensionUri, path.join(storage.fsPath, "cache", "audio"), () => bridge, log).register(),
+    (tweakView = tweakTree.view = vscode.window.createTreeView("redcode.tweakdb", { treeDataProvider: tweakTree, showCollapseAll: true })),
+    vscode.languages.registerHoverProvider([{ language: "yaml" }, { language: "tweak" }], new TweakHover(tweakDb)),
+    vscode.commands.registerCommand("redcode.openTweakRecord", (arg?: string | TweakNode) => openTweakRecord(arg)),
+    vscode.commands.registerCommand("redcode.newTweakFromRecord", (arg?: string | TweakNode) => newTweakFromRecord(arg)),
+    vscode.commands.registerCommand("redcode.copyTweakPath", (node?: TweakNode) => node?.kind === "record" && copyText(node.ref.path ?? node.ref.id)),
+    vscode.commands.registerCommand("redcode.filterTweakDB", () => filterInput("tweakdb")),
+    vscode.commands.registerCommand("redcode.clearTweakDBFilter", () => applyFilter("tweakdb", "")),
     vscode.commands.registerCommand("redcode.browseSounds", () => withBridge(async () => void (await vscode.commands.executeCommand("vscode.openWith", gameUri(GameSoundIndex), SoundsViewType)))),
     vscode.commands.registerCommand("redcode.openTexture", (node: AssetNode) => withBridge((b) => openTexture(b, node))),
     vscode.commands.registerCommand("redcode.openGameFileAsJson", () => withBridge(openGameFileAsJson)),
@@ -583,27 +600,31 @@ async function modkitCommand(b: BridgeClient, node: ProjectNode, action: "export
 
 // ---- filtering the Game Assets and Project trees ----------------------------------------------
 
-const filterPatterns = { assets: "", project: "" };
+const filterPatterns = { assets: "", project: "", tweakdb: "" };
 
 /**
  * The Filter button: an input at the top of the window that filters the tree as you type. The filter
  * stays after the input closes; the view says what it shows, and Clear filter brings the whole tree back.
  * A tree view cannot hold an input box itself, so this is VS Code's own way to type into one.
  */
-async function filterInput(which: "assets" | "project"): Promise<void> {
-  if (which === "assets" && !bridge?.running) {
-    void vscode.window.showWarningMessage('REDcode: the bridge is not running, so Game Assets cannot be filtered. Run "REDcode: Restart REDbridge".');
+async function filterInput(which: "assets" | "project" | "tweakdb"): Promise<void> {
+  if (which !== "project" && !bridge?.running) {
+    void vscode.window.showWarningMessage(`REDcode: the bridge is not running, so ${which === "assets" ? "Game Assets" : "TweakDB"} cannot be filtered. Run "REDcode: Restart REDbridge".`);
     return;
   }
   const input = vscode.window.createInputBox();
-  input.title = which === "assets" ? "Filter Game Assets" : "Filter the project";
-  input.placeholder = "Part of a path: osprey mesh, *.xbm, ep1\\weapons\\*.mesh (empty shows everything)";
-  input.prompt = "Words must all match; * and ? are wildcards; case does not matter. Enter or click away keeps the filter.";
+  input.title = which === "assets" ? "Filter Game Assets" : which === "tweakdb" ? "Filter TweakDB" : "Filter the project";
+  input.placeholder =
+    which === "tweakdb" ? "Words of a record path: jacket, quadra type66, Items.Preset (empty shows every type)" : "Part of a path: osprey mesh, *.xbm, ep1\\weapons\\*.mesh (empty shows everything)";
+  input.prompt =
+    which === "tweakdb"
+      ? "Record paths with every word, any case. The first filter loads TweakDB, about 12 s. Enter or click away keeps the filter."
+      : "Words must all match; * and ? are wildcards; case does not matter. Enter or click away keeps the filter.";
   input.value = filterPatterns[which];
   let timer: NodeJS.Timeout | undefined;
   input.onDidChangeValue((value) => {
     clearTimeout(timer);
-    timer = setTimeout(() => void applyFilter(which, value), which === "assets" ? 350 : 150);
+    timer = setTimeout(() => void applyFilter(which, value), which === "project" ? 150 : 350);
   });
   input.onDidAccept(() => {
     clearTimeout(timer);
@@ -615,11 +636,24 @@ async function filterInput(which: "assets" | "project"): Promise<void> {
 }
 
 /** Applies a pattern to one tree, or clears its filter when the pattern is empty, and updates the view's message. */
-async function applyFilter(which: "assets" | "project", pattern: string): Promise<void> {
+async function applyFilter(which: "assets" | "project" | "tweakdb", pattern: string): Promise<void> {
   filterPatterns[which] = pattern.trim();
-  const view: vscode.TreeView<unknown> = which === "assets" ? assetsView : projectView;
+  const view: vscode.TreeView<unknown> = which === "assets" ? assetsView : which === "tweakdb" ? tweakView : projectView;
   try {
-    if (which === "assets") {
+    if (which === "tweakdb") {
+      if (!bridge?.running) return;
+      if (pattern.trim() && pattern.trim().length < 2) {
+        view.message = "Give the filter at least two letters.";
+        return;
+      }
+      const r = await tweakTree.setFilter(pattern);
+      if (filterPatterns.tweakdb !== pattern.trim()) return; // a newer keystroke won
+      view.message = r
+        ? r.total === 0
+          ? `No record path has "${pattern.trim()}".`
+          : `Filter "${pattern.trim()}": ${r.total.toLocaleString()} record${r.total === 1 ? "" : "s"}${r.total > r.shown ? `, the first ${r.shown.toLocaleString()} shown` : ""}`
+        : undefined;
+    } else if (which === "assets") {
       if (!bridge?.running) return;
       const compiled = compileFilter(pattern);
       if (compiled && compiled.seed.length < 2) {
@@ -641,7 +675,122 @@ async function applyFilter(which: "assets" | "project", pattern: string): Promis
   } catch (e) {
     view.message = `Filter failed: ${e instanceof Error ? e.message : String(e)}`;
   }
-  void vscode.commands.executeCommand("setContext", which === "assets" ? "redcode.assetsFiltered" : "redcode.projectFiltered", filterPatterns[which] !== "");
+  void vscode.commands.executeCommand("setContext", which === "assets" ? "redcode.assetsFiltered" : which === "tweakdb" ? "redcode.tweakdbFiltered" : "redcode.projectFiltered", filterPatterns[which] !== "");
+}
+
+// ---- TweakDB --------------------------------------------------------------------------------
+
+function tweakTarget(arg?: string | TweakNode): string | undefined {
+  if (typeof arg === "string") return arg;
+  if (arg?.kind === "record") return arg.ref.path ?? arg.ref.id;
+  return undefined;
+}
+
+/** Opens the record page; without a record, asks for one. */
+async function openTweakRecord(arg?: string | TweakNode): Promise<void> {
+  const target = tweakTarget(arg) ?? (await pickTweakRecord());
+  if (target) tweakPanel.show(target);
+}
+
+/** A quick pick over record paths, searched in the bridge as you type. */
+async function pickTweakRecord(): Promise<string | undefined> {
+  if (!bridge?.running) {
+    await withBridge(async () => undefined);
+    return undefined;
+  }
+  const qp = vscode.window.createQuickPick<vscode.QuickPickItem & { path: string }>();
+  qp.title = "Open TweakDB Record";
+  qp.placeholder = "Words of the record path, such as jacket or quadra type66 (the first search loads TweakDB, about 12 s)";
+  qp.matchOnDescription = true;
+  let timer: NodeJS.Timeout | undefined;
+  let seq = 0;
+  qp.onDidChangeValue((value) => {
+    clearTimeout(timer);
+    timer = setTimeout(async () => {
+      const mine = ++seq;
+      if (value.trim().length < 2) {
+        qp.items = [];
+        return;
+      }
+      qp.busy = true;
+      try {
+        const r = await tweakDb.bridge().tweakSearch(value, undefined, 200);
+        if (mine !== seq) return;
+        qp.items = r.items.filter((i) => i.path).map((i) => ({ label: i.path!, description: shortType(i.type), path: i.path! }));
+        qp.title = `Open TweakDB Record: ${r.total.toLocaleString()} match${r.total === 1 ? "" : "es"}${r.total > 200 ? ", the first 200 shown" : ""}`;
+      } catch (e) {
+        qp.title = `Open TweakDB Record: ${e instanceof Error ? e.message : String(e)}`;
+      } finally {
+        if (mine === seq) qp.busy = false;
+      }
+    }, 250);
+  });
+  return new Promise((resolve) => {
+    qp.onDidAccept(() => {
+      resolve(qp.selectedItems[0]?.path ?? (qp.value.trim() || undefined));
+      qp.hide();
+    });
+    qp.onDidHide(() => {
+      resolve(undefined);
+      qp.dispose();
+    });
+    qp.show();
+  });
+}
+
+/**
+ * New Tweak from This Record: a TweakXL YAML file under the project's source/resources/r6/tweaks/<mod>
+ * that clones the record ($base) or changes it, with every flat listed and commented out.
+ */
+async function newTweakFromRecord(arg?: string | TweakNode): Promise<void> {
+  const target = tweakTarget(arg) ?? (await pickTweakRecord());
+  if (!target) return;
+  if (!project) {
+    void vscode.window.showWarningMessage("REDcode: open a WolvenKit project first. The tweak goes into its source/resources/r6/tweaks folder.");
+    return;
+  }
+  const p = project;
+  await withBridge(async () => {
+    const record = await tweakDb.record(target);
+    if (!record) throw new Error(`No TweakDB record ${target}`);
+    const from = record.path ?? record.id;
+    const pick = await vscode.window.showQuickPick(
+      [
+        { label: "$(copy) Clone as a new record", description: `a new record with $base: ${from}`, mode: "clone" as TweakMode },
+        { label: "$(edit) Change this record", description: "everything that uses it sees the change", mode: "change" as TweakMode },
+      ],
+      { title: `New tweak from ${from}` },
+    );
+    if (!pick) return;
+    let newPath: string | undefined;
+    if (pick.mode === "clone") {
+      const dot = from.indexOf(".");
+      const suggestion = dot > 0 ? `${from.slice(0, dot)}.${p.modName}_${from.slice(dot + 1)}` : `${p.modName}.${from}`;
+      newPath = (
+        await vscode.window.showInputBox({
+          title: "The new record's path",
+          value: suggestion,
+          valueSelection: dot > 0 ? [dot + 1, dot + 1 + p.modName.length] : undefined,
+          validateInput: (v) => (/^[A-Za-z_][\w]*(\.[\w$]+)+$/.test(v.trim()) ? undefined : "A path such as Items.MyMod_Jacket: words joined by dots"),
+        })
+      )?.trim();
+      if (!newPath) return;
+    }
+    const dir = path.join(p.dir, ProjectFolders.resources, "r6", "tweaks", p.modName);
+    const base = (newPath ?? from).replace(/^.*\./, "").replace(/[^\w-]/g, "_");
+    let file = path.join(dir, `${base}.yaml`);
+    for (let n = 2; fs.existsSync(file); n++) file = path.join(dir, `${base}_${n}.yaml`);
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(file, tweakYaml(record, pick.mode, newPath));
+    log.appendLine(`TweakDB: wrote ${file}`);
+    explorer.refresh();
+    await vscode.window.showTextDocument(vscode.Uri.file(file));
+  });
+}
+
+/** A game file by its path, in the editor that suits it, read-only from the archives. */
+async function openGameFileByPath(gamePath: string): Promise<void> {
+  await withBridge(async () => void (await vscode.commands.executeCommand("vscode.openWith", gameUri(gamePath), soundViewTypeFor(gamePath) ?? cr2wViewTypeFor(gamePath))));
 }
 
 // ---- extract to project, for REDdeck ----------------------------------------------------------
@@ -1115,8 +1264,16 @@ async function withBridge(action: (b: BridgeClient) => Promise<void>): Promise<v
 let bridgeSummary = "";
 let bridgeTooltip = "";
 
+let gameLoaded: boolean | undefined;
+
 function setGameLoaded(loaded: boolean): void {
   void vscode.commands.executeCommand("setContext", "redcode.gameLoaded", loaded);
+  if (loaded !== gameLoaded) {
+    gameLoaded = loaded;
+    // A new bridge process has not loaded TweakDB; drop what the old one gave.
+    tweakDb?.reset();
+    tweakTree?.refresh();
+  }
 }
 
 /** With no arguments, shows the normal state: project name and bridge summary. */

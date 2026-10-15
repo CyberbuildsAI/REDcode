@@ -30,6 +30,7 @@ Click the REDcode icon in the activity bar.
 | View | What it shows |
 |---|---|
 | **Project** | The open WolvenKit project: `Archive` (game files added to the project), `Raw` (exports and imports), `Resources` (scripts and tweaks copied as they are), `Packed` (build output). Click a texture (`.xbm`) to view it, another game file to open it as JSON, a text file to edit it. Right-click: Open as JSON, Open With... (VS Code's editor picker, as in the Explorer), Copy Path, Reveal in File Explorer. Edit the JSON and use **Save JSON to Project** (the icon in the editor title) to rebuild the game file from it |
+| **TweakDB** | The game's TweakDB as it ships, read from `tweakdb_ep1.bin`: record types with their counts, each opening to its records grouped by the first part of the path. Click a record to open its page. The filter button finds records by words of their path. Right-click a record for Copy Record Path and New Tweak from This Record. The first use loads TweakDB, which takes about 12 seconds |
 | **Game Assets** | The game archives as a folder tree, expanded on demand, with file counts. Click a texture to view it, another file to open it as JSON. Right-click: Add to Project, Extract to..., Open Texture, Open as JSON, Copy Game Path. The search icon opens search-as-you-type |
 
 On hover, files and folders in both trees show a copy button. In Game Assets it copies the game path (`base\gameplay\...`). In the Project view it copies the full path on disk. The status bar shows what was copied.
@@ -99,6 +100,14 @@ A `.mesh` opens on a 3D view in the CR2W editor, from the Project view or from G
 A `.wem` file opens in the audio player from the Project view or Game Assets. It is mostly voice lines, under `localization` folders. The bridge exports it to Ogg into REDcode's cache, again only when the file is newer. The player shows the waveform. Click or drag on it to seek. **Play** and **Loop** are below it, Space plays and pauses, and the toolbar shows the time, codec, channels and rate. **Save...** writes the sound to a file. `.opus` files open in the same player. WAV, Ogg, MP3 and FLAC keep VS Code's own preview and offer the player under **Open With...** (right-click in the Project view or the Explorer). The player decodes the sound once and plays it through Web Audio. VS Code's webview decodes no Opus, so REDcode decodes Opus itself, with libopus, and plays it as WAV; Save still writes the original `.opus`.
 
 The game's sound effects are 73,000 sounds packed into `.opuspak` files. **REDcode: Browse Game Sounds**, in the Game Assets `...` menu, opens their index, `base\sound\soundbanks\sfx_container.opusinfo`, as a list of sound events. Each event has its sounds as numbered variations. Type in the filter box to narrow the list by event name, tag or hash, where all words must match, such as `revol reload`. Click a row to play its first sound, or a number to play that variation. The arrow keys step through the list and play as they go. **Copy Hash** copies the hash of the sound now playing, and **Save...** writes it as `.opus`. Event names come from WolvenKit's event list for game version 1.6, which names about 14,500 of the 20,500 events. The names need REDbridge 0.7.2; on an older bridge the list shows hashes only.
+
+## TweakDB
+
+The **TweakDB** view, **REDcode: Open TweakDB Record...** and the hover all read the game's TweakDB through REDbridge 0.8.0. They show TweakDB as the game ships it, without mods. The first use loads it, which takes about 12 seconds, and the view says so while it loads.
+
+- **The record page** shows every flat with its type and value. Record links open the record they name, and Back and Forward (Alt+Left and Alt+Right) step through what you opened. LocKeys show their text. Resource paths open the game file. Click a flat's name to copy its path, such as `Items.money.quality`. The filter box narrows the flats by name or value.
+- **New Tweak from This Record**, on the record page or a record in the view, writes a TweakXL YAML file under the project's `source/resources/r6/tweaks/<mod name>/`. You choose to clone the record as a new one (`$base`) or to change the record itself. Every flat is listed with its current value, commented out, so you uncomment the ones to change. Pack copies the file to `r6/tweaks`, where TweakXL loads it.
+- **Hover** on a record path in a `.yaml` or `.tweak` file to see its type and main flats, with a link to the record page. It works once TweakDB is loaded, so a hover never starts the load.
 
 ## Export and import
 

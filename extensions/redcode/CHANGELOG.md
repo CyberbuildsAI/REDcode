@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- **TweakDB view** (C5 V3). A TweakDB view in the REDcode sidebar lists record types with their counts and their records, with a filter that finds records by words of their path.
+  - **The record page** shows a record's flats, with record links you can follow, Back and Forward, LocKey text, and resource paths that open the game file.
+  - **New Tweak from This Record** writes a TweakXL YAML file into the project that clones or changes the record, with every flat listed and commented out.
+  - **Hovering** a record path in `.yaml` and `.tweak` files shows its type and main flats.
+  - **REDcode: Open TweakDB Record...** searches as you type.
+  - It reads the game's TweakDB as shipped, through REDbridge 0.8.0. The first use loads it, in about 12 seconds.
 - The third-party notices are in one file, `ThirdPartyNotices.txt` (vscode-jsonrpc, three.js, opus-decoder, libopus); `THIRD_PARTY_NOTICES.md` is folded into it.
 
 ## 0.8.2 (2026-10-15)
