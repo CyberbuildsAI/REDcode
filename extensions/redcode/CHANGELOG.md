@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.9.0 (2026-10-15)
+
+C5 V3, the TweakDB view, is done and hand-tested. Needs REDbridge 0.8.0.
 
 - **An API for other extensions** (REDcode issue #4, for EDGEwave). `activate()` returns `REDcodeApi` version 1 (`src/api.ts`, docs/api.md): the bridge, the game folder, the open project and its changes, the game's sound effect index with event names, any sound by reference as audio a webview decodes (WAV for sound effects and Opus, Ogg Vorbis for `.wem`), import of a raw file, and pack.
 - **Open in EDGEwave** in the audio player and the sound list runs EDGEwave's `edgewave.openSound` with the sound now playing, and offers to install EDGEwave when it is missing.
@@ -10,6 +12,7 @@
   - **New Tweak from This Record** writes a TweakXL YAML file into the project that clones or changes the record, with every flat listed and commented out.
   - **Hovering** a record path in `.yaml` and `.tweak` files shows its type and main flats.
   - **REDcode: Open TweakDB Record...** searches as you type.
+  - The new tweak file is selected in the Project view, with its folders expanded, so you see where it landed.
   - It reads the game's TweakDB as shipped, through REDbridge 0.8.0. The first use loads it, in about 12 seconds.
 - The third-party notices are in one file, `ThirdPartyNotices.txt` (vscode-jsonrpc, three.js, opus-decoder, libopus); `THIRD_PARTY_NOTICES.md` is folded into it.
 

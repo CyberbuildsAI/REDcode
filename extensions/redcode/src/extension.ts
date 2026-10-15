@@ -808,6 +808,9 @@ async function newTweakFromRecord(arg?: string | TweakNode): Promise<void> {
     log.appendLine(`TweakDB: wrote ${file}`);
     explorer.refresh();
     await vscode.window.showTextDocument(vscode.Uri.file(file));
+    // Show where it landed: expand the Project view down to the new file and select it.
+    const shown = explorer.nodeFor(file);
+    if (shown) await projectView.reveal(shown, { select: true, focus: false, expand: true }).then(undefined, () => undefined);
   });
 }
 
