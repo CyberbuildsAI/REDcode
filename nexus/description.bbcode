@@ -2,7 +2,7 @@
 
 [center][size=5][b][color=#fcee0a]A Cyberpunk 2077 modding workspace in VS Code, built on WolvenKit.[/color][/b][/size][/center]
 
-[center][size=3]Browse the game's archives, add files to a WolvenKit project, edit them in a tree and property grid, see textures, meshes in 3D and sounds, browse the TweakDB, then pack, install and start the game. All in one window, next to your code and your AI assistant.[/size][/center]
+[center][size=3]Browse the game's archives, add files to a WolvenKit project, edit them in a tree and property grid, see textures, meshes in 3D and sounds, browse the TweakDB and the game's texts, then pack, install and start the game. All in one window, next to your code and your AI assistant.[/size][/center]
 
 [line]
 
@@ -31,7 +31,7 @@ Every file in the game, in folders, with search as you type and a filter that na
 [color=#19f3ff][i][Screenshot 2: the atlas editor, an .inkatlas with its parts drawn over the texture.][/i][/color]
 
 [size=4][b][color=#19f3ff]Textures, meshes and sounds[/color][/b][/size]
-Textures show as images. Meshes open in 3D: orbit, pick the LOD, turn submeshes on and off, see each one's material. Voice lines and sound effects play in a player with a waveform, and [b]Browse Game Sounds[/b] lists the game's 73,000 sound effects as events to filter and play.
+Textures show as images. Meshes open in 3D: orbit, pick the LOD, switch appearances, turn submeshes on and off, see each one's material. A GLB shows with its own textures. [b]Edit in Blender[/b] opens a model in Blender, and every save there comes back into your project by itself. Voice lines and sound effects play in a player with a waveform, and [b]Browse Game Sounds[/b] lists the game's 73,000 sound effects as events to filter and play.
 
 [color=#19f3ff][i][Screenshot 3: a vehicle or weapon mesh in the 3D view, with the submesh list.][/i][/color]
 
@@ -40,17 +40,20 @@ Every record type and record, with a page per record where links take you to the
 
 [color=#19f3ff][i][Screenshot 4: a TweakDB record page, for example a weapon, with its flats and links.][/i][/color]
 
+[size=4][b][color=#19f3ff]The game's texts, in 19 languages[/color][/b][/size]
+The [b]LocKeys[/b] view finds the text behind any [i]LocKey#[/i], and the LocKey behind any text, in the base game and Phantom Liberty. Click a result to open it in its file. One click adds it to your project's own text file, made and wired up for ArchiveXL if you have none, so you can change what the game says. Hover a LocKey in a tweak, a script or a CR2W file to read it.
+
 [size=4][b][color=#19f3ff]Pack, install, play[/color][/b][/size]
-[b]Pack[/b] builds your mod the way WolvenKit does (Ctrl+Shift+B), [b]Install[/b] puts it in the game (through REDdeck when you have it, so you can undo it), and [b]Run Game[/b] starts Cyberpunk. Export to glTF, PNG and WAV, edit, and import back.
+[b]Pack[/b] builds your mod the way WolvenKit does (Ctrl+Shift+B), [b]Install[/b] puts it in the game (through REDdeck when you have it, so you can undo it), and [b]Run Game[/b] starts Cyberpunk. [b]Pack and Try[/b] does it in one click, straight into the running game when you have Red Hot Tools. Export to glTF, PNG and WAV, edit, and import back: a GLB can become a new mesh, and edited sound effects go back into the game's sound banks. REDmod packs carry your custom sounds.
 
 [size=4][b][color=#19f3ff]TweakXL files[/color][/b][/size]
 Syntax highlighting, brackets, comments and snippets for TweakXL's [i].tweak[/i] format.
 
 [size=4][b][color=#19f3ff]For AI assistants[/color][/b][/size]
-[url=https://www.npmjs.com/package/@edgemodders/redcode-mcp]@edgemodders/redcode-mcp[/url] gives Claude Code and other assistants the same engine: browse the archives, read and patch CR2W files, export, pack and query the TweakDB. Ask your assistant to make the mod, and watch it work in the same project.
+[url=https://www.npmjs.com/package/@edgemodders/redcode-mcp]@edgemodders/redcode-mcp[/url] gives Claude Code and other assistants the same engine: browse the archives, read and patch CR2W files, export, import, pack, and query the TweakDB and the game's texts. Ask your assistant to make the mod, and watch it work in the same project.
 
 [size=4][b][color=#19f3ff]Coming next[/color][/b][/size]
-Built and being tested: a [b]LocKeys[/b] view (the game's on-screen texts in all 19 languages, searchable, with your project's own), [b]Edit in Blender[/b] with automatic re-import on save, [b]Pack and Try[/b] into the running game, mesh appearances, and REDmod custom sounds.
+Planned: the [b]REDnode loop[/b], to edit a REDnode mod and see it in the running game without a restart, with the game's logs and a debugger in VS Code.
 
 [size=5][b][color=#fcee0a]Requirements[/color][/b][/size]
 
