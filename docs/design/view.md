@@ -73,7 +73,7 @@ Finding the text behind `LocKey#12345`, and the LocKey for a text.
 - **REDbridge `loc` methods** over the game's localization files (`onscreens.json` per language, the base game and Phantom Liberty): `loc.search(text, language, limit)` by key or text, `loc.get(keys, language)`. The project's own `onscreens.json` entries win over the game's, as they do in game.
 - **REDcode**: a search box in the TweakDB view's neighbour, results with the key, the secondary key and the female and male text; **Copy LocKey**; **Add to the project's onscreens** opens the table view on a new row. Hovering `LocKey#...` in a tweak file or the CR2W editor shows the text.
 
-**Built 2026-10-16, hand test pending** (REDbridge 0.10.0, `BridgeApi.Loc.cs`; `src/locView.ts`; MCP `loc_*`):
+**Built 2026-10-16, hand-tested by the owner the same day ([tests](../testing.html#release-0100-issues-5-to-8-and-v4)), released in REDcode 0.10.0 with REDbridge 0.10.0** (REDbridge 0.10.0, `BridgeApi.Loc.cs`; `src/locView.ts`; MCP `loc_*`):
 
 | Method | Returns |
 |---|---|

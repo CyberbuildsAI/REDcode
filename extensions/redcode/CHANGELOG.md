@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.10.0 (2026-10-16)
+
+C5 V4, the LocKeys view, is done and hand-tested, with REDcode issues #6, #7 and #8 and REDbridge issues #5 and #6 for EDGEfab, EDGEmat and EDGEwave. Needs REDbridge 0.10.0.
 
 - **The LocKeys view** (C5 V4): the game's on-screen texts, base game and Phantom Liberty, in any of its 19 languages, through REDbridge 0.10.0's `loc` methods. Search by `LocKey#123`, a secondary key or words of the text. The open project's own onscreens entries count and win over the game's. A click opens the entry in its onscreens file on its row, the project's to edit or the game's read-only. Copy LocKey, Copy Text, and Add to Project Onscreens, which copies the entry into the project's onscreens file (creating it, and naming it in an `.xl`, when there is none) and opens the table view on that row, with the file selected in the Project view. A hover on `LocKey#...` in tweak, YAML, JSON, Lua and Redscript files shows the text, and the CR2W editor shows it beside `LocKey#...` values and when hovering a search result. Setting `redcode.loc.language`.
 - **REDmod custom sounds in the pack** (REDcode issue #8, for EDGEwave): with `redcode.pack.redmod`, the `customSounds` entries of `source/resources/info.json` go into the written manifest, and each entry's file is copied from `source/customSounds` to `packed/mods/<name>/customSounds`, as WolvenKit's pack does. Pack warns about a listed WAV that is missing, and about custom sounds in a plain pack, which the game does not play. Pack and Install, and Pack and Try, ask before installing a REDmod whose custom sound is missing. The Project view shows `source/customSounds` as Custom Sounds when the project has it.
