@@ -788,9 +788,8 @@ async function modkitCommand(b: BridgeClient, node: ProjectNode, action: "export
   if (action === "import") await reloadImported(written);
   // Show the main result: for one file, what it became; for a folder, the first file written.
   const stem = (f: string) => path.basename(f, path.extname(f)).toLowerCase();
-  const shown = files.length === 1 ? written.find((w) => stem(w) === stem(files[0])) ?? written[0] : written[0];
-  const node2 = shown ? explorer.nodeFor(shown) : undefined;
-  if (node2) await projectView.reveal(node2, { select: true, focus: false, expand: true }).then(undefined, () => undefined);
+  const first = written[0] && mainWritten(written);
+  await revealWritten(files.length === 1 ? written.find((w) => stem(w) === stem(files[0])) ?? first : first);
   const verb = action === "export" ? "exported" : "imported";
   if (failed.length) {
     void vscode.window.showWarningMessage(`REDcode: ${files.length - failed.length} of ${files.length} ${verb}; ${failed.slice(0, 5).join(", ")}${failed.length > 5 ? "..." : ""} did not. See the log.`, "Show log").then((pick) => pick && log.show(true));
@@ -1158,6 +1157,7 @@ async function apiImportFile(file: string, options?: { template?: string }): Pro
     const soundFiles = s.written.map((w) => path.join(archiveDir, w));
     log.appendLine(`Imported ${path.relative(p.dir, file)} for another extension: ${s.ok ? s.written.join(", ") : s.skipped.map((x) => x.reason).join("; ")}`);
     explorer.refresh();
+    await revealWritten(soundFiles[0] && mainWritten(soundFiles));
     return { ok: s.ok, written: soundFiles };
   }
   const r = await bridge.importFile(path.resolve(file), path.join(p.dir, ProjectFolders.raw), archiveDir, vscode.workspace.getConfiguration("redcode").get<boolean>("import.keepSettings", true), options?.template);
@@ -1165,7 +1165,20 @@ async function apiImportFile(file: string, options?: { template?: string }): Pro
   log.appendLine(`Imported ${path.relative(p.dir, file)} for another extension: ${written.length ? r.written.join(", ") : "nothing written"}`);
   explorer.refresh();
   await reloadImported(written);
+  const stem = (f: string) => path.basename(f, path.extname(f)).toLowerCase();
+  await revealWritten(written.find((w) => stem(w) === stem(file)) ?? (written[0] && mainWritten(written)));
   return { ok: r.ok, written, mesh: r.mesh };
+}
+
+/** Of the files an import wrote, the one to show: a sound import's .opuspak, which holds the sound, else the first. */
+function mainWritten(written: string[]): string {
+  return written.find((w) => w.toLowerCase().endsWith(".opuspak")) ?? written[0];
+}
+
+/** Expands the Project view down to a written file and selects it, without taking the focus. */
+async function revealWritten(file: string | undefined): Promise<void> {
+  const node = file ? explorer.nodeFor(file) : undefined;
+  if (node) await projectView.reveal(node, { select: true, focus: false, expand: true }).then(undefined, () => undefined);
 }
 
 async function reloadImported(written: string[]): Promise<void> {
