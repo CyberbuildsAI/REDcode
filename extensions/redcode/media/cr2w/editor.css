@@ -80,7 +80,6 @@ li.more { color: var(--cyan); cursor: pointer; }
 .rpath { color: var(--cyan); min-width: 0; overflow-wrap: anywhere; }
 .rtype { color: var(--dim); white-space: nowrap; font-size: 11px; padding-top: 1px; }
 .rpreview { grid-column: 1 / -1; min-width: 0; overflow-wrap: anywhere; white-space: pre-wrap; max-height: 4.5em; overflow: hidden; }
-.rpreview .lockey { font-style: italic; }
 
 /* table mode: the tree pane folds away and the rows take the width */
 body.table-mode #body { grid-template-columns: 1fr; }
