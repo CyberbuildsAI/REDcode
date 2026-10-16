@@ -6,7 +6,7 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { EventEmitter } from "node:events";
 import * as readline from "node:readline";
 import { createMessageConnection, StreamMessageReader, StreamMessageWriter, type MessageConnection } from "vscode-jsonrpc/node";
-import type { ArchiveInfo, BridgeInfo, DocumentInfo, ExtractManyResult, ExtractResult, FileList, HashResult, ExportOptions, JsonResult, ModArchiveInfo, ModkitResult, SoundEvents, SoundImportResult, TweakFlatValue, TweakRecordFull, TweakRecords, TweakRecordsQuery, TweakTypes, PackResult, NodeInfo, PatchOp, PatchResult, ResolveResult, SearchResult, TreeResult, TypeDescription } from "./types";
+import type { ArchiveInfo, BridgeInfo, LocEntry, LocLanguage, LocNewFile, LocProjectFile, LocSearch, DocumentInfo, ExtractManyResult, ExtractResult, FileList, HashResult, ExportOptions, JsonResult, ModArchiveInfo, ModkitResult, SoundEvents, SoundImportResult, TweakFlatValue, TweakRecordFull, TweakRecords, TweakRecordsQuery, TweakTypes, PackResult, NodeInfo, PatchOp, PatchResult, ResolveResult, SearchResult, TreeResult, TypeDescription } from "./types";
 
 export interface BridgeOptions {
   /** Path to REDbridge.exe. */
@@ -228,6 +228,36 @@ export class BridgeClient extends EventEmitter<BridgeEvents> {
   /** Paths for TweakDB ids (0x hex or decimal); only the low 40 bits count. Needs no TweakDB load. */
   tweakNames(ids: string[]): Promise<Record<string, string | null>> {
     return this.call("tweakdb.names", { ids });
+  }
+
+  // ---- on-screen texts (bridge 0.10.0) ------------------------------------------------
+
+  /** The languages with on-screen texts in the game, and whether the base game and Phantom Liberty have them. */
+  locLanguages(): Promise<LocLanguage[]> {
+    return this.call("loc.languages");
+  }
+
+  /**
+   * On-screen texts: "LocKey#123" or a number finds that LocKey; otherwise every word must be in the
+   * secondary key or a text. With projectDir, the project's onscreens entries win over the game's.
+   */
+  locSearch(query: string, language = "en-us", limit = 200, projectDir?: string): Promise<LocSearch> {
+    return this.call("loc.search", { query, language, limit, projectDir: projectDir ?? null });
+  }
+
+  /** Entries by LocKey number or secondary key, with or without "LocKey#"; null where there is no text. */
+  locGet(keys: string[], language = "en-us", projectDir?: string): Promise<Record<string, LocEntry | null>> {
+    return this.call("loc.get", { keys, language, projectDir: projectDir ?? null });
+  }
+
+  /** The project's onscreens files for a language: those its .xl files name, then any under a language folder in source/archive. */
+  locProjectFiles(projectDir: string, language = "en-us"): Promise<LocProjectFile[]> {
+    return this.call("loc.projectFiles", { projectDir, language });
+  }
+
+  /** The project's onscreens file for a language, written empty (and named in an .xl) when it has none. */
+  locNewFile(projectDir: string, modName: string, language = "en-us"): Promise<LocNewFile> {
+    return this.call("loc.newFile", { projectDir, modName, language });
   }
 
   // ---- cr2w document sessions (bridge 0.5.0) -------------------------------------------

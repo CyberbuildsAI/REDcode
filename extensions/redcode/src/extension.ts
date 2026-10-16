@@ -37,6 +37,8 @@ import { findGames, isGameFolder, steamPath } from "./gameFinder";
 import { findBlender, writeBlenderScript } from "./blender";
 import { TweakDb, TweakHover, TweakTree, type TweakNode } from "./tweakView";
 import { TweakRecordPanel } from "./tweakRecordPanel";
+import { LocHover, LocTree, locKeyOf, locLanguage, locTextOf, type LocNode } from "./locView";
+import type { LocEntry } from "./types";
 import { createApi, type REDcodeApi } from "./api";
 import { shortType, tweakYaml, type TweakMode } from "./tweakYaml";
 import { createProject, findProject, gamePathOf, ProjectFolders, projectPathFor, type ProjectInfo } from "./project";
@@ -68,6 +70,7 @@ let tweakDb: TweakDb;
 let tweakTree: TweakTree;
 let tweakView: vscode.TreeView<TweakNode>;
 let tweakPanel: TweakRecordPanel;
+let locTree: LocTree;
 /** Fires when the open project changes, for REDcodeApi.onDidChangeProject. */
 const projectChanged = new vscode.EventEmitter<ProjectInfo | undefined>();
 let textures: TextureViewer;
@@ -113,6 +116,7 @@ export function activate(context: vscode.ExtensionContext): REDcodeApi | undefin
   assets = new AssetBrowser(() => bridge);
   tweakDb = new TweakDb(() => bridge);
   tweakTree = new TweakTree(tweakDb);
+  locTree = new LocTree(() => bridge, () => project?.dir);
   tweakPanel = new TweakRecordPanel(context.extensionUri, tweakDb, log, (gamePath) => void openGameFileByPath(gamePath));
   explorer = new ProjectExplorer(() => project);
   textures = new TextureViewer(() => bridge, storage, log);
@@ -146,6 +150,21 @@ export function activate(context: vscode.ExtensionContext): REDcodeApi | undefin
     vscode.commands.registerCommand("redcode.copyTweakPath", (node?: TweakNode) => node?.kind === "record" && copyText(node.ref.path ?? node.ref.id)),
     vscode.commands.registerCommand("redcode.filterTweakDB", () => filterInput("tweakdb")),
     vscode.commands.registerCommand("redcode.clearTweakDBFilter", () => applyFilter("tweakdb", "")),
+    (locTree.view = vscode.window.createTreeView("redcode.lockeys", { treeDataProvider: locTree })),
+    vscode.languages.registerHoverProvider(
+      ["yaml", "tweak", "json", "jsonc", "lua", "redscript"].map((language) => ({ language })),
+      new LocHover(() => bridge, () => project?.dir),
+    ),
+    vscode.commands.registerCommand("redcode.searchLocKeys", (query?: string) => withBridge(() => searchLocKeys(typeof query === "string" ? query : undefined))),
+    vscode.commands.registerCommand("redcode.clearLocKeySearch", () => locTree.search("")),
+    vscode.commands.registerCommand("redcode.locKeyLanguage", () => withBridge(pickLocLanguage)),
+    vscode.commands.registerCommand("redcode.copyLocKey", (node?: LocNode) => node?.kind === "entry" && copyText(locKeyOf(node.entry))),
+    vscode.commands.registerCommand("redcode.copyLocText", (node?: LocNode) => node?.kind === "entry" && copyText(locTextOf(node.entry))),
+    vscode.commands.registerCommand("redcode.addLocKeyToProject", (node?: LocNode) => node?.kind === "entry" && withBridge((b) => addLocKeyToProject(b, node.entry))),
+    cr2w.onDidSave(() => void locTree.rerun().catch(() => undefined)),
+    vscode.workspace.onDidChangeConfiguration((e) => {
+      if (e.affectsConfiguration("redcode.loc.language")) void locTree.rerun().catch(() => undefined);
+    }),
     vscode.commands.registerCommand("redcode.browseSounds", () => withBridge(async () => void (await vscode.commands.executeCommand("vscode.openWith", gameUri(GameSoundIndex), SoundsViewType)))),
     vscode.commands.registerCommand("redcode.openTexture", (node: AssetNode) => withBridge((b) => openTexture(b, node))),
     vscode.commands.registerCommand("redcode.openGameFileAsJson", () => withBridge(openGameFileAsJson)),
@@ -866,6 +885,82 @@ function tweakTarget(arg?: string | TweakNode): string | undefined {
   if (typeof arg === "string") return arg;
   if (arg?.kind === "record") return arg.ref.path ?? arg.ref.id;
   return undefined;
+}
+
+// ---- LocKeys (C5 V4) ------------------------------------------------------------------------
+
+/** Asks for a search (LocKey#123, a secondary key or words of the text), or runs the one given. */
+async function searchLocKeys(query?: string): Promise<void> {
+  const q =
+    query ??
+    (await vscode.window.showInputBox({
+      title: `Search LocKeys (${locLanguage()})`,
+      prompt: "LocKey#123, a secondary key, or words of the text",
+      value: locTree.query ?? "",
+    }));
+  if (q === undefined) return;
+  await vscode.commands.executeCommand("redcode.lockeys.focus");
+  await locTree.search(q);
+}
+
+async function pickLocLanguage(b: BridgeClient): Promise<void> {
+  const languages = await b.locLanguages();
+  const current = locLanguage();
+  const pick = await vscode.window.showQuickPick(
+    languages.map((l) => ({ label: l.language, description: l.language === current ? "current" : l.ep1 ? "" : "base game only" })),
+    { title: "LocKey language" },
+  );
+  if (!pick) return;
+  // Workspace-wide by default: the setting is per user, as the game's language is.
+  await vscode.workspace.getConfiguration("redcode").update("loc.language", pick.label, vscode.ConfigurationTarget.Global);
+}
+
+/**
+ * Add to Project Onscreens: a copy of the entry in the project's onscreens file for the language,
+ * which ArchiveXL then loads over the game's, opened in the table view on the new row. The project
+ * gets the file (and the .xl naming it) when it has none. An entry the project already has opens on
+ * its row instead.
+ */
+async function addLocKeyToProject(b: BridgeClient, entry: LocEntry): Promise<void> {
+  const p = requireProject();
+  let file: string;
+  let index: number;
+  if (entry.source === "project" && entry.file && typeof entry.index === "number") {
+    file = path.join(p.dir, entry.file);
+    index = entry.index;
+  } else {
+    const language = locLanguage();
+    const target = await b.locNewFile(p.dir, p.modName, language);
+    file = path.join(p.dir, target.file);
+    if (target.created) {
+      log.appendLine(`LocKeys: wrote an empty onscreens file, ${target.file}${target.xlWritten ? `, and named it in ${target.xl}` : ""}`);
+      explorer.refresh();
+    }
+    const value = { $type: "localizationPersistenceOnScreenEntry", primaryKey: entry.key, secondaryKey: entry.secondaryKey ?? "", femaleVariant: entry.female, maleVariant: entry.male };
+    const op = { op: "add" as const, path: "root.Data.entries.-", value };
+    const open = cr2wEditor.documentFor(vscode.Uri.file(file));
+    if (open) {
+      // Through the open editor, so the add can be undone there and saves with the rest.
+      await open.ensureOpen(b);
+      index = (await b.getNode(open.doc, "root.Data.entries", 0, 1)).total ?? 0;
+      await open.edit(b, [op], `Add ${locKeyOf(entry)}`);
+    } else {
+      const doc = await b.openDocument({ file });
+      try {
+        index = (await b.getNode(doc.doc, "root.Data.entries", 0, 1)).total ?? 0;
+        await b.patch(doc.doc, [op]);
+        await b.saveDocument(doc.doc);
+      } finally {
+        await b.closeDocument(doc.doc).catch(() => undefined);
+      }
+    }
+    log.appendLine(`LocKeys: added ${locKeyOf(entry)} to ${target.file} as row ${index}`);
+    void locTree.rerun().catch(() => undefined);
+  }
+  const uri = vscode.Uri.file(file);
+  cr2wEditor.showRow(uri, index);
+  await vscode.commands.executeCommand("vscode.openWith", uri, cr2wViewTypeFor(file));
+  vscode.window.setStatusBarMessage(`$(edit) REDcode: ${locKeyOf(entry)} is row ${index} of ${path.basename(file)}; change its text, then pack`, 6000);
 }
 
 /** Opens the record page; without a record, asks for one. */

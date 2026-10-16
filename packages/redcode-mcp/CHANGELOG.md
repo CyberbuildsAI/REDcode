@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- `loc_languages`, `loc_search` and `loc_get`: the game's on-screen texts (LocKeys), with a project's own over them. Needs REDbridge 0.10.0.
 - `project_import` takes `template`, a game path or `.mesh` to start a new mesh from when a GLB has no mesh to import over, and a mesh import returns `mesh`: submeshes, the GLB's material names per submesh, material entries, appearances and what was resized. Needs REDbridge 0.9.0.
 - `sound_import`: override game sound effects in a project from `<hash>.wav` files. Needs REDbridge 0.9.0.
 

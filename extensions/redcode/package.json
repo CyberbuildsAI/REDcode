@@ -339,6 +339,10 @@
           "name": "TweakDB"
         },
         {
+          "id": "redcode.lockeys",
+          "name": "LocKeys"
+        },
+        {
           "type": "webview",
           "id": "redcode.properties",
           "name": "Properties"
@@ -359,6 +363,16 @@
         "view": "redcode.tweakdb",
         "contents": "TweakDB is read from the game through REDbridge, which is not running or has no game loaded.\n[Set Game Folder](command:redcode.setGameFolder)\n[Restart REDbridge](command:redcode.restartBridge)",
         "when": "!redcode.gameLoaded"
+      },
+      {
+        "view": "redcode.lockeys",
+        "contents": "LocKeys are read from the game through REDbridge, which is not running or has no game loaded.\n[Set Game Folder](command:redcode.setGameFolder)\n[Restart REDbridge](command:redcode.restartBridge)",
+        "when": "!redcode.gameLoaded"
+      },
+      {
+        "view": "redcode.lockeys",
+        "contents": "Find the text behind a LocKey, or the LocKey for a text: LocKey#123, a secondary key, or words of the text.\n[Search LocKeys](command:redcode.searchLocKeys)",
+        "when": "redcode.gameLoaded"
       }
     ],
     "commands": [
@@ -465,6 +479,41 @@
         "title": "Clear TweakDB Filter",
         "category": "REDcode",
         "icon": "$(clear-all)"
+      },
+      {
+        "command": "redcode.searchLocKeys",
+        "title": "Search LocKeys...",
+        "category": "REDcode",
+        "icon": "$(search)"
+      },
+      {
+        "command": "redcode.clearLocKeySearch",
+        "title": "Clear LocKey Search",
+        "category": "REDcode",
+        "icon": "$(clear-all)"
+      },
+      {
+        "command": "redcode.locKeyLanguage",
+        "title": "LocKey Language...",
+        "category": "REDcode",
+        "icon": "$(globe)"
+      },
+      {
+        "command": "redcode.copyLocKey",
+        "title": "Copy LocKey",
+        "category": "REDcode",
+        "icon": "$(copy)"
+      },
+      {
+        "command": "redcode.copyLocText",
+        "title": "Copy Text",
+        "category": "REDcode"
+      },
+      {
+        "command": "redcode.addLocKeyToProject",
+        "title": "Add to Project Onscreens",
+        "category": "REDcode",
+        "icon": "$(add)"
       },
       {
         "command": "redcode.addToProject",
@@ -731,6 +780,21 @@
           "command": "redcode.packAndTry",
           "when": "view == redcode.project && redcode.projectOpen",
           "group": "navigation@1"
+        },
+        {
+          "command": "redcode.searchLocKeys",
+          "when": "view == redcode.lockeys && redcode.gameLoaded",
+          "group": "navigation@1"
+        },
+        {
+          "command": "redcode.locKeyLanguage",
+          "when": "view == redcode.lockeys && redcode.gameLoaded",
+          "group": "navigation@2"
+        },
+        {
+          "command": "redcode.clearLocKeySearch",
+          "when": "view == redcode.lockeys",
+          "group": "navigation@3"
         }
       ],
       "view/item/context": [
@@ -868,6 +932,31 @@
           "command": "redcode.editInBlender",
           "when": "view == redcode.project && viewItem =~ /^projectFile/ && resourceExtname =~ /^\\.(glb|gltf|mesh)$/",
           "group": "1_modkit@2"
+        },
+        {
+          "command": "redcode.copyLocKey",
+          "when": "view == redcode.lockeys && viewItem =~ /^locEntry/",
+          "group": "inline@1"
+        },
+        {
+          "command": "redcode.addLocKeyToProject",
+          "when": "view == redcode.lockeys && viewItem =~ /^locEntry/ && redcode.projectOpen",
+          "group": "inline@2"
+        },
+        {
+          "command": "redcode.copyLocKey",
+          "when": "view == redcode.lockeys && viewItem =~ /^locEntry/",
+          "group": "1_copy@1"
+        },
+        {
+          "command": "redcode.copyLocText",
+          "when": "view == redcode.lockeys && viewItem =~ /^locEntry/",
+          "group": "1_copy@2"
+        },
+        {
+          "command": "redcode.addLocKeyToProject",
+          "when": "view == redcode.lockeys && viewItem =~ /^locEntry/ && redcode.projectOpen",
+          "group": "2_project@1"
         }
       ],
       "commandPalette": [
@@ -990,6 +1079,30 @@
         {
           "command": "redcode.stopBlender",
           "when": "false"
+        },
+        {
+          "command": "redcode.searchLocKeys",
+          "when": "redcode.gameLoaded"
+        },
+        {
+          "command": "redcode.locKeyLanguage",
+          "when": "redcode.gameLoaded"
+        },
+        {
+          "command": "redcode.clearLocKeySearch",
+          "when": "false"
+        },
+        {
+          "command": "redcode.copyLocKey",
+          "when": "false"
+        },
+        {
+          "command": "redcode.copyLocText",
+          "when": "false"
+        },
+        {
+          "command": "redcode.addLocKeyToProject",
+          "when": "false"
         }
       ]
     },
@@ -1091,6 +1204,32 @@
           "type": "string",
           "default": "",
           "description": "blender.exe, or the folder it is in, for Edit in Blender. Empty: REDcode looks under Program FilesBlender Foundation (the newest version) and in the Steam libraries."
+        },
+        "redcode.loc.language": {
+          "type": "string",
+          "default": "en-us",
+          "enum": [
+            "en-us",
+            "ar-ar",
+            "cz-cz",
+            "de-de",
+            "es-es",
+            "es-mx",
+            "fr-fr",
+            "hu-hu",
+            "it-it",
+            "jp-jp",
+            "kr-kr",
+            "pl-pl",
+            "pt-br",
+            "ru-ru",
+            "th-th",
+            "tr-tr",
+            "ua-ua",
+            "zh-cn",
+            "zh-tw"
+          ],
+          "description": "The language of the texts in the LocKeys view and the LocKey hover, and of the onscreens file Add to Project Onscreens writes to."
         }
       }
     },

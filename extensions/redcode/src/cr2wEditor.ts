@@ -64,6 +64,13 @@ interface Backup {
   ops: PatchOp[];
 }
 
+/** The project folder a file under source/archive belongs to, or undefined. */
+function projectDirOf(file: string): string | undefined {
+  const marker = `${path.sep}${ProjectFolders.archive.toLowerCase()}${path.sep}`;
+  const at = file.toLowerCase().indexOf(marker);
+  return at >= 0 ? file.slice(0, at) : undefined;
+}
+
 export class Cr2wDocument implements vscode.CustomDocument {
   private readonly changed = new vscode.EventEmitter<vscode.CustomDocumentEditEvent<Cr2wDocument>>();
   readonly onDidChange = this.changed.event;
@@ -218,6 +225,25 @@ export class Cr2wEditorProvider implements vscode.CustomEditorProvider<Cr2wDocum
   private readonly documents = new Map<string, Cr2wDocument>();
   private readonly flushes = new Map<number, () => void>();
   private nextFlush = 1;
+  /** Table rows to show once a page of the document is ready, by URI. */
+  private readonly pendingRows = new Map<string, number>();
+  private readonly saved = new vscode.EventEmitter<Cr2wDocument>();
+  /** Fired after a document is saved, for views that read the file (the LocKeys view). */
+  readonly onDidSave = this.saved.event;
+
+  /**
+   * Shows a row of a localization table: the open pages of the document go to it, or the first page
+   * to open does. For the LocKeys view's Add to Project Onscreens.
+   */
+  showRow(uri: vscode.Uri, index: number): void {
+    const document = this.documents.get(uri.toString());
+    const pages = document ? [...(this.pages.get(document) ?? [])] : [];
+    if (pages.length === 0) {
+      this.pendingRows.set(uri.toString(), index);
+      return;
+    }
+    for (const w of pages) void w.postMessage({ type: "showRow", index });
+  }
 
   /** The open document for an editor tab's URI, for the Properties view. */
   documentFor(uri: vscode.Uri): Cr2wDocument | undefined {
@@ -394,6 +420,11 @@ export class Cr2wEditorProvider implements vscode.CustomEditorProvider<Cr2wDocum
           case "ready": {
             const info = await document.ensureOpen(this.requireBridge());
             post({ type: "document", info, file: document.name, game: document.gamePath !== undefined, dirty: document.log.length > 0, selected: this.selection.get(document) ?? "" });
+            const row = this.pendingRows.get(document.uri.toString());
+            if (row !== undefined) {
+              this.pendingRows.delete(document.uri.toString());
+              post({ type: "showRow", index: row });
+            }
             return;
           }
           case "getNode":
@@ -463,6 +494,13 @@ export class Cr2wEditorProvider implements vscode.CustomEditorProvider<Cr2wDocum
             this.log.appendLine(`cr2w editor: the page could not load ${png}; sending it inline`);
             return reply(m.id, `data:image/png;base64,${fs.readFileSync(png).toString("base64")}`);
           }
+          case "locText": {
+            // The text behind a LocKey value, in the LocKeys language; the project's own entry wins.
+            const key = m.query ?? "";
+            const language = vscode.workspace.getConfiguration("redcode").get<string>("loc.language", "en-us") || "en-us";
+            const entry = (await this.requireBridge().locGet([key], language, document.gamePath ? undefined : projectDirOf(document.uri.fsPath)))[key];
+            return reply(m.id, entry ? entry.female || entry.male : null);
+          }
           case "openAsJson":
             if (document.gamePath) this.openGameAsJson(document.gamePath);
             else this.openAsJson(document.uri.fsPath);
@@ -508,11 +546,13 @@ export class Cr2wEditorProvider implements vscode.CustomEditorProvider<Cr2wDocum
   async saveCustomDocument(document: Cr2wDocument): Promise<void> {
     await this.flush(document);
     await document.save(this.requireBridge());
+    this.saved.fire(document);
   }
 
   async saveCustomDocumentAs(document: Cr2wDocument, destination: vscode.Uri): Promise<void> {
     await this.flush(document);
     await document.save(this.requireBridge(), destination.fsPath);
+    this.saved.fire(document);
   }
 
   async revertCustomDocument(document: Cr2wDocument): Promise<void> {

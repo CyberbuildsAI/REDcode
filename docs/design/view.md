@@ -73,6 +73,21 @@ Finding the text behind `LocKey#12345`, and the LocKey for a text.
 - **REDbridge `loc` methods** over the game's localization files (`onscreens.json` per language, the base game and Phantom Liberty): `loc.search(text, language, limit)` by key or text, `loc.get(keys, language)`. The project's own `onscreens.json` entries win over the game's, as they do in game.
 - **REDcode**: a search box in the TweakDB view's neighbour, results with the key, the secondary key and the female and male text; **Copy LocKey**; **Add to the project's onscreens** opens the table view on a new row. Hovering `LocKey#...` in a tweak file or the CR2W editor shows the text.
 
+**Built 2026-10-16, hand test pending** (REDbridge 0.10.0, `BridgeApi.Loc.cs`; `src/locView.ts`; MCP `loc_*`):
+
+| Method | Returns |
+|---|---|
+| `loc.languages()` | The languages with on-screen texts (19 on the owner's game), and whether Phantom Liberty has them |
+| `loc.search(query, language, limit, projectDir?)` | Entries for `LocKey#123` or a number, else entries with every word in the secondary key or a text; exact secondary keys first |
+| `loc.get(keys, language, projectDir?)` | Entries by LocKey number or secondary key, null where there is none |
+| `loc.projectFiles(projectDir, language)` | The project's onscreens files for the language: those its `.xl` files name, then any `.json` under a language folder in `source/archive` |
+| `loc.newFile(projectDir, modName, language)` | The project's onscreens file for the language; written empty when it has none, at `<mod>\localization\<language>.json`, and named in an `.xl` |
+
+- **Entries** carry `key` (the LocKey number as text, since it can pass 2^53), `secondaryKey`, `female`, `male` and `source` (`base`, `ep1` or `project`), and for a project entry its `file` and row `index`.
+- **Measured** on the owner's game: the first search in a language loads both halves in about 1.2 s; a search after that takes about 20 ms. TweakDB's LocKey texts now use the same index.
+- **The project's entries** replace the game's with the same LocKey number or secondary key. The `.xl` reader knows only the `localization: onscreens:` block (`language: path`, a flow list, or `- path` items); `loc.newFile` inserts lines into an `.xl` and never rewrites the rest.
+- **In REDcode**: the LocKeys view under TweakDB, its title buttons Search, Language and Clear; a result's click copies its LocKey; Add to Project Onscreens edits through the open CR2W editor when the file is open (so it can be undone there), else through the bridge, then opens the table view on the row (`showRow`). Hovers in `.tweak`, YAML, JSON, Lua and Redscript files; the CR2W editor shows the text beside a `LocKey#...` value (`locText`).
+
 ## V5 The REDnode loop
 
 Edit a REDnode mod in REDcode, deploy it into the running game without a restart, and get the game's logs, events and a debugger back. This is the core of the "one loop" goal, and it spans two repositories.

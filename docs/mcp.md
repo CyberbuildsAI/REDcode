@@ -23,6 +23,7 @@ The server finds REDbridge.exe and the game folder from `--bridge` and `--game`,
 | Archives | `bridge_info`, `archive_search`, `archive_list`, `archive_tree`, `archive_extract`, `archive_extract_many`, `archive_open_mod`, `archive_extract_from_mod` |
 | Conversion | `cr2w_to_json`, `cr2w_file_to_json`, `cr2w_from_json`, `texture_to_png`, `texture_file_to_png`, `hash_fnv1a64`, `hash_resolve` |
 | Project | `project_export` (a game file under `source/archive` to glTF, an image, Ogg and so on under `source/raw`), `project_import` (back again), `project_pack` |
+| LocKeys | `loc_languages`, `loc_search` (by LocKey, secondary key or words of the text), `loc_get` (by LocKey or secondary key): the game's on-screen texts per language, with a project's own over them |
 | TweakDB | `tweakdb_types`, `tweakdb_records` (by type or prefix, with chosen flats and LocKey text), `tweakdb_record`, `tweakdb_flat`, `tweakdb_search`, `tweakdb_names`: the game's TweakDB as shipped, read offline (REDnode reads the live one) |
 | Sounds | `sound_events` (find sound effect events by name or tag, with their variations), `sound_extract` (write them as `.opus`) and `sound_import` (replace them in a project from `<hash>.wav` files) |
 | Document sessions | `cr2w_open`, `cr2w_get_node`, `cr2w_get_nodes`, `cr2w_search`, `cr2w_patch`, `cr2w_save`, `cr2w_close`, `cr2w_documents`, `cr2w_describe_type`, `cr2w_create_instance` |

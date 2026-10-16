@@ -33,6 +33,7 @@ Click the REDcode icon in the activity bar.
 |---|---|
 | **Project** | The open WolvenKit project: `Archive` (game files added to the project), `Raw` (exports and imports), `Resources` (scripts and tweaks copied as they are), `Packed` (build output). Click a texture (`.xbm`) to view it, another game file to open it as JSON, a text file to edit it. Right-click: Open as JSON, Open With... (VS Code's editor picker, as in the Explorer), Copy Path, Reveal in File Explorer. Edit the JSON and use **Save JSON to Project** (the icon in the editor title) to rebuild the game file from it |
 | **TweakDB** | The game's TweakDB as it ships, read from `tweakdb_ep1.bin`: record types with their counts, each opening to its records grouped by the first part of the path. Click a record to open its page. The filter button finds records by words of their path. Right-click a record for Copy Record Path and New Tweak from This Record. The first use loads TweakDB, which takes about 12 seconds |
+| **LocKeys** | The game's on-screen texts. Search by `LocKey#123`, a secondary key or words of the text; each result shows its text and LocKey. Click one to copy its LocKey. Add to Project Onscreens puts a copy in the project, ready to change |
 | **Game Assets** | The game archives as a folder tree, expanded on demand, with file counts. Click a texture to view it, another file to open it as JSON. Right-click: Add to Project, Extract to..., Open Texture, Open as JSON, Copy Game Path. The search icon opens search-as-you-type |
 
 On hover, files and folders in both trees show a copy button. In Game Assets it copies the game path (`base\gameplay\...`). In the Project view it copies the full path on disk. The status bar shows what was copied.
@@ -111,6 +112,15 @@ The **TweakDB** view, **REDcode: Open TweakDB Record...** and the hover all read
 - **New Tweak from This Record**, on the record page or a record in the view, writes a TweakXL YAML file under the project's `source/resources/r6/tweaks/<mod name>/`. You choose to clone the record as a new one (`$base`) or to change the record itself. Every flat is listed with its current value, commented out, so you uncomment the ones to change. Pack copies the file to `r6/tweaks`, where TweakXL loads it.
 - **Hover** on a record path in a `.yaml` or `.tweak` file to see its type and main flats, with a link to the record page. It works once TweakDB is loaded, so a hover never starts the load.
 
+## LocKeys
+
+The **LocKeys** view finds the text behind a `LocKey#...` and the LocKey for a text, in the base game and Phantom Liberty, through REDbridge 0.10.0. The open project's own texts count too, and win over the game's, as they do in game with ArchiveXL.
+
+- **Search** (the magnifier) takes `LocKey#123` or a number, a secondary key, or words that must all be in the text. The globe button picks the language (`redcode.loc.language`); the first search in a language loads it, about a second.
+- **Copy LocKey** (a click, or the copy button) copies `LocKey#123`, or `LocKey#<secondary key>` for a mod's entry with no number. Right-click for Copy Text.
+- **Add to Project Onscreens** (the plus button) copies the entry into the project's onscreens file for the language and opens the table view on that row, to change its text. A project with no such file gets one, at `source/archive/<mod>/localization/<language>.json`, named in an `.xl` file under `localization: onscreens:` (`source/resources/<mod>.archive.xl` when the project has none), so ArchiveXL loads it. An entry the project already has opens on its row.
+- **Hover** on `LocKey#...` in a `.tweak`, YAML, JSON, Lua or Redscript file to see its text. In the CR2W editor, a `LocKey#...` value shows its text beside it.
+
 **Open in EDGEwave**, in the player and the sound list, hands the sound now playing to EDGEwave, the EDGE sound studio, to edit, mix or re-voice. Without EDGEwave installed, it offers to install it.
 
 ## For other extensions
@@ -156,6 +166,7 @@ The rocket button in the Project view, **REDcode: Pack and Install**, packs and 
 | `redcode.export.meshFormat` | `glb` | Meshes as one `.glb`, or `.gltf` with its `.bin` |
 | `redcode.export.meshMaterials` | `true` | Export a mesh's materials and textures with it |
 | `redcode.import.keepSettings` | `true` | Import keeps the settings of the file it replaces |
+| `redcode.loc.language` | `en-us` | The language of the LocKeys view and the LocKey hovers, and of the onscreens file Add to Project Onscreens writes |
 | `redcode.launch` | `auto` | How Run Game starts the game: `auto` (Steam for a Steam install, else the exe), `steam` or `exe` |
 
 ## Running from source

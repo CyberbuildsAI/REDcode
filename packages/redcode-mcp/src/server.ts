@@ -265,6 +265,25 @@ tool("tweakdb_names", "Paths for TweakDB ids (0x hex or decimal) from WolvenKit'
   ids: z.array(z.string()),
 }, (a, b) => b.tweakNames(a.ids));
 
+// on-screen texts (LocKeys): the base game's and Phantom Liberty's onscreens.json per language,
+// with a project's own onscreens files (named in its .xl files) over them.
+const LocRules = "Languages are folder names such as en-us or de-de (default en-us). With projectDir, the project's onscreens entries replace the game's ones with the same key. The first call per language loads it, about 1 s. Bridge 0.10.0.";
+
+tool("loc_languages", "The languages the game has on-screen texts for, and whether Phantom Liberty has them too. Bridge 0.10.0.", {}, (_a, b) => b.locLanguages());
+
+tool("loc_search", `Find on-screen texts: 'LocKey#123' or a number finds that LocKey, otherwise every word must appear, any case, in the secondary key or the female or male text. Each result has key (the LocKey number as text), secondaryKey, female, male and source (base, ep1 or project). ${LocRules}`, {
+  query: z.string().describe("LocKey#123, a secondary key, or words such as 'militech pistol'."),
+  language: z.string().optional(),
+  limit: z.number().optional().describe("Most results to return (default 200)."),
+  projectDir: z.string().optional().describe("A REDcode or WolvenKit project folder whose own texts should count."),
+}, (a, b) => b.locSearch(a.query, a.language ?? "en-us", a.limit ?? 200, a.projectDir));
+
+tool("loc_get", `The texts for LocKeys, by number or secondary key, with or without 'LocKey#'; null where there is none. ${LocRules}`, {
+  keys: z.array(z.string()).describe("Such as ['LocKey#12345', 'Gameplay-Devices-Computers-Common-NewsFeed']."),
+  language: z.string().optional(),
+  projectDir: z.string().optional(),
+}, (a, b) => b.locGet(a.keys, a.language ?? "en-us", a.projectDir));
+
 // sounds: voice lines are .wem files (project_export makes them Ogg); sound effects sit in .opuspak
 // files indexed by sfx_container.opusinfo, grouped under Wwise events.
 const soundCache = path.join(os.tmpdir(), "redcode-mcp", "sounds");

@@ -62,6 +62,11 @@
       info = null;
       $("propsLabel").textContent = "Properties";
       $("grid").replaceChildren(el("div", "dim", "Open a game file in the CR2W editor to see its properties here."));
+    } else if (m.type === "showRow") {
+      // The host asks for a table row (LocKeys: Add to Project Onscreens); before the table is up, it waits for it.
+      if (sidebar) return;
+      pendingRow = m.index;
+      if (table && mode === "table") void showPendingRow();
     } else if (m.type === "flush") {
       void flush(m.id);
     } else if (m.type === "error") {
@@ -184,7 +189,8 @@
     $("view").textContent = isSpecial() ? "Tree" : HomeLabels[home] ?? "Tree";
     if (mode !== "mesh") disposeMesh();
     if (mode === "table") {
-      await renderTable();
+      if (pendingRow !== null) await showPendingRow();
+      else await renderTable();
     } else if (mode === "atlas") {
       await renderAtlas();
     } else if (mode === "mesh") {
@@ -603,6 +609,15 @@
     input.disabled = !!readOnly;
     wrap.appendChild(input);
     if (isWrapped && value.$storage === "uint64") wrap.appendChild(el("span", "dim", "hash"));
+    // A LocKey (a string, or a LocalizationString's value): its text beside it, from the LocKeys index.
+    const locKey = typeof shown === "string" ? shown : shown && typeof shown === "object" && typeof shown.value === "string" ? shown.value : "";
+    if (/^LocKey#[\w\-.]+$/.test(locKey)) {
+      request("locText", { query: locKey }).then((text) => {
+        if (!text) return;
+        input.title = text;
+        wrap.appendChild(el("span", "dim lockey", text.length > 80 ? `${text.slice(0, 77)}…` : text));
+      }).catch(() => {});
+    }
     return wrap;
   }
 
@@ -656,6 +671,17 @@
   let filterTimer;
   let tablePage = 0;
   const PageSize = 200;
+  let pendingRow = null;
+
+  /** Goes to the row the host asked for: its page, unfiltered, with the row focused. */
+  async function showPendingRow() {
+    const index = pendingRow;
+    pendingRow = null;
+    if (index === null || index === undefined) return;
+    filterQuery = "";
+    tablePage = Math.floor(index / PageSize);
+    await renderTable(index);
+  }
 
   /** Renders the current page. With focusIndex, the page then scrolls to that row and focuses its first field. */
   async function renderTable(focusIndex) {

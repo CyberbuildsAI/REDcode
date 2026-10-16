@@ -243,6 +243,47 @@ export interface TweakRecordFull {
   flats: { name: string; type: string; value: TweakValue }[];
 }
 
+/** An on-screen text (bridge 0.10.0 loc.*): the LocKey number as text, the secondary key, both texts. */
+export interface LocEntry {
+  key: string;
+  secondaryKey: string | null;
+  female: string;
+  male: string;
+  /** "base", "ep1" (Phantom Liberty) or "project". */
+  source: string;
+  /** For a project entry, its file relative to the project folder. */
+  file?: string | null;
+  /** For a project entry, its row in that file. */
+  index?: number | null;
+}
+
+export interface LocSearch {
+  total: number;
+  items: LocEntry[];
+}
+
+/** A project's onscreens file for a language, relative to the project; xl is the .xl naming it, null when found by its language folder. */
+export interface LocProjectFile {
+  file: string;
+  exists: boolean;
+  xl: string | null;
+}
+
+export interface LocNewFile {
+  file: string;
+  /** False when the project already had a file for the language. */
+  created: boolean;
+  xl: string | null;
+  /** True when an .xl was written or created to name the new file. */
+  xlWritten: boolean;
+}
+
+export interface LocLanguage {
+  language: string;
+  base: boolean;
+  ep1: boolean;
+}
+
 export interface TweakFlatValue {
   id: string;
   path: string | null;
