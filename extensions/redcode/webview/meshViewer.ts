@@ -1,7 +1,10 @@
 // The 3D mesh viewer, bundled into media/mesh/viewer.js and loaded by the CR2W editor's mesh mode and
 // by the .glb/.gltf viewer. It shows the glTF WolvenKit's exporter writes: one node per submesh and
 // LOD, named submesh_03_LOD_1 (LOD 1 is the most detailed), each mesh's material name in its extras.
-// See docs/design/view.md, V1.
+// Shading: flat colours per material name; a GLB's own materials and textures, for models made
+// elsewhere (Blender, a model service); or materials EDGEmat renders, through the host (REDcode
+// issue #6). A .mesh's appearances can be switched: each submesh then shows the material that
+// appearance's chunkMaterials names for it. See docs/design/view.md, V1.
 
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
@@ -18,14 +21,39 @@ interface Part {
   object: THREE.Mesh;
   submesh: number;
   lod: number;
+  /** The material name the file gives the submesh. */
+  base: string;
+  /** The material name shown, from the chosen appearance. */
   material: string;
+  /** The glTF's own material, for the Own textures shading. */
+  own: THREE.Material | THREE.Material[];
   triangles: number;
   vertices: number;
 }
 
+/** Baked PBR maps for a material, as base64 PNG, from EDGEmat through the host. */
+export interface RenderedMaps {
+  baseColor?: string;
+  normal?: string;
+  roughness?: string;
+  metalness?: string;
+  fidelity?: "approximate" | "checked";
+}
+
+export interface MountOptions {
+  /** A .mesh's appearances: each names one material per submesh (render chunk), by index. */
+  appearances?: { name: string; chunkMaterials: string[] }[];
+  /** Renderable materials by name for an appearance, when EDGEmat is there. */
+  materials?: (appearance: string | undefined, names: string[]) => Promise<Record<string, RenderedMaps>>;
+}
+
 export interface MeshView {
   dispose(): void;
+  /** Asks for the rendered materials again, such as after EDGEmat changed one. */
+  refreshMaterials(): void;
 }
+
+type Shading = "flat" | "own" | "edgemat";
 
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string): HTMLElementTagNameMap[K] => {
   const e = document.createElement(tag);
@@ -51,7 +79,7 @@ function cssColour(name: string, fallback: string): THREE.Color {
 }
 
 /** Builds the viewer into container: the canvas, a toolbar and a side list of submeshes. */
-export async function mount(container: HTMLElement, source: MeshSource, title = ""): Promise<MeshView> {
+export async function mount(container: HTMLElement, source: MeshSource, title = "", options: MountOptions = {}): Promise<MeshView> {
   container.replaceChildren();
   container.classList.add("meshview");
   const bar = el("div", "toolbar");
@@ -82,7 +110,7 @@ export async function mount(container: HTMLElement, source: MeshSource, title = 
     gltf = await loader.parseAsync(input, "");
   } catch (e) {
     note.textContent = `Could not read the mesh: ${e instanceof Error ? e.message : String(e)}`;
-    return { dispose: () => renderer.dispose() };
+    return { dispose: () => renderer.dispose(), refreshMaterials: () => undefined };
   }
   note.remove();
   stage.appendChild(renderer.domElement);
@@ -91,20 +119,74 @@ export async function mount(container: HTMLElement, source: MeshSource, title = 
   const root = gltf.scene;
   scene.add(root);
   const parts: Part[] = [];
-  const materials = new Map<string, THREE.MeshStandardMaterial>();
+  const flat = new Map<string, THREE.MeshStandardMaterial>();
+  const flatFor = (name: string) => {
+    if (!flat.has(name)) flat.set(name, new THREE.MeshStandardMaterial({ color: colourFor(name), roughness: 0.75, metalness: 0.05, side: THREE.DoubleSide }));
+    return flat.get(name)!;
+  };
+  let hasTextures = false;
   root.traverse((o) => {
     const mesh = o as THREE.Mesh;
     if (!mesh.isMesh) return;
     const m = /submesh_(\d+)_LOD_(\d+)/i.exec(mesh.name || mesh.parent?.name || "");
     const extras = (mesh.userData ?? {}) as { materialNames?: string[] };
-    const material = extras.materialNames?.[0] ?? (Array.isArray(mesh.material) ? "default" : mesh.material.name || "default");
-    if (!materials.has(material)) materials.set(material, new THREE.MeshStandardMaterial({ color: colourFor(material), roughness: 0.75, metalness: 0.05, side: THREE.DoubleSide }));
-    mesh.material = materials.get(material)!;
+    const base = extras.materialNames?.[0] ?? (Array.isArray(mesh.material) ? "default" : mesh.material.name || "default");
+    const own = mesh.material;
+    for (const x of Array.isArray(own) ? own : [own]) if ((x as THREE.MeshStandardMaterial).map) hasTextures = true;
     const geometry = mesh.geometry;
     const vertices = geometry.attributes.position?.count ?? 0;
     const triangles = geometry.index ? geometry.index.count / 3 : vertices / 3;
-    parts.push({ object: mesh, submesh: m ? Number(m[1]) : parts.length, lod: m ? Number(m[2]) : 1, material, triangles, vertices });
+    parts.push({ object: mesh, submesh: m ? Number(m[1]) : parts.length, lod: m ? Number(m[2]) : 1, base, material: base, own, triangles, vertices });
   });
+
+  // Appearances: each submesh's material is the one the appearance names for its index.
+  const appearances = options.appearances ?? [];
+  let appearance: string | undefined = appearances[0]?.name;
+  const nameFor = (p: Part) => appearances.find((a) => a.name === appearance)?.chunkMaterials[p.submesh] || p.base;
+
+  // Rendered materials from EDGEmat, by name, for the current appearance.
+  const rendered = new Map<string, THREE.MeshStandardMaterial>();
+  const textures: THREE.Texture[] = [];
+  let shading: Shading = options.materials ? "edgemat" : hasTextures ? "own" : "flat";
+  let note2: HTMLElement | undefined;
+  const texture = async (b64: string | undefined, colour: boolean) => {
+    if (!b64) return null;
+    const bytes = Uint8Array.from(atob(b64), (ch) => ch.charCodeAt(0));
+    const url = URL.createObjectURL(new Blob([bytes], { type: "image/png" }));
+    try {
+      const t = await new THREE.TextureLoader().loadAsync(url);
+      t.flipY = false; // the glTF UV convention
+      if (colour) t.colorSpace = THREE.SRGBColorSpace;
+      textures.push(t);
+      return t;
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  };
+  const loadRendered = async () => {
+    if (!options.materials) return;
+    const names = [...new Set(parts.map(nameFor))];
+    try {
+      const maps = await options.materials(appearance, names);
+      for (const m of rendered.values()) m.dispose();
+      rendered.clear();
+      let approximate = false;
+      for (const [name, r] of Object.entries(maps)) {
+        rendered.set(name, new THREE.MeshStandardMaterial({ map: await texture(r.baseColor, true), normalMap: await texture(r.normal, false), roughnessMap: await texture(r.roughness, false), metalnessMap: await texture(r.metalness, false), roughness: 1, metalness: r.metalness ? 1 : 0, side: THREE.DoubleSide }));
+        if (r.fidelity !== "checked") approximate = true;
+      }
+      if (note2) note2.textContent = approximate ? "EDGEmat: approximate" : "";
+    } catch (e) {
+      if (note2) note2.textContent = "EDGEmat: " + (e instanceof Error ? e.message : String(e));
+    }
+  };
+  const allMaterials = () => [...flat.values(), ...rendered.values(), ...parts.flatMap((p) => (Array.isArray(p.own) ? p.own : [p.own]))];
+  const paint = () => {
+    for (const p of parts) {
+      p.material = nameFor(p);
+      p.object.material = shading === "own" ? p.own : shading === "edgemat" && rendered.has(p.material) ? rendered.get(p.material)! : flatFor(p.material);
+    }
+  };
 
   const lods = [...new Set(parts.map((p) => p.lod))].sort((a, b) => a - b);
   let lod = lods[0] ?? 1;
@@ -117,6 +199,10 @@ export async function mount(container: HTMLElement, source: MeshSource, title = 
   const stats = el("span", "dim");
 
   const visible = () => parts.filter((p) => p.lod === lod && !hidden.has(p.submesh));
+  let wireframe = false;
+  const setWireframe = () => {
+    for (const m of allMaterials()) (m as THREE.MeshStandardMaterial).wireframe = wireframe;
+  };
   const apply = () => {
     for (const p of parts) p.object.visible = p.lod === lod && !hidden.has(p.submesh);
     const shown = visible();
@@ -160,6 +246,43 @@ export async function mount(container: HTMLElement, source: MeshSource, title = 
     pick.addEventListener("change", () => { lod = Number(pick.value); renderSide(); apply(); });
     bar.appendChild(pick);
   }
+  if (appearances.length > 0) {
+    const pick = el("select");
+    pick.title = "The appearance: which material each submesh shows";
+    for (const a of appearances) {
+      const o = el("option", "", a.name);
+      o.value = a.name;
+      pick.appendChild(o);
+    }
+    pick.addEventListener("change", async () => {
+      appearance = pick.value;
+      if (shading === "edgemat") await loadRendered();
+      paint();
+      setWireframe();
+      renderSide();
+    });
+    bar.appendChild(pick);
+  }
+  const shadings: [Shading, string, boolean][] = [["flat", "Flat colours", true], ["own", "Own textures", hasTextures], ["edgemat", "EDGEmat", !!options.materials]];
+  if (shadings.filter((s) => s[2]).length > 1) {
+    const pick = el("select");
+    pick.title = "How submeshes are shaded: a colour per material name, the file's own materials, or materials EDGEmat renders";
+    for (const [value, label, on] of shadings) {
+      if (!on) continue;
+      const o = el("option", "", label);
+      o.value = value;
+      o.selected = value === shading;
+      pick.appendChild(o);
+    }
+    pick.addEventListener("change", async () => {
+      shading = pick.value as Shading;
+      if (shading === "edgemat" && rendered.size === 0) await loadRendered();
+      paint();
+      setWireframe();
+      renderSide();
+    });
+    bar.appendChild(pick);
+  }
   const toggle = (label: string, initial: boolean, onChange: (on: boolean) => void, tip: string) => {
     const b = el("button", initial ? "on" : "", label);
     b.title = tip;
@@ -167,13 +290,14 @@ export async function mount(container: HTMLElement, source: MeshSource, title = 
     b.addEventListener("click", () => { on = !on; b.classList.toggle("on", on); onChange(on); });
     bar.appendChild(b);
   };
-  toggle("Wireframe", false, (on) => { for (const m of materials.values()) m.wireframe = on; }, "Show the triangles");
+  toggle("Wireframe", false, (on) => { wireframe = on; setWireframe(); }, "Show the triangles");
   toggle("Bounds", false, (on) => { bounds.visible = on; }, "The box around what is shown");
   toggle("Grid", true, (on) => { grid.visible = on; }, "A ground grid, one metre per line at this scale");
   const fit = el("button", "", "Frame");
   fit.title = "Fit the view to what is shown";
   fit.addEventListener("click", frame);
-  bar.append(fit, stats);
+  note2 = el("span", "dim");
+  bar.append(fit, stats, note2);
 
   // Side list: the submeshes of the current LOD, with their material and counts.
   const renderSide = () => {
@@ -192,6 +316,8 @@ export async function mount(container: HTMLElement, source: MeshSource, title = 
     }
   };
 
+  if (shading === "edgemat") await loadRendered();
+  paint();
   renderSide();
   apply();
   const resize = () => {
@@ -222,7 +348,15 @@ export async function mount(container: HTMLElement, source: MeshSource, title = 
       observer.disconnect();
       controls.dispose();
       renderer.dispose();
-      for (const m of materials.values()) m.dispose();
+      for (const m of [...flat.values(), ...rendered.values()]) m.dispose();
+      for (const t of textures) t.dispose();
+    },
+    refreshMaterials: () => {
+      if (shading !== "edgemat") return;
+      void loadRendered().then(() => {
+        paint();
+        setWireframe();
+      });
     },
   };
 }

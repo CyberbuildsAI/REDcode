@@ -316,7 +316,7 @@ footer li { margin-bottom: 3px; letter-spacing: 0; text-transform: none; }
       <tr><td>WScriptDocument</td><td>Built-in JavaScript editor plus <code>wkit</code> typings and a Run command</td><td><code>script.run</code> in the bridge, so existing community scripts work.</td><td><span class="s md">M</span></td></tr>
       <tr><td>RDTGraph (quest, scene, behavior graphs)</td><td>Node graph editor</td><td>Webview with a graph library over the JSON. Each graph type has its own node set.</td><td><span class="s xl">XL</span></td></tr>
       <tr><td>RDTWidget (ink UI preview)</td><td>Widget renderer</td><td>Reimplements WolvenKit's ink layout in a webview. Defer.</td><td><span class="s xl">XL</span></td></tr>
-      <tr><td>RDTLayeredPreview (mlsetup materials)</td><td>Material preview</td><td>Needs the 3D viewer with materials first. Defer.</td><td><span class="s lg">L</span></td></tr>
+      <tr><td>RDTLayeredPreview (mlsetup materials)</td><td>Material preview</td><td>EDGEmat's, through the mesh viewer's material hook (REDcode issue #6). Not built in REDcode.</td><td><span class="s lg">L</span></td></tr>
       <tr><td>redscript</td><td>Redscript IDE extension</td><td>Reused as a dependency of the pack. Not rebuilt.</td><td><span class="s sm">S</span></td></tr>
     </tbody>
   </table></div>
@@ -428,7 +428,7 @@ footer li { margin-bottom: 3px; letter-spacing: 0; text-transform: none; }
       <p>3D viewer over glTF. Audio player. Tweak and LocKey browsers. <code>wkit</code>-compatible script runner with typings, published as an npm package. MCP server over the bridge, so assistants can work a project alongside REDcode. REDnode integration: scaffold, generated types, deploy to the running REDnode process, events and logs streamed back, debugger attached with a live Debug Console, trace and replay for interceptors.</p></div></div>
     <div class="phase"><div class="n">C6<small>PARITY</small></div><div>
       <h3>Graphs and previews</h3>
-      <p>Graph editors for quest, scene and behavior files. Ink widget preview. Layered material preview. Ordered by what modders ask for.</p></div></div>
+      <p>Graph editors for quest, scene and behavior files. Ink widget preview. Ordered by what modders ask for. Layered material preview moved to EDGEmat (decided 2026-10-16, REDcode issue #6): it renders materials and the mesh viewer shows them through its material hook.</p></div></div>
     <div class="phase"><div class="n">C7<small>BRAND</small></div><div>
       <h3>Branded fork</h3>
       <p>Code - OSS build with <code>product.json</code>: REDcode name and icon, REDnode HUD theme as default, bundled extensions and bridge, Open VSX registry. Installer and release pipeline.</p></div></div>

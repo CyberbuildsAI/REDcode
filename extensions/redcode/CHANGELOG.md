@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- **The mesh viewer switches appearances** (REDcode issue #6): an Appearance list for a `.mesh`, and each submesh shows the material that appearance's `chunkMaterials` names for it.
+- **A GLB's own textures**: a model that carries its materials and textures, such as one from Blender or a model service, opens with them, with Shading to switch to flat colours.
+- **EDGEmat materials**: with EDGEmat installed, the viewer asks it to render the mesh's materials for the appearance shown (`renderMaterials`) and redraws when EDGEmat reports a change. Built to the API EDGEmat proposed; untested until EDGEmat ships it. Layered material preview moves to EDGEmat, so REDcode does not build it (C6).
 - **A GLB can become a new mesh.** Import from Raw on a `.glb` or `.gltf` with no `.mesh` at its path asks for a template: a game mesh to start from, whose materials and appearances the new mesh keeps. WolvenKit only imports a model over an existing mesh, so REDbridge 0.9.0 copies the template there first. The log lists the submeshes, the GLB's materials and how appearances were sized. `REDcodeApi.importFile` takes `{ template }` and returns the same `mesh` report; MCP `project_import` takes `template`. From REDbridge issue #5, for EDGEfab and EDGEmat.
 - **Import from Raw takes sound effects again**, as WAV files named after the sound's hash (`832549876.wav`, from Copy Hash in the sound list). REDbridge 0.9.0's `sound.importWavs` writes the changed `.opuspak` and a new `sfx_container.opusinfo` into `source/archive`, keeping earlier replacements. A folder import takes every such WAV under it. The API's `importFile` does the same. Voice lines (`.wem`) cannot be imported yet. MCP tool `sound_import`.
 

@@ -24,6 +24,7 @@ A 3D view of meshes, so a modder sees what a `.mesh` is without Blender. **Done 
 - **The model comes from the export REDcode already has.** The bridge's `project.export` (0.7.0) writes a `.glb`; for a game file the extension extracts it into a cache first. No new bridge method.
 - **Rendering**: three.js, bundled into the extension (MIT), so the webview loads nothing from the network. Orbit, pan and zoom, a grid, wireframe, bounds and polygon counts, LOD and submesh toggles. Materials as flat colours first; textures from the export's material files after that.
 - **Test**: the owner's `tower.mesh`, a weapon and a character mesh from the game.
+- **Added 2026-10-16 (REDcode issue #6, EDGEmat):** appearance switching (each submesh shows its appearance's `chunkMaterials` entry, read from the document session), a GLB's own materials and textures as a Shading choice, and a material hook: with EDGEmat installed (`edgemodders.edgemat`, `src/edgemat.ts`), the viewer asks its `renderMaterials` for baked PBR maps as PNG bytes and redraws on `onDidChangeMaterials`. Layered material preview is EDGEmat's, not REDcode's. Checked in a harness with the cargo crate's 18 appearances, a stand-in EDGEmat and a textured GLB; untested against EDGEmat itself.
 
 ## V2 Audio player
 

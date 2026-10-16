@@ -47,6 +47,8 @@
       onDocument(m);
     } else if (m.type === "reload") {
       reloadAll(m.reason);
+    } else if (m.type === "materialsChanged") {
+      meshView?.refreshMaterials?.();
     } else if (m.type === "changed") {
       // Another page edited the document: refetch and redraw, keeping the selection and expansion.
       reloadAll("an edit elsewhere");
@@ -222,7 +224,10 @@
     try {
       const payload = await request("meshPayload");
       const source = payload.json ? { json: payload.json } : { data: base64ToBuffer(payload.data) };
-      meshView = await window.REDcodeMesh.mount(grid, source, payload.dirty ? "Shows the saved file; save to see your edits" : "");
+      meshView = await window.REDcodeMesh.mount(grid, source, payload.dirty ? "Shows the saved file; save to see your edits" : "", {
+        appearances: payload.appearances,
+        materials: payload.materialProvider ? (appearance, materials) => request("renderMaterials", { appearance, materials }) : undefined,
+      });
       meshShown = true;
       status(payload.cached ? "" : `Exported to ${payload.path}`);
     } catch (e) {

@@ -10,6 +10,7 @@ import * as vscode from "vscode";
 import type { BridgeClient } from "./bridgeClient";
 import { gamePathOfUri } from "./gameFs";
 import { meshGlbFor, meshPayload } from "./meshExport";
+import { findEdgemat, mapsForWebview } from "./edgemat";
 import { ProjectFolders } from "./project";
 import type { TextureViewer } from "./textureViewer";
 import type { DocumentInfo, PatchOp, PatchResult } from "./types";
@@ -202,6 +203,9 @@ interface Request {
   depot?: string;
   /** textureData: the PNG the page could not load through its resource URI. */
   png?: string;
+  /** renderMaterials: the appearance shown and the material names it uses. */
+  appearance?: string;
+  materials?: string[];
 }
 
 export class Cr2wEditorProvider implements vscode.CustomEditorProvider<Cr2wDocument> {
@@ -373,6 +377,9 @@ export class Cr2wEditorProvider implements vscode.CustomEditorProvider<Cr2wDocum
     this.pages.get(document)!.add(webview);
 
     const reload = document.onDidReload((reason) => post({ type: "reload", reason }));
+    // The mesh as EDGEmat knows it: its game path, or the file on disk.
+    const meshRef = () => document.gamePath ?? document.uri.fsPath;
+    let materialWatch: vscode.Disposable | undefined;
     const messages = webview.onDidReceiveMessage(async (m: Request) => {
       try {
         switch (m.type) {
@@ -418,7 +425,21 @@ export class Cr2wEditorProvider implements vscode.CustomEditorProvider<Cr2wDocum
             const cache = path.join(this.textures.root.fsPath, "mesh");
             const r = await meshGlbFor(this.requireBridge(), cache, document.gamePath ? { gamePath: document.gamePath } : { file: document.uri.fsPath });
             if (!r.cached) this.log.appendLine(`cr2w editor: exported ${document.name} to ${r.glb} for the 3D view`);
-            return reply(m.id, { ...meshPayload(r.glb), path: r.glb, cached: r.cached, dirty: document.log.length > 0 });
+            const appearances = await this.meshAppearances(document).catch(() => []);
+            // EDGEmat renders materials when it is installed (REDcode issue #6).
+            const edgemat = await findEdgemat();
+            if (edgemat && !materialWatch) {
+              materialWatch = edgemat.onDidChangeMaterials((e) => {
+                if (!e.mesh || e.mesh.toLowerCase() === meshRef().toLowerCase()) post({ type: "materialsChanged", materials: e.materials });
+              });
+            }
+            return reply(m.id, { ...meshPayload(r.glb), path: r.glb, cached: r.cached, dirty: document.log.length > 0, appearances, materialProvider: !!edgemat });
+          }
+          case "renderMaterials": {
+            const edgemat = await findEdgemat();
+            if (!edgemat) throw new Error("EDGEmat is not installed or not running");
+            const maps = await edgemat.renderMaterials({ mesh: meshRef(), appearance: m.appearance, materials: m.materials });
+            return reply(m.id, Object.fromEntries(Object.entries(maps).map(([name, r]) => [name, mapsForWebview(r)])));
           }
           case "documentTexture": {
             // The open file itself, for the texture view: the game's copy, or the file on disk.
@@ -460,8 +481,28 @@ export class Cr2wEditorProvider implements vscode.CustomEditorProvider<Cr2wDocum
     return new vscode.Disposable(() => {
       reload.dispose();
       messages.dispose();
+      materialWatch?.dispose();
       this.pages.get(document)?.delete(webview);
     });
+  }
+
+  /** A .mesh's appearances and the material each names per submesh (chunkMaterials), read from the document. */
+  private async meshAppearances(document: Cr2wDocument): Promise<{ name: string; chunkMaterials: string[] }[]> {
+    const bridge = this.requireBridge();
+    await document.ensureOpen(bridge);
+    const list = await bridge.getNode(document.doc, "appearances", 0, 1000);
+    const count = list.total ?? list.children?.length ?? 0;
+    if (count === 0) return [];
+    const paths = Array.from({ length: count }, (_, i) => [`appearances.${i}.Data.name`, `appearances.${i}.Data.chunkMaterials`]).flat();
+    const nodes = await bridge.getNodes(document.doc, paths, 1000);
+    const text = (v: unknown) => (v && typeof v === "object" && "$value" in v ? String((v as { $value: unknown }).$value ?? "") : String(v ?? ""));
+    const out: { name: string; chunkMaterials: string[] }[] = [];
+    for (let i = 0; i < count; i++) {
+      const name = nodes[i * 2];
+      const chunks = nodes[i * 2 + 1];
+      out.push({ name: text(name?.value), chunkMaterials: (chunks?.children ?? []).map((c) => text(c.value)) });
+    }
+    return out;
   }
 
   async saveCustomDocument(document: Cr2wDocument): Promise<void> {
