@@ -994,6 +994,8 @@ async function addLocKeyToProject(b: BridgeClient, entry: LocEntry): Promise<voi
   const uri = vscode.Uri.file(file);
   cr2wEditor.showRow(uri, index);
   await vscode.commands.executeCommand("vscode.openWith", uri, cr2wViewTypeFor(file));
+  // Show where the entry lives, a new file especially, as an import shows what it wrote.
+  await revealWritten(file);
   vscode.window.setStatusBarMessage(`$(edit) REDcode: ${locKeyOf(entry)} is row ${index} of ${path.basename(file)}; change its text, then pack`, 6000);
 }
 
