@@ -12,3 +12,6 @@ rtti-dump*
 
 # built by extensions/redcode/esbuild.mjs
 extensions/redcode/media/mesh/
+
+# copied from the repository root by packages/redcode-mcp/esbuild.mjs for npm
+packages/redcode-mcp/LICENSE

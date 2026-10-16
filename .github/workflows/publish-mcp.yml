@@ -1,0 +1,57 @@
+# Publishes @edgemodders/redcode-mcp to npm when its version tag is pushed:
+#   git tag mcp-v0.2.0 && git push origin mcp-v0.2.0
+# Checks the tag against packages/redcode-mcp/package.json, builds the bundled server and its notices,
+# publishes with npm provenance (NPM_TOKEN, an Edgemodders organisation secret: an npm token for the
+# edgemodders account with publish rights), and makes a GitHub release from the package's CHANGELOG.
+# REDcode's own v* tags go to publish.yml; mcp-v* tags do not match v*.
+name: Publish redcode-mcp
+
+on:
+  push:
+    tags: ["mcp-v*"]
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          registry-url: https://registry.npmjs.org
+
+      - name: The tag matches the package version
+        run: |
+          version="${GITHUB_REF_NAME#mcp-v}"
+          have=$(node -p "require('./packages/redcode-mcp/package.json').version")
+          if [ "${have}" != "${version}" ]; then
+            echo "::error::Tag ${GITHUB_REF_NAME} does not match packages/redcode-mcp/package.json version ${have}"
+            exit 1
+          fi
+          echo "VERSION=${version}" >> "$GITHUB_ENV"
+
+      - run: npm ci
+
+      - name: Typecheck and build
+        run: |
+          npm run typecheck --workspace packages/redcode-mcp
+          npm run mcp:build
+
+      - name: npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --workspace packages/redcode-mcp --provenance --access public
+
+      - name: GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          notes=$(node -e "const s=require('fs').readFileSync(process.argv[2],'utf8');const m=s.split(/^## /m).find(p=>p.startsWith(process.argv[1]+' ')||p.startsWith(process.argv[1]+'\n'));console.log(m?m.split('\n').slice(1).join('\n').trim():'')" "${VERSION}" packages/redcode-mcp/CHANGELOG.md)
+          # The repository's Latest release stays REDcode's.
+          gh release create "${GITHUB_REF_NAME}" --title "redcode-mcp ${VERSION}" --notes "${notes}" --latest=false

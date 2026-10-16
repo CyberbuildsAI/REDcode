@@ -1,34 +1,57 @@
 {
-  "name": "redcode-mcp",
-  "version": "0.1.0",
-  "description": "REDbridge as an MCP server: Cyberpunk 2077 archives, CR2W files as JSON, textures, hashes, and a document session with patches, for AI assistants such as Claude Code and REDagent.",
+  "name": "@edgemodders/redcode-mcp",
+  "version": "0.2.0",
+  "description": "Cyberpunk 2077 modding tools for AI assistants over MCP: the game archives, CR2W files as JSON and node-by-node edits, textures, TweakDB, game sounds, export, import and pack, through REDbridge and WolvenKit's engine.",
   "license": "MIT",
+  "author": "Edgemodders",
+  "homepage": "https://edgemodders.github.io/REDcode/mcp.html",
+  "bugs": {
+    "url": "https://github.com/Edgemodders/REDcode/issues"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/Edgemodders/REDcode",
     "directory": "packages/redcode-mcp"
   },
-  "keywords": ["cyberpunk", "modding", "wolvenkit", "mcp", "redcode", "rednode"],
+  "keywords": [
+    "cyberpunk",
+    "cyberpunk2077",
+    "modding",
+    "wolvenkit",
+    "mcp",
+    "mcp-server",
+    "model-context-protocol",
+    "redcode",
+    "tweakdb"
+  ],
   "bin": {
     "redcode-mcp": "dist/server.cjs"
   },
-  "files": ["dist", "README.md"],
+  "files": [
+    "dist/server.cjs",
+    "dist/ThirdPartyNotices.txt",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "node esbuild.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "start": "node dist/server.cjs"
   },
-  "dependencies": {
+  "devDependencies": {
     "@modelcontextprotocol/sdk": "^1.32.1",
     "vscode-jsonrpc": "^9.0.3",
-    "zod": "^3.25.0"
-  },
-  "devDependencies": {
+    "zod": "^3.25.0",
     "@types/node": "^24.0.0",
     "esbuild": "^0.28.2",
     "typescript": "~5.9.3"
   },
   "engines": {
     "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   }
 }

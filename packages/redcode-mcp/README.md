@@ -1,10 +1,33 @@
-# redcode-mcp
+# @edgemodders/redcode-mcp
 
-REDbridge as an MCP server. An assistant such as Claude Code or REDagent gets the same engine REDcode's editor uses: search and extract from the Cyberpunk 2077 archives, convert CR2W files to WolvenKit JSON and back, decode textures, hash strings, and edit CR2W files node by node through a document session with patches. The server spawns REDbridge and talks to it over stdio; nothing links WolvenKit in-process, so this package stays MIT.
+Cyberpunk 2077 modding tools for AI assistants, over the Model Context Protocol (MCP). An assistant such as Claude Code gets the same engine as REDcode, the Cyberpunk 2077 modding workspace for Visual Studio Code. It can:
+- search and extract from the game's archives
+- read CR2W files as WolvenKit JSON, write them back, and edit them node by node with patches
+- decode textures
+- read TweakDB
+- find and extract game sounds
+- export, import and pack a WolvenKit project
+
+The server starts [REDbridge](https://github.com/Edgemodders/REDbridge), which runs [WolvenKit](https://github.com/WolvenKit/WolvenKit)'s libraries, and talks to it over stdio. Nothing links WolvenKit into this package, so it stays MIT. Credit for the file formats and the engine belongs to the WolvenKit team.
+
+## What you need
+
+- Windows, and Cyberpunk 2077 installed.
+- REDbridge. REDcode's **Install REDbridge** command fetches it, or you can unzip a [REDbridge release](https://github.com/Edgemodders/REDbridge/releases) anywhere.
+- The .NET 10 runtime: `winget install Microsoft.DotNet.Runtime.10`.
+- Node.js 20 or newer.
 
 ## Setup
 
-The server needs REDbridge.exe and the game folder. It looks, in order, at the command line, the environment, and the VS Code settings REDcode uses, so a machine with REDcode set up needs no configuration.
+Register it with Claude Code:
+
+```
+claude mcp add redcode -- npx -y @edgemodders/redcode-mcp
+```
+
+Any other MCP client takes the same command: `npx -y @edgemodders/redcode-mcp`.
+
+The server needs REDbridge.exe and the game folder. It looks for them in order: the command line, then the environment, then the VS Code settings REDcode uses. So on a machine where REDcode is set up, it needs no configuration.
 
 | Setting | Command line | Environment | VS Code setting |
 |---|---|---|---|
@@ -12,20 +35,11 @@ The server needs REDbridge.exe and the game folder. It looks, in order, at the c
 | Game folder | `--game <path>` | `REDCODE_GAME_PATH` | `redcode.gamePath` |
 | Per-user .NET runtime | `--dotnet-root <path>` | `DOTNET_ROOT` | `redcode.dotnetRoot` |
 
-Build it from the REDcode checkout:
+For example: `claude mcp add redcode -- npx -y @edgemodders/redcode-mcp --bridge "D:\Tools\REDbridge" --game "D:\Games\Cyberpunk 2077"`.
 
-```
-npm install
-npm run mcp:build
-```
+The bridge starts on the first tool call and loads the archive index in about three seconds, then stays up for the session. If it dies, the next call restarts it, and any open document sessions are lost. The tools need REDbridge 0.8.0 or newer; TweakDB and the sound names need 0.8.0 and 0.7.2.
 
-Register it with Claude Code (the path is the built server):
-
-```
-claude mcp add redcode -- node "E:\Modding\Cyberpunk 2077\REDcode\packages\redcode-mcp\dist\server.cjs"
-```
-
-Any other MCP client takes the same command. The bridge starts on the first tool call and loads the archive index, about three seconds, then stays up for the session. If it dies, the next call restarts it; open document sessions are lost.
+To build from source, run `npm install` and `npm run mcp:build` in the [REDcode repository](https://github.com/Edgemodders/REDcode), then point the client at `packages/redcode-mcp/dist/server.cjs` with `node`.
 
 ## Tools
 

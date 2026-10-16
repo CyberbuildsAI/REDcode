@@ -18,7 +18,9 @@ import { audioFormat, GameSoundIndex, opusSound, parseOpusInfo, wwiseHash, type 
 import { BridgeClient } from "../../../extensions/redcode/src/bridgeClient";
 import type { PatchOp } from "../../../extensions/redcode/src/types";
 
-const Version = "0.1.0";
+// The package version, set by esbuild from package.json.
+declare const __VERSION__: string;
+const Version = __VERSION__;
 
 // ---- configuration ---------------------------------------------------------------------------
 

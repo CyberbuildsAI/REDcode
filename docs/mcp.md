@@ -1,16 +1,18 @@
 # MCP server
 
-`redcode-mcp` exposes REDbridge to AI assistants as an MCP server over stdio. Claude Code, REDagent or any MCP client gets the same engine the REDcode editor uses: the archives, CR2W files as JSON, textures, hashes, and node-by-node editing through document sessions. This is the "mcp" row of the bridge protocol in the [design document](design.html).
+`@edgemodders/redcode-mcp` ([npm](https://www.npmjs.com/package/@edgemodders/redcode-mcp)) exposes REDbridge to AI assistants as an MCP server over stdio. Claude Code, REDagent or any MCP client gets the same engine the REDcode editor uses: the archives, CR2W files as JSON, textures, hashes, and node-by-node editing through document sessions. This is the "mcp" row of the bridge protocol in the [design document](design.html).
 
 The package lives at `packages/redcode-mcp` and is MIT: it spawns REDbridge and talks JSON-RPC over stdio, the same boundary the extension keeps.
 
 ## Setup
 
 ```
-npm install
-npm run mcp:build
-claude mcp add redcode -- node "<REDcode checkout>\packages\redcode-mcp\dist\server.cjs"
+claude mcp add redcode -- npx -y @edgemodders/redcode-mcp
 ```
+
+It needs Windows, the game, the .NET 10 runtime and REDbridge 0.8.0 or newer (REDcode's Install REDbridge fetches it). To run it from a REDcode checkout instead: `npm install`, `npm run mcp:build`, then `claude mcp add redcode -- node "<REDcode checkout>\packages\redcode-mcp\dist\server.cjs"`.
+
+Releases go out from a pushed `mcp-vX.Y.Z` tag: `.github/workflows/publish-mcp.yml` checks the tag against the package version, builds, publishes to npm with provenance (secret `NPM_TOKEN`) and makes a GitHub release from `packages/redcode-mcp/CHANGELOG.md`.
 
 The server finds REDbridge.exe and the game folder from `--bridge` and `--game`, from `REDBRIDGE_EXE` and `REDCODE_GAME_PATH`, or from the VS Code settings `redcode.bridgePath` and `redcode.gamePath`. On a machine with REDcode set up, no configuration is needed. The bridge starts on the first tool call, loads the archive index in about three seconds, and stays up for the session.
 
