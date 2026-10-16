@@ -271,7 +271,7 @@ const LocRules = "Languages are folder names such as en-us or de-de (default en-
 
 tool("loc_languages", "The languages the game has on-screen texts for, and whether Phantom Liberty has them too. Bridge 0.10.0.", {}, (_a, b) => b.locLanguages());
 
-tool("loc_search", `Find on-screen texts: 'LocKey#123' or a number finds that LocKey, otherwise every word must appear, any case, in the secondary key or the female or male text. Each result has key (the LocKey number as text), secondaryKey, female, male and source (base, ep1 or project). ${LocRules}`, {
+tool("loc_search", `Find on-screen texts: 'LocKey#123' or a number finds that LocKey, otherwise every word must appear, any case, in the secondary key or the female or male text. Each result has key (the LocKey number as text), secondaryKey, female, male, source (base, ep1 or project), and file and index: its onscreens file (a game path, or relative to projectDir for a project entry) and its row there, for cr2w_open and cr2w_get_node. ${LocRules}`, {
   query: z.string().describe("LocKey#123, a secondary key, or words such as 'militech pistol'."),
   language: z.string().optional(),
   limit: z.number().optional().describe("Most results to return (default 200)."),

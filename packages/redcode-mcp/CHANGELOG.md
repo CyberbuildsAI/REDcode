@@ -1,8 +1,10 @@
 # Changelog
 
-## Unreleased
+## 0.3.0 (2026-10-16)
 
-- `loc_languages`, `loc_search` and `loc_get`: the game's on-screen texts (LocKeys), with a project's own over them. Needs REDbridge 0.10.0.
+The new tools need REDbridge 0.10.0 (`loc_*`) and 0.9.0 (`sound_import`, `template`); the rest still work with 0.8.0.
+
+- `loc_languages`, `loc_search` and `loc_get`: the game's on-screen texts (LocKeys), with a project's own over them. Each `loc_search` result names its onscreens file and row, for `cr2w_open` and `cr2w_get_node`. Needs REDbridge 0.10.0.
 - `project_import` takes `template`, a game path or `.mesh` to start a new mesh from when a GLB has no mesh to import over, and a mesh import returns `mesh`: submeshes, the GLB's material names per submesh, material entries, appearances and what was resized. Needs REDbridge 0.9.0.
 - `sound_import`: override game sound effects in a project from `<hash>.wav` files. Needs REDbridge 0.9.0.
 

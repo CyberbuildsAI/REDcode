@@ -37,7 +37,7 @@ The server needs REDbridge.exe and the game folder. It looks for them in order: 
 
 For example: `claude mcp add redcode -- npx -y @edgemodders/redcode-mcp --bridge "D:\Tools\REDbridge" --game "D:\Games\Cyberpunk 2077"`.
 
-The bridge starts on the first tool call and loads the archive index in about three seconds, then stays up for the session. If it dies, the next call restarts it, and any open document sessions are lost. The tools need REDbridge 0.8.0 or newer; TweakDB and the sound names need 0.8.0 and 0.7.2.
+The bridge starts on the first tool call and loads the archive index in about three seconds, then stays up for the session. If it dies, the next call restarts it, and any open document sessions are lost. Most tools work with REDbridge 0.8.0 or newer; `sound_import` and `project_import`'s `template` need 0.9.0, and the `loc_*` tools 0.10.0.
 
 To build from source, run `npm install` and `npm run mcp:build` in the [REDcode repository](https://github.com/Edgemodders/REDcode), then point the client at `packages/redcode-mcp/dist/server.cjs` with `node`.
 

@@ -1,6 +1,6 @@
 {
   "name": "@edgemodders/redcode-mcp",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Cyberpunk 2077 modding tools for AI assistants over MCP: the game archives, CR2W files as JSON and node-by-node edits, textures, TweakDB, game sounds, export, import and pack, through REDbridge and WolvenKit's engine.",
   "license": "MIT",
   "author": "Edgemodders",
