@@ -153,7 +153,7 @@ export async function packProject(bridge: BridgeClient, project: ProjectInfo, op
 }
 
 /** Where WolvenKit keeps a project's REDmod custom sound WAVs (Cp77Project.SoundDirectory). */
-export const CustomSoundsFolder = path.join("source", "customSounds");
+export const CustomSoundsFolder = ProjectFolders.customSounds;
 
 /** The customSounds entries of source/resources/info.json, as written there; [] when there are none. */
 export function customSoundsOf(project: ProjectInfo): Record<string, unknown>[] {

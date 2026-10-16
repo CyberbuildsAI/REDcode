@@ -6,7 +6,7 @@ import * as vscode from "vscode";
 import { folderIcon, iconFor } from "./assetBrowser";
 import { isExportable, isImportable, sourceFolderOf } from "./modkit";
 import { compileFilter, type TreeFilter } from "./treeFilter";
-import { ProjectFolders, type ProjectFolderKey, type ProjectInfo } from "./project";
+import { OptionalFolders, ProjectFolders, type ProjectFolderKey, type ProjectInfo } from "./project";
 
 export type ProjectNode =
   | { kind: "project"; dir: string }
@@ -18,6 +18,7 @@ const RootLabels: Record<ProjectFolderKey, string> = {
   archive: "Archive",
   raw: "Raw",
   resources: "Resources",
+  customSounds: "Custom Sounds",
   packed: "Packed",
 };
 
@@ -25,6 +26,7 @@ const RootHints: Record<ProjectFolderKey, string> = {
   archive: "Game files added to the project. Packed into the mod archive.",
   raw: "Exported files (glTF, PNG, JSON) and imports waiting to go back in.",
   resources: "Scripts, tweaks and other files copied into the game folder as they are.",
+  customSounds: "REDmod custom sounds: the WAVs that source/resources/info.json names. A REDmod pack copies them into the mod.",
   packed: "Build output: the mod as the game loads it.",
 };
 
@@ -147,7 +149,9 @@ export class ProjectExplorer implements vscode.TreeDataProvider<ProjectNode> {
       return [{ kind: "project", dir: project.dir }];
     }
     if (node.kind === "project") {
-      const roots = (Object.keys(ProjectFolders) as ProjectFolderKey[]).map((key): ProjectNode => ({ kind: "root", key, dir: path.join(project.dir, ProjectFolders[key]) }));
+      const roots = (Object.keys(ProjectFolders) as ProjectFolderKey[])
+        .map((key): ProjectNode => ({ kind: "root", key, dir: path.join(project.dir, ProjectFolders[key]) }))
+        .filter((r) => r.kind !== "root" || !OptionalFolders.includes(r.key) || fs.existsSync(r.dir));
       // Filtered, a root without matches is left out.
       return this.filtered ? roots.filter((r) => r.kind === "root" && this.filtered!.folders.has(r.dir.toLowerCase())) : roots;
     }

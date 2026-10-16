@@ -23,10 +23,15 @@ export const ProjectFolders = {
   archive: path.join("source", "archive"),
   raw: path.join("source", "raw"),
   resources: path.join("source", "resources"),
+  /** REDmod custom sounds, named in source/resources/info.json. Made by the tool that writes the first one, not by a new project. */
+  customSounds: path.join("source", "customSounds"),
   packed: "packed",
 } as const;
 
 export type ProjectFolderKey = keyof typeof ProjectFolders;
+
+/** Folders only some projects have; the Project view shows them when they exist. */
+export const OptionalFolders: readonly ProjectFolderKey[] = ["customSounds"];
 
 /** Finds the first .cpmodproj directly inside the folder, or undefined. */
 export function findProject(dir: string): ProjectInfo | undefined {
@@ -62,8 +67,8 @@ export function readProject(file: string): ProjectInfo {
 /** Creates the project file and WolvenKit's folder layout. The folder may already exist. */
 export function createProject(dir: string, name: string, author: string): ProjectInfo {
   const modName = name.replace(/[^A-Za-z0-9_\-]/g, "");
-  for (const folder of Object.values(ProjectFolders)) {
-    fs.mkdirSync(path.join(dir, folder), { recursive: true });
+  for (const [key, folder] of Object.entries(ProjectFolders)) {
+    if (!OptionalFolders.includes(key as ProjectFolderKey)) fs.mkdirSync(path.join(dir, folder), { recursive: true });
   }
   const file = path.join(dir, `${name}.cpmodproj`);
   const xml = `<?xml version="1.0" encoding="utf-8"?>
