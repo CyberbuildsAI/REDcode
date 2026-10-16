@@ -117,6 +117,14 @@ The **TweakDB** view, **REDcode: Open TweakDB Record...** and the hover all read
 
 REDcode returns an API from `activate()`: the bridge, the game folder, the open project, the game's sound effect index, any sound as audio a webview decodes, import and pack. See [Extension API](https://edgemodders.github.io/REDcode/api.html).
 
+## Making a new asset
+
+**Edit in Blender** (right-click a `.glb` or `.gltf` in Raw, or a `.mesh` in Archive) opens the model in Blender. A `.mesh` is exported to Raw first. Blender saves it as a `.blend` beside the GLB, and from then on every save (Ctrl+S) also exports the GLB, with the normals and tangents WolvenKit's importer needs. REDcode imports each save into Archive and stops watching when Blender closes, or when you click the Blender item in the status bar. Blender is found from `redcode.blenderPath`, the newest version under Program Files, or a Steam library.
+
+A GLB with no `.mesh` at its path becomes a new mesh from a template: Import asks for a game mesh of a similar kind, whose materials and appearances the new mesh keeps.
+
+**Pack and Try** (the flame in the Project view) packs and gets the mod into the game as fast as the game allows. With Red Hot Tools installed, the archive goes to the hot folder and the running game reloads it; respawn or re-equip what uses it to see the change. Without it, the mod is packed and installed, and the change shows after a restart.
+
 ## Export and import
 
 **Export to Raw** on a game file under Archive writes it to the same path under Raw in a format other tools edit, through WolvenKit's exporter: a mesh as glTF (`.glb`, or `.gltf` with `redcode.export.meshFormat`) with its material textures, a texture as an image (`redcode.export.textureFormat`, PNG by default), a sound (`.wem`) as Ogg, and the other types WolvenKit converts (masks, animations, morph targets, fonts, CSV). Files with no such format keep **Open as JSON**. **Import from Raw** on a raw file brings it back. A game sound effect can be replaced too: name the WAV after the sound's hash, such as `832549876.wav` (Copy Hash in the sound list gives it), and Import writes the changed `.opuspak` and a new `sfx_container.opusinfo` into Archive, keeping earlier replacements. Needs REDbridge 0.9.0. Voice lines (`.wem`) cannot be imported yet. With `redcode.import.keepSettings` (on by default) the file it replaces keeps its settings: a texture its group, format, compression and every flag, a mesh its materials. Both work on a folder too; a folder import takes only files whose game file is already in Archive, the newest raw file of each, so the material textures a mesh export writes into Raw stay out of the mod unless you import one on its own. A file open in the CR2W editor reloads after the import. Needs REDbridge 0.7.0.

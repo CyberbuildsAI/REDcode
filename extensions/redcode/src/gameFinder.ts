@@ -54,6 +54,11 @@ export async function findGames(): Promise<FoundGame[]> {
   return found;
 }
 
+/** Steam's install folder, from the registry, or undefined. */
+export function steamPath(): Promise<string | undefined> {
+  return process.platform !== "win32" ? Promise.resolve(undefined) : regValue("HKCU\\Software\\Valve\\Steam", "SteamPath").then((s) => s ?? regValue("HKLM\\SOFTWARE\\WOW6432Node\\Valve\\Steam", "InstallPath"));
+}
+
 /** The library folders of a Steam install: the install itself and every "path" in libraryfolders.vdf. */
 export function steamLibraries(steam: string | undefined): string[] {
   if (!steam) return [];

@@ -93,6 +93,14 @@ export interface REDcodeApi {
   importFile(file: string, options?: { template?: string }): Promise<{ ok: boolean; written: string[]; mesh?: MeshImport | null }>;
   /** Packs the open project, as REDcode: Pack does. */
   pack(): Promise<{ packedDir: string; archive?: string; archiveFiles: number }>;
+  /**
+   * Packs and gets the project into the game as fast as it allows (REDcode: Pack and Try): with Red Hot
+   * Tools into the hot folder, which the running game reloads ("hot"); otherwise installed, through
+   * REDdeck when it is there, for the next game start ("installed"). undefined when the pack failed.
+   */
+  packAndTry(): Promise<"hot" | "installed" | undefined>;
+  /** Opens a project .glb, .gltf or .mesh in Blender; each save there is imported back (REDcode: Edit in Blender). */
+  editInBlender(file: string): Promise<void>;
 }
 
 export interface ApiHost {
@@ -104,6 +112,8 @@ export interface ApiHost {
   audioCache: string;
   importFile(file: string, options?: { template?: string }): Promise<{ ok: boolean; written: string[]; mesh?: MeshImport | null }>;
   pack(): Promise<{ packedDir: string; archive?: string; archiveFiles: number }>;
+  packAndTry(): Promise<"hot" | "installed" | undefined>;
+  editInBlender(file: string): Promise<void>;
 }
 
 export function projectRef(p: ProjectInfo | undefined): ProjectRef | undefined {
@@ -200,5 +210,7 @@ export function createApi(host: ApiHost): REDcodeApi {
 
     importFile: host.importFile,
     pack: host.pack,
+    packAndTry: host.packAndTry,
+    editInBlender: host.editInBlender,
   };
 }

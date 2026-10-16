@@ -1,6 +1,6 @@
 // REDcode: owns the bridge process for this VS Code window, the project, and the views.
 
-import { spawn } from "node:child_process";
+import { spawn, type ChildProcess } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as vscode from "vscode";
@@ -26,14 +26,15 @@ import { Cr2wEditorProvider, Cr2wPropertiesView, Cr2wViewType, cr2wViewTypeFor, 
 import { GameFileSystem, gameUri } from "./gameFs";
 import { compareJson, formatDifference, type JsonComparison } from "./jsonDiff";
 import { hasRedHotTools, installDirect, installHot, launchTarget, planInstall, readRecord, uninstallDirect } from "./install";
-import { isSoundWav, targetsUnder } from "./modkit";
+import { isSoundWav, sourceFolderOf, targetsUnder } from "./modkit";
 import { compileFilter } from "./treeFilter";
 import { MeshViewer } from "./meshViewer";
 import { AudioPlayer, AudioViewType, SoundsViewType } from "./audioPlayer";
 import { GameSoundIndex } from "./audio";
 import { packProject, type PackSummary } from "./pack";
 import { findREDdeck, runningREDdeck } from "./reddeck";
-import { findGames, isGameFolder } from "./gameFinder";
+import { findGames, isGameFolder, steamPath } from "./gameFinder";
+import { findBlender, writeBlenderScript } from "./blender";
 import { TweakDb, TweakHover, TweakTree, type TweakNode } from "./tweakView";
 import { TweakRecordPanel } from "./tweakRecordPanel";
 import { createApi, type REDcodeApi } from "./api";
@@ -168,6 +169,9 @@ export function activate(context: vscode.ExtensionContext): REDcodeApi | undefin
     vscode.commands.registerCommand("redcode.packAndInstall", () => shipCommand(async () => (await packCommand()) && installCommand())),
     vscode.commands.registerCommand("redcode.uninstall", () => shipCommand(() => uninstallCommand())),
     vscode.commands.registerCommand("redcode.installHot", () => shipCommand(() => installHotCommand())),
+    vscode.commands.registerCommand("redcode.packAndTry", () => shipCommand(() => packAndTryCommand())),
+    vscode.commands.registerCommand("redcode.editInBlender", (node?: ProjectNode) => shipCommand(() => editInBlenderCommand(node))),
+    vscode.commands.registerCommand("redcode.stopBlender", () => stopBlender("Stopped watching for Blender's saves.")),
     vscode.commands.registerCommand("redcode.runGame", () => shipCommand(() => runGameCommand())),
     vscode.commands.registerCommand("redcode.export", (node: ProjectNode) => withBridge((b) => modkitCommand(b, node, "export"))),
     vscode.commands.registerCommand("redcode.import", (node: ProjectNode) => withBridge((b) => modkitCommand(b, node, "import"))),
@@ -216,11 +220,14 @@ export function activate(context: vscode.ExtensionContext): REDcodeApi | undefin
       explorer.refresh();
       return { packedDir: s.packedDir, archive: s.archive, archiveFiles: s.archiveFiles };
     },
+    packAndTry: () => packAndTryCommand(),
+    editInBlender: (file: string) => editInBlenderCommand(file),
   });
 }
 
 export function deactivate(): void {
   deactivated = true;
+  stopBlender();
   bridge?.stop();
   watcher?.dispose();
 }
@@ -523,6 +530,111 @@ async function installHotCommand(): Promise<void> {
   const files = installHot(p, gamePath);
   log.appendLine(`Hot install: ${files.join(", ")} into ${path.join(gamePath, "archive", "pc", "hot")}`);
   vscode.window.setStatusBarMessage(`$(flame) REDcode: ${files.join(", ")} in the hot folder; Red Hot Tools reloads it`, 6000);
+}
+
+/**
+ * REDcode: Pack and Try (REDcode issue #7): pack, then get it into the game as fast as the game allows.
+ * With Red Hot Tools, the archive goes to the hot folder and the running game reloads it. Without it,
+ * Pack and Install (through REDdeck when it is there), and the game needs a restart until REDnode's
+ * archives.reload exists (REDnode issue #12).
+ */
+async function packAndTryCommand(): Promise<"hot" | "installed" | undefined> {
+  if (!(await packCommand())) return undefined;
+  const gamePath = gameFolder();
+  if (hasRedHotTools(gamePath)) {
+    await installHotCommand();
+    void vscode.window.showInformationMessage("REDcode: packed and sent to the hot folder. Red Hot Tools reloads it in the running game; respawn or re-equip what uses it to see the change.");
+    return "hot";
+  }
+  await installCommand();
+  void vscode.window.showInformationMessage("REDcode: packed and installed. Restart the game to see the change: hot loading needs Red Hot Tools in the game, or REDnode's archive reload once it ships.");
+  return "installed";
+}
+
+// ---- Edit in Blender (REDcode issue #7) ---------------------------------------------------------
+
+let blenderSession: { glb: string; process: ChildProcess; watcher: fs.FSWatcher; status: vscode.StatusBarItem; timer?: NodeJS.Timeout } | undefined;
+
+function stopBlender(message?: string): void {
+  const s = blenderSession;
+  if (!s) return;
+  blenderSession = undefined;
+  clearTimeout(s.timer);
+  s.watcher.close();
+  s.status.dispose();
+  if (message) vscode.window.setStatusBarMessage(`$(edit) REDcode: ${message}`, 5000);
+}
+
+/**
+ * Edit in Blender: opens a project's GLB (or a .mesh, exported to source/raw first) in Blender, which
+ * saves it as a .blend beside the GLB and exports the GLB again on every save; REDcode re-imports the
+ * GLB into source/archive each time, until Blender closes.
+ */
+async function editInBlenderCommand(arg?: ProjectNode | string): Promise<void> {
+  const p = requireProject();
+  const file = typeof arg === "string" ? path.resolve(arg) : arg?.kind === "file" ? arg.file : undefined;
+  if (!file) throw new Error("Pick a .glb, .gltf or .mesh in the Project view.");
+  if (!bridge?.running) throw new Error('The REDbridge process is not running. Run "REDcode: Restart REDbridge".');
+  const b = bridge;
+  const archiveDir = path.join(p.dir, ProjectFolders.archive);
+  const rawDir = path.join(p.dir, ProjectFolders.raw);
+  let glb = file;
+  if (/\.mesh$/i.test(file)) {
+    if (sourceFolderOf(p, file) !== "archive") throw new Error("A .mesh to edit in Blender must be under source/archive.");
+    // The GLB Blender opens: the mesh exported to source/raw, again when the mesh is newer.
+    glb = path.join(rawDir, path.relative(archiveDir, file)).replace(/\.mesh$/i, ".glb");
+    if (!fs.existsSync(glb) || fs.statSync(glb).mtimeMs < fs.statSync(file).mtimeMs) {
+      const r = await b.exportFile(file, archiveDir, rawDir, { meshBinary: true, meshMaterials: vscode.workspace.getConfiguration("redcode").get<boolean>("export.meshMaterials", true) });
+      if (!r.ok || !fs.existsSync(glb)) throw new Error(`WolvenKit could not export ${path.basename(file)} to GLB`);
+      explorer.refresh();
+    }
+  } else if (!/\.(glb|gltf)$/i.test(file) || sourceFolderOf(p, file) !== "raw") {
+    throw new Error("Edit in Blender takes a .glb or .gltf under source/raw, or a .mesh under source/archive.");
+  }
+  const blender = findBlender(vscode.workspace.getConfiguration("redcode").get<string>("blenderPath", "") || undefined, await steamPath());
+  if (!blender) {
+    const pick = await vscode.window.showWarningMessage("REDcode could not find Blender. Set redcode.blenderPath to blender.exe or its folder.", "Open Setting");
+    if (pick) await vscode.commands.executeCommand("workbench.action.openSettings", "redcode.blenderPath");
+    return;
+  }
+  stopBlender();
+  const script = writeBlenderScript(path.join(storage.fsPath, "blender"));
+  const blend = glb.replace(/\.(glb|gltf)$/i, ".blend");
+  log.appendLine(`Edit in Blender: ${blender} with ${path.relative(p.dir, glb)}`);
+  const child = spawn(blender, ["--python", script, "--", glb, blend], { stdio: ["ignore", "pipe", "pipe"], windowsHide: false });
+  const relay = (d: Buffer) => {
+    for (const line of String(d).split(/\r?\n/)) if (line.startsWith("REDcode:") || /error|traceback/i.test(line)) log.appendLine(`  blender | ${line}`);
+  };
+  child.stdout?.on("data", relay);
+  child.stderr?.on("data", relay);
+  child.on("error", (e) => {
+    log.appendLine(`Blender did not start: ${e.message}`);
+    stopBlender();
+    void vscode.window.showErrorMessage(`REDcode: Blender did not start. ${e.message}`);
+  });
+  child.on("exit", () => {
+    if (blenderSession?.process === child) stopBlender("Blender closed; no longer watching its saves.");
+  });
+
+  // Re-import when Blender writes the GLB, once the file has stopped growing.
+  const name = path.basename(glb).toLowerCase();
+  const watcher = fs.watch(path.dirname(glb), (_event, changed) => {
+    if (!blenderSession || String(changed ?? "").toLowerCase() !== name) return;
+    clearTimeout(blenderSession.timer);
+    blenderSession.timer = setTimeout(async () => {
+      const size = fs.existsSync(glb) ? fs.statSync(glb).size : -1;
+      await new Promise((r) => setTimeout(r, 400));
+      if (!fs.existsSync(glb) || fs.statSync(glb).size !== size) return; // still being written; the next change comes
+      log.appendLine(`Blender saved ${path.relative(p.dir, glb)}; importing it`);
+      await shipCommand(() => modkitCommand(b, { kind: "file", file: glb }, "import"));
+    }, 1200);
+  });
+  const status = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 45);
+  status.text = `$(edit) Blender: ${path.basename(glb)}`;
+  status.tooltip = `Saving in Blender (Ctrl+S) exports ${path.basename(glb)} and REDcode imports it into source/archive. Click to stop watching.`;
+  status.command = "redcode.stopBlender";
+  status.show();
+  blenderSession = { glb, process: child, watcher, status };
 }
 
 /** REDcode: Run game: through Steam for a Steam install, else the exe, with -modded for a REDmod project. */

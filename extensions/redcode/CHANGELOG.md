@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- **Edit in Blender** (REDcode issue #7, for EDGEfab): a project `.glb` or `.gltf`, or a `.mesh` exported to Raw first, opens in Blender. Every save there exports the GLB with normals and tangents, and REDcode imports it into Archive until Blender closes. Blender comes from `redcode.blenderPath`, Program Files or a Steam library. Checked with Blender 5.2.2: the export keeps WolvenKit's `submesh_NN_LOD_N` names, and the bridge imports it.
+- **Pack and Try** (REDcode issue #7): pack, then into the hot folder for Red Hot Tools to reload in the running game, or Pack and Install when it is not there. REDnode's archive reload (REDnode issue #12) will take its place when it ships.
+- `REDcodeApi` gains `packAndTry()` and `editInBlender(file)`.
 - **The mesh viewer switches appearances** (REDcode issue #6): an Appearance list for a `.mesh`, and each submesh shows the material that appearance's `chunkMaterials` names for it.
 - **A GLB's own textures**: a model that carries its materials and textures, such as one from Blender or a model service, opens with them, with Shading to switch to flat colours.
 - **EDGEmat materials**: with EDGEmat installed, the viewer asks it to render the mesh's materials for the appearance shown (`renderMaterials`) and redraws when EDGEmat reports a change. Built to the API EDGEmat proposed; untested until EDGEmat ships it. Layered material preview moves to EDGEmat, so REDcode does not build it (C6).
