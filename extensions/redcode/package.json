@@ -16,6 +16,10 @@
     "url": "https://github.com/Edgemodders/REDcode",
     "directory": "extensions/redcode"
   },
+  "homepage": "https://edgemodders.github.io/REDcode/",
+  "bugs": {
+    "url": "https://github.com/Edgemodders/REDcode/issues"
+  },
   "engines": {
     "vscode": "^1.70.0"
   },

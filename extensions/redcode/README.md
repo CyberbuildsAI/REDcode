@@ -1,5 +1,7 @@
 # REDcode for Visual Studio Code
 
+**[Docs](https://edgemodders.github.io/REDcode/)** · [Extension API](https://edgemodders.github.io/REDcode/api.html) · [Repo](https://github.com/Edgemodders/REDcode) · [Issues](https://github.com/Edgemodders/REDcode/issues)
+
 REDcode for Visual Studio Code is a Cyberpunk 2077 modding workspace. You can do all of this in one window:
 - Browse the game's archives.
 - Add files to a WolvenKit project.
