@@ -5,6 +5,7 @@ REDcode is a Cyberpunk 2077 modding IDE built on VS Code. These pages track its 
 | Document | What it covers |
 |---|---|
 | [Dev setup](dev-setup.md) | Every tool and step needed to build REDcode on a new machine |
+| [Tests](testing.md) | Every test run so far, automated and by hand, with its steps and result |
 
 The design document is not published yet. It will appear here with the first working extension.
 

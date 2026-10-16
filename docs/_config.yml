@@ -24,6 +24,8 @@ nav:
     url: /
   - title: Dev setup
     url: /dev-setup.html
+  - title: Tests
+    url: /testing.html
   - title: Design
     url: /design.html
   - title: CR2W editor

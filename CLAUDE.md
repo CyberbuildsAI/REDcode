@@ -32,6 +32,7 @@ REDcode is a Cyberpunk 2077 modding IDE built on VS Code, wrapping WolvenKit's C
 ## Docs site
 
 - `docs/` is published by GitHub Pages at https://edgemodders.github.io/REDcode/ through `.github/workflows/pages.yml`. Settings > Pages > Source must be GitHub Actions.
+- `docs/testing.md` lists every test on record, automated and by hand, with its steps, date and result. Add a hand test there when it is first given to the owner, and its result when the owner reports it.
 - Write docs as markdown in `docs/`. Jekyll renders them with the HUD layout (`docs/_layouts/default.html`, `docs/assets/css/hud.css`). Add every new page to `nav` in `docs/_config.yml`.
 - `tools/brand/render.ps1` regenerates the banner, social preview, icon and badges. Re-run it when versions in the badges change.
 - When the first extension has TypeScript, add TypeDoc to the Pages workflow the way REDnode does, so the API reference is generated.
