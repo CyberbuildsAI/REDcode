@@ -6,7 +6,7 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { EventEmitter } from "node:events";
 import * as readline from "node:readline";
 import { createMessageConnection, StreamMessageReader, StreamMessageWriter, type MessageConnection } from "vscode-jsonrpc/node";
-import type { ArchiveInfo, BridgeInfo, DocumentInfo, ExtractManyResult, ExtractResult, FileList, HashResult, ExportOptions, JsonResult, ModArchiveInfo, ModkitResult, SoundEvents, TweakFlatValue, TweakRecordFull, TweakRecords, TweakRecordsQuery, TweakTypes, PackResult, NodeInfo, PatchOp, PatchResult, ResolveResult, SearchResult, TreeResult, TypeDescription } from "./types";
+import type { ArchiveInfo, BridgeInfo, DocumentInfo, ExtractManyResult, ExtractResult, FileList, HashResult, ExportOptions, JsonResult, ModArchiveInfo, ModkitResult, SoundEvents, SoundImportResult, TweakFlatValue, TweakRecordFull, TweakRecords, TweakRecordsQuery, TweakTypes, PackResult, NodeInfo, PatchOp, PatchResult, ResolveResult, SearchResult, TreeResult, TypeDescription } from "./types";
 
 export interface BridgeOptions {
   /** Path to REDbridge.exe. */
@@ -195,6 +195,11 @@ export class BridgeClient extends EventEmitter<BridgeEvents> {
   /** The sound event names WolvenKit knows, with their Wwise hashes, which name the groups in an .opusinfo. Bridge 0.7.2. */
   soundEvents(): Promise<SoundEvents> {
     return this.call("sound.events", {});
+  }
+
+  /** Overrides game sound effects in a project from <hash>.wav files: the changed packs and index go under archiveDir. Bridge 0.9.0. */
+  importWavs(wavFiles: string[], archiveDir: string): Promise<SoundImportResult> {
+    return this.call("sound.importWavs", { wavFiles, archiveDir });
   }
 
   // ---- tweakdb (bridge 0.8.0): read offline from the game's tweakdb.bin, loaded on the first call (about 12 s) ----

@@ -26,7 +26,7 @@ import { Cr2wEditorProvider, Cr2wPropertiesView, Cr2wViewType, cr2wViewTypeFor, 
 import { GameFileSystem, gameUri } from "./gameFs";
 import { compareJson, formatDifference, type JsonComparison } from "./jsonDiff";
 import { hasRedHotTools, installDirect, installHot, launchTarget, planInstall, readRecord, uninstallDirect } from "./install";
-import { targetsUnder } from "./modkit";
+import { isSoundWav, targetsUnder } from "./modkit";
 import { compileFilter } from "./treeFilter";
 import { MeshViewer } from "./meshViewer";
 import { AudioPlayer, AudioViewType, SoundsViewType } from "./audioPlayer";
@@ -568,7 +568,7 @@ async function modkitCommand(b: BridgeClient, node: ProjectNode, action: "export
     void vscode.window.showInformationMessage(
       action === "export"
         ? `Nothing to export in ${path.basename(target)}. Export takes meshes, textures, sounds, animations and the other types WolvenKit converts; open other files as JSON.`
-        : `Nothing to import in ${path.basename(target)}. Import takes images, glTF and GLB, FBX, CSV and the other types WolvenKit converts back (not WAV yet: WolvenKit's library cannot import sounds); a folder import takes only files whose game file is already in source/archive, so the material textures a mesh export writes stay out of the mod. Import such a file on its own to add it.`,
+        : `Nothing to import in ${path.basename(target)}. Import takes images, glTF and GLB, FBX, CSV, sound effect WAVs named after their hash (832549876.wav), and the other types WolvenKit converts back; a folder import takes only files whose game file is already in source/archive, so the material textures a mesh export writes stay out of the mod. Import such a file on its own to add it.`,
     );
     return;
   }
@@ -586,7 +586,27 @@ async function modkitCommand(b: BridgeClient, node: ProjectNode, action: "export
   const written: string[] = [];
   const failed: string[] = [];
   await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: `${action === "export" ? "Exporting" : "Importing"} ${files.length} file(s)`, cancellable: true }, async (progress, token) => {
-    for (const f of files) {
+    // Sound effect WAVs: one call writes their packs and the index (REDbridge 0.9.0).
+    const sounds = action === "import" ? files.filter(isSoundWav) : [];
+    if (sounds.length > 0) {
+      progress.report({ message: `${sounds.length} sound(s)`, increment: (100 * sounds.length) / files.length });
+      try {
+        const r = await b.importWavs(sounds, archiveDir);
+        written.push(...r.written.map((w) => path.join(archiveDir, w)));
+        log.appendLine(`Imported ${r.imported.length} sound(s) into ${r.written.join(", ") || "nothing"}`);
+        for (const s of r.skipped) {
+          log.appendLine(`Skipped ${path.basename(s.file)}: ${s.reason}`);
+          failed.push(path.basename(s.file));
+        }
+      } catch (e) {
+        const message = e instanceof Error ? e.message : String(e);
+        const code = (e as { code?: unknown })?.code;
+        if (code === -32601 || /method not found/i.test(message)) throw new Error('Importing sounds needs REDbridge 0.9.0 or newer. Run "REDcode: Update REDbridge".');
+        log.appendLine(`Sound import failed: ${message}`);
+        failed.push(...sounds.map((s) => path.basename(s)));
+      }
+    }
+    for (const f of files.filter((x) => !sounds.includes(x))) {
       if (token.isCancellationRequested) break;
       progress.report({ message: path.basename(f), increment: 100 / files.length });
       try {
@@ -899,6 +919,13 @@ async function apiImportFile(file: string): Promise<{ ok: boolean; written: stri
   const p = requireProject();
   if (!bridge?.running) throw new Error('REDbridge is not running. Run "REDcode: Restart REDbridge".');
   const archiveDir = path.join(p.dir, ProjectFolders.archive);
+  if (isSoundWav(file)) {
+    const s = await bridge.importWavs([path.resolve(file)], archiveDir);
+    const soundFiles = s.written.map((w) => path.join(archiveDir, w));
+    log.appendLine(`Imported ${path.relative(p.dir, file)} for another extension: ${s.ok ? s.written.join(", ") : s.skipped.map((x) => x.reason).join("; ")}`);
+    explorer.refresh();
+    return { ok: s.ok, written: soundFiles };
+  }
   const r = await bridge.importFile(path.resolve(file), path.join(p.dir, ProjectFolders.raw), archiveDir, vscode.workspace.getConfiguration("redcode").get<boolean>("import.keepSettings", true));
   const written = r.written.map((w) => path.join(archiveDir, w));
   log.appendLine(`Imported ${path.relative(p.dir, file)} for another extension: ${written.length ? r.written.join(", ") : "nothing written"}`);

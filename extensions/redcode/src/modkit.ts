@@ -16,13 +16,15 @@ export const ExportableExtensions = new Set([
 
 /**
  * Raw file types WolvenKit imports back into a game file. Not .wav: WolvenKit.Modkit's ImportWav is a
- * stub ("Use WolvenKit to import opus.") that writes nothing (REDcode issue #5). A sound effect import
- * needs a REDbridge method over WolvenKit's OpusTools, which EDGEwave's A3 will ask for.
+ * stub ("Use WolvenKit to import opus.") that writes nothing (REDcode issue #5). A sound effect WAV,
+ * named after its hash, goes through REDbridge 0.9.0's sound.importWavs instead (isSoundWav).
  */
 export const ImportableExtensions = new Set([".bmp", ".jpg", ".png", ".tga", ".tiff", ".dds", ".fbx", ".gltf", ".glb", ".ttf", ".masklist", ".csv", ".re", ".cube"]);
 
 export const isExportable = (file: string) => ExportableExtensions.has(path.extname(file).toLowerCase());
-export const isImportable = (file: string) => ImportableExtensions.has(path.extname(file).toLowerCase());
+/** A sound effect override: a WAV named after the sound's hash in sfx_container.opusinfo, such as 832549876.wav. */
+export const isSoundWav = (file: string) => /^\d+\.wav$/i.test(path.basename(file));
+export const isImportable = (file: string) => ImportableExtensions.has(path.extname(file).toLowerCase()) || isSoundWav(file);
 
 /** Which source folder a path is in: archive, raw, or neither. */
 export function sourceFolderOf(project: ProjectInfo, p: string): "archive" | "raw" | undefined {
@@ -56,7 +58,9 @@ export function targetsUnder(project: ProjectInfo, p: string, action: "export" |
   const stem = (f: string) => path.basename(f, path.extname(f)).toLowerCase();
   const listings = new Map<string, string[]>();
   const newest = new Map<string, { file: string; mtime: number }>();
-  for (const f of walk(p).filter(isImportable)) {
+  // Sound effect WAVs replace sounds by hash, not a file at the same path, so a folder takes them all.
+  const sounds = walk(p).filter(isSoundWav);
+  for (const f of walk(p).filter((x) => isImportable(x) && !isSoundWav(x))) {
     const rel = path.relative(raw, f);
     const dir = path.join(archive, path.dirname(rel));
     if (!listings.has(dir)) {
@@ -74,5 +78,5 @@ export function targetsUnder(project: ProjectInfo, p: string, action: "export" |
     const seen = newest.get(key);
     if (!seen || mtime > seen.mtime) newest.set(key, { file: f, mtime });
   }
-  return [...newest.values()].map((v) => v.file).sort();
+  return [...newest.values()].map((v) => v.file).concat(sounds).sort();
 }

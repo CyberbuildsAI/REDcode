@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- `sound_import`: override game sound effects in a project from `<hash>.wav` files. Needs REDbridge 0.9.0.
+
 ## 0.2.0 (2026-10-16)
 
 The first version on npm, as `@edgemodders/redcode-mcp`. It needs REDbridge 0.8.0.

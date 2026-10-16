@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- **Import from Raw takes sound effects again**, as WAV files named after the sound's hash (`832549876.wav`, from Copy Hash in the sound list). REDbridge 0.9.0's `sound.importWavs` writes the changed `.opuspak` and a new `sfx_container.opusinfo` into `source/archive`, keeping earlier replacements. A folder import takes every such WAV under it. The API's `importFile` does the same. Voice lines (`.wem`) cannot be imported yet. MCP tool `sound_import`.
+
 ## 0.9.0 (2026-10-15)
 
 C5 V3, the TweakDB view, is done and hand-tested. Needs REDbridge 0.8.0.

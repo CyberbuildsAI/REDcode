@@ -288,6 +288,11 @@ tool("sound_events", "Find the game's sound effect events by name or tag (words 
   return { total: hits.length, events: hits.slice(0, a.limit ?? 100).map((e) => ({ ...e, sounds: groups.get(e.hash)!.map((i) => index.hashes[i]) })) };
 });
 
+tool("sound_import", "Override game sound effects in a WolvenKit project from WAV files, each named after the sound's hash (832549876.wav; sound_events gives the hashes). Writes the changed .opuspak files and a new sfx_container.opusinfo under the project's source/archive; earlier overrides there stay. Any rate and 16-bit, 24-bit or float WAV; encoded at 48 kHz Opus. Bridge 0.9.0.", {
+  wavFiles: z.array(z.string()).describe("Absolute paths of <hash>.wav files."),
+  archiveDir: z.string().describe("The project's source/archive folder."),
+}, (a, b) => b.importWavs(a.wavFiles, a.archiveDir));
+
 tool("sound_extract", "Write game sound effects as .opus files (Ogg Opus, 48 kHz) named by sound hash: every variation of an event, by name or hash, or single sounds by hash. Voice lines are .wem files instead: use project_export.", {
   event: z.string().optional().describe("An event name, such as w_gun_npc_nova_reload, or its decimal hash."),
   sounds: z.array(z.number()).optional().describe("Or sound hashes."),

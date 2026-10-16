@@ -257,6 +257,14 @@ export interface SoundEvents {
   events: { name: string; hash: number; tags: string[] }[];
 }
 
+/** sound.importWavs (bridge 0.9.0): the sound hashes replaced, the files written under archiveDir, and the WAVs skipped with why. */
+export interface SoundImportResult {
+  ok: boolean;
+  imported: number[];
+  written: string[];
+  skipped: { file: string; reason: string }[];
+}
+
 /** project.export and project.import: whether WolvenKit reported success, and the files written, relative to the target folder. */
 export interface ModkitResult {
   ok: boolean;
