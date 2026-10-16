@@ -160,6 +160,7 @@ export function activate(context: vscode.ExtensionContext): REDcodeApi | undefin
     vscode.commands.registerCommand("redcode.locKeyLanguage", () => withBridge(pickLocLanguage)),
     vscode.commands.registerCommand("redcode.copyLocKey", (node?: LocNode) => node?.kind === "entry" && copyText(locKeyOf(node.entry))),
     vscode.commands.registerCommand("redcode.copyLocText", (node?: LocNode) => node?.kind === "entry" && copyText(locTextOf(node.entry))),
+    vscode.commands.registerCommand("redcode.openLocEntry", (node?: LocNode) => node?.kind === "entry" && withBridge(() => openLocEntry(node.entry))),
     vscode.commands.registerCommand("redcode.addLocKeyToProject", (node?: LocNode) => node?.kind === "entry" && withBridge((b) => addLocKeyToProject(b, node.entry))),
     cr2w.onDidSave(() => void locTree.rerun().catch(() => undefined)),
     vscode.workspace.onDidChangeConfiguration((e) => {
@@ -994,6 +995,27 @@ async function addLocKeyToProject(b: BridgeClient, entry: LocEntry): Promise<voi
   cr2wEditor.showRow(uri, index);
   await vscode.commands.executeCommand("vscode.openWith", uri, cr2wViewTypeFor(file));
   vscode.window.setStatusBarMessage(`$(edit) REDcode: ${locKeyOf(entry)} is row ${index} of ${path.basename(file)}; change its text, then pack`, 6000);
+}
+
+/**
+ * A LocKeys click: the entry's onscreens file in the table view, on its row. A project entry opens its
+ * file to edit; a game entry opens the game's file, read-only. A bridge older than 0.10.0 gives no file
+ * for a game entry, so the click copies the LocKey then, as it used to.
+ */
+async function openLocEntry(entry: LocEntry): Promise<void> {
+  if (!entry.file || typeof entry.index !== "number") {
+    await copyText(locKeyOf(entry));
+    return;
+  }
+  let uri: vscode.Uri;
+  if (entry.source === "project") {
+    if (!project) return;
+    uri = vscode.Uri.file(path.join(project.dir, entry.file));
+  } else {
+    uri = gameUri(entry.file);
+  }
+  cr2wEditor.showRow(uri, entry.index);
+  await vscode.commands.executeCommand("vscode.openWith", uri, cr2wViewTypeFor(entry.file));
 }
 
 /** Opens the record page; without a record, asks for one. */

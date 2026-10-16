@@ -510,6 +510,11 @@
         "category": "REDcode"
       },
       {
+        "command": "redcode.openLocEntry",
+        "title": "Open in Its File",
+        "category": "REDcode"
+      },
+      {
         "command": "redcode.addLocKeyToProject",
         "title": "Add to Project Onscreens",
         "category": "REDcode",
@@ -1098,6 +1103,10 @@
         },
         {
           "command": "redcode.copyLocText",
+          "when": "false"
+        },
+        {
+          "command": "redcode.openLocEntry",
           "when": "false"
         },
         {

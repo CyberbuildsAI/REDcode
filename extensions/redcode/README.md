@@ -117,7 +117,8 @@ The **TweakDB** view, **REDcode: Open TweakDB Record...** and the hover all read
 The **LocKeys** view finds the text behind a `LocKey#...` and the LocKey for a text, in the base game and Phantom Liberty, through REDbridge 0.10.0. The open project's own texts count too, and win over the game's, as they do in game with ArchiveXL.
 
 - **Search** (the magnifier) takes `LocKey#123` or a number, a secondary key, or words that must all be in the text. The globe button picks the language (`redcode.loc.language`); the first search in a language loads it, about a second.
-- **Copy LocKey** (a click, or the copy button) copies `LocKey#123`, or `LocKey#<secondary key>` for a mod's entry with no number. Right-click for Copy Text.
+- **A click** opens the entry in its onscreens file, in the table view on its row: the project's own file to edit, or the game's, read-only.
+- **Copy LocKey** (the copy button) copies `LocKey#123`, or `LocKey#<secondary key>` for a mod's entry with no number. Right-click for Copy Text.
 - **Add to Project Onscreens** (the plus button) copies the entry into the project's onscreens file for the language and opens the table view on that row, to change its text. A project with no such file gets one, at `source/archive/<mod>/localization/<language>.json`, named in an `.xl` file under `localization: onscreens:` (`source/resources/<mod>.archive.xl` when the project has none), so ArchiveXL loads it. An entry the project already has opens on its row.
 - **Hover** on `LocKey#...` in a `.tweak`, YAML, JSON, Lua or Redscript file to see its text. In the CR2W editor, a `LocKey#...` value shows its text beside it.
 

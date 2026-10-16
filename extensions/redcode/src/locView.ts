@@ -108,7 +108,7 @@ export class LocTree implements vscode.TreeDataProvider<LocNode> {
     item.tooltip = entryMarkdown(e);
     item.iconPath = new vscode.ThemeIcon(e.source === "project" ? "edit" : "symbol-string");
     item.contextValue = e.source === "project" ? "locEntryProject" : "locEntry";
-    item.command = { command: "redcode.copyLocKey", title: "Copy LocKey", arguments: [node] };
+    item.command = { command: "redcode.openLocEntry", title: "Open", arguments: [node] };
     return item;
   }
 

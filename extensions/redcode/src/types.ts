@@ -251,9 +251,9 @@ export interface LocEntry {
   male: string;
   /** "base", "ep1" (Phantom Liberty) or "project". */
   source: string;
-  /** For a project entry, its file relative to the project folder. */
+  /** Its onscreens file: relative to the project folder for a project entry, the game path for a game one (REDbridge 0.10.0 gives the game's; earlier, null). */
   file?: string | null;
-  /** For a project entry, its row in that file. */
+  /** Its row in that file. */
   index?: number | null;
 }
 
