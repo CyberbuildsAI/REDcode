@@ -129,7 +129,7 @@ REDcode returns an API from `activate()`: the bridge, the game folder, the open 
 
 ## Making a new asset
 
-**Edit in Blender** (right-click a `.glb` or `.gltf` in Raw, or a `.mesh` in Archive) opens the model in Blender. A `.mesh` is exported to Raw first. Blender saves it as a `.blend` beside the GLB, and from then on every save (Ctrl+S) also exports the GLB, with the normals and tangents WolvenKit's importer needs. REDcode imports each save into Archive and stops watching when Blender closes, or when you click the Blender item in the status bar. Blender is found from `redcode.blenderPath`, the newest version under Program Files, or a Steam library.
+**Edit in Blender** (right-click a `.glb` or `.gltf` in Raw, or a `.mesh` in Archive) opens the model in Blender. A `.mesh` is exported to Raw first. Blender saves it as a `.blend` beside the GLB, and from then on every save (Ctrl+S) also exports the GLB, with the normals and tangents WolvenKit's importer needs. REDcode imports each save into Archive and stops watching when Blender closes, or when you click the Blender item in the status bar. Blender is found from `redcode.blenderPath`, the newest version under Program Files, or a Steam library. REDcode writes the Blender it finds into `redcode.blenderPath`, so the setting shows the one in use; an empty setting means it found none.
 
 A GLB with no `.mesh` at its path becomes a new mesh from a template: Import asks for a game mesh of a similar kind, whose materials and appearances the new mesh keeps.
 

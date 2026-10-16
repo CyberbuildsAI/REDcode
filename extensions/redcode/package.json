@@ -1203,7 +1203,7 @@
         "redcode.blenderPath": {
           "type": "string",
           "default": "",
-          "description": "blender.exe, or the folder it is in, for Edit in Blender. Empty: REDcode looks for it on each use, under Program Files\\Blender Foundation (the newest version), then in the Steam libraries, and does not fill this in."
+          "description": "blender.exe, or the folder it is in, for Edit in Blender. REDcode fills this in when it finds Blender, under Program Files\\Blender Foundation (the newest version) or in a Steam library, and looks again when the path is gone. Empty means it found none."
         },
         "redcode.loc.language": {
           "type": "string",

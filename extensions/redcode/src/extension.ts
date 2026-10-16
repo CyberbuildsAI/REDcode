@@ -221,6 +221,7 @@ export function activate(context: vscode.ExtensionContext): REDcodeApi | undefin
   detectProject();
   updateHotToolsContext();
   void offerGameFolder();
+  void resolveBlender().catch(() => undefined);
   startBridge(context);
 
   return createApi({
@@ -576,6 +577,23 @@ async function packAndTryCommand(): Promise<"hot" | "installed" | undefined> {
 
 let blenderSession: { glb: string; process: ChildProcess; watcher: fs.FSWatcher; status: vscode.StatusBarItem; timer?: NodeJS.Timeout } | undefined;
 
+/**
+ * blender.exe: redcode.blenderPath while it exists, else the search. A path the search finds is written to
+ * the setting, so the setting shows what is used rather than an empty field that reads as "not found".
+ */
+async function resolveBlender(): Promise<string | undefined> {
+  const config = vscode.workspace.getConfiguration("redcode");
+  const configured = config.get<string>("blenderPath", "") || undefined;
+  const fromSetting = configured ? findBlender(configured, undefined) : undefined;
+  if (fromSetting) return fromSetting;
+  const found = findBlender(undefined, await steamPath());
+  if (found) {
+    await config.update("blenderPath", found, vscode.ConfigurationTarget.Global);
+    log.appendLine(`Blender found at ${found}${configured ? ` (redcode.blenderPath was ${configured}, which is gone)` : ""}; redcode.blenderPath is set to it.`);
+  }
+  return found;
+}
+
 function stopBlender(message?: string): void {
   const s = blenderSession;
   if (!s) return;
@@ -612,7 +630,7 @@ async function editInBlenderCommand(arg?: ProjectNode | string): Promise<void> {
   } else if (!/\.(glb|gltf)$/i.test(file) || sourceFolderOf(p, file) !== "raw") {
     throw new Error("Edit in Blender takes a .glb or .gltf under source/raw, or a .mesh under source/archive.");
   }
-  const blender = findBlender(vscode.workspace.getConfiguration("redcode").get<string>("blenderPath", "") || undefined, await steamPath());
+  const blender = await resolveBlender();
   if (!blender) {
     const pick = await vscode.window.showWarningMessage("REDcode could not find Blender. Set redcode.blenderPath to blender.exe or its folder.", "Open Setting");
     if (pick) await vscode.commands.executeCommand("workbench.action.openSettings", "redcode.blenderPath");
