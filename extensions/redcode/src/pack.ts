@@ -27,6 +27,12 @@ export interface PackSummary {
   resources: string[];
   /** Tweak files (.tweak, .yaml, .yml) outside r6/tweaks, which TweakXL does not read; .tweak ones are also left out. */
   misplacedTweaks: string[];
+  /** REDmod custom sound files copied into packed/mods/<name>/customSounds (REDcode issue #8). */
+  customSounds: string[];
+  /** Custom sound files the manifest lists but source/customSounds does not have; REDmod's deploy fails on them. */
+  missingSounds: string[];
+  /** Custom sounds are listed, but the pack is not a REDmod, so the game will not play them. */
+  soundsNeedRedmod: boolean;
   packedDir: string;
   /** Where the archive and the ArchiveXL files went. */
   archiveDir: string;
@@ -43,7 +49,7 @@ export async function packProject(bridge: BridgeClient, project: ProjectInfo, op
   const source = path.join(project.dir, ProjectFolders.archive);
   const resources = path.join(project.dir, ProjectFolders.resources);
   const archiveDir = packedArchiveDir(project, options.redmod);
-  const summary: PackSummary = { archiveBytes: 0, archiveFiles: 0, warnings: [], archiveXl: [], resources: [], misplacedTweaks: [], packedDir: packed, archiveDir };
+  const summary: PackSummary = { archiveBytes: 0, archiveFiles: 0, warnings: [], archiveXl: [], resources: [], misplacedTweaks: [], customSounds: [], missingSounds: [], soundsNeedRedmod: false, packedDir: packed, archiveDir };
 
   if (options.clean && fs.existsSync(packed)) {
     emptyFolder(packed);
@@ -112,15 +118,51 @@ export async function packProject(bridge: BridgeClient, project: ProjectInfo, op
     );
   }
 
-  // A REDmod needs its manifest, written from the project file every time as WolvenKit does (an
-  // info.json under resources is ignored by both). Same fields in the same order as WolvenKit's ModInfo.
+  // REDmod custom sounds (REDcode issue #8): WolvenKit's Sound Modding tool, and EDGEwave, keep their
+  // entries under customSounds in source/resources/info.json and the WAVs in source/customSounds. As
+  // WolvenKit's pack does, each entry's file goes to packed/mods/<name>/customSounds; an entry with no
+  // file (mod_skip, a silence) needs none.
+  const sounds = customSoundsOf(project);
+  if (options.redmod) {
+    for (const s of sounds) {
+      if (typeof s.file !== "string" || !s.file) continue;
+      const from = path.join(project.dir, CustomSoundsFolder, s.file);
+      if (!fs.existsSync(from)) {
+        summary.missingSounds.push(s.file);
+        log(`  warning: custom sound ${s.file} (${String(s.name ?? "")}) is listed in info.json but not in ${CustomSoundsFolder}; REDmod's deploy fails on it`);
+        continue;
+      }
+      copy(from, path.join(redmodDir, "customSounds", s.file));
+      summary.customSounds.push(s.file);
+    }
+    if (summary.customSounds.length) log(`Copied ${summary.customSounds.length} custom sound(s) to ${path.join(redmodDir, "customSounds")}`);
+  } else if (sounds.length) {
+    summary.soundsNeedRedmod = true;
+    log(`  warning: info.json lists ${sounds.length} custom sound(s), which only a REDmod carries; turn on redcode.pack.redmod`);
+  }
+
+  // A REDmod needs its manifest, written from the project file every time as WolvenKit does. Same
+  // fields in the same order as WolvenKit's ModInfo; customSounds from source/resources/info.json.
   if (options.redmod) {
     const dest = path.join(redmodDir, "info.json");
     fs.mkdirSync(path.dirname(dest), { recursive: true });
-    fs.writeFileSync(dest, JSON.stringify({ name: project.modName, version: project.version || "1.0", description: project.description, customSounds: [] }, null, 2));
+    fs.writeFileSync(dest, JSON.stringify({ name: project.modName, version: project.version || "1.0", description: project.description, customSounds: sounds }, null, 2));
     log(`Wrote ${dest}`);
   }
   return summary;
+}
+
+/** Where WolvenKit keeps a project's REDmod custom sound WAVs (Cp77Project.SoundDirectory). */
+export const CustomSoundsFolder = path.join("source", "customSounds");
+
+/** The customSounds entries of source/resources/info.json, as written there; [] when there are none. */
+export function customSoundsOf(project: ProjectInfo): Record<string, unknown>[] {
+  try {
+    const info = JSON.parse(fs.readFileSync(path.join(project.dir, "source", "resources", "info.json"), "utf8")) as { customSounds?: unknown };
+    return Array.isArray(info.customSounds) ? info.customSounds.filter((s): s is Record<string, unknown> => !!s && typeof s === "object") : [];
+  } catch {
+    return [];
+  }
 }
 
 /** Tweak sources TweakXL reads from r6/tweaks. */

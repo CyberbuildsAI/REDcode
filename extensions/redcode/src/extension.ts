@@ -340,6 +340,8 @@ async function packCommand(): Promise<boolean> {
   }
   const problems = [
     summary.warnings.length ? `${summary.warnings.length} path(s) have capital letters or spaces, which the game may not resolve` : "",
+    summary.missingSounds.length ? `custom sound ${summary.missingSounds.join(", ")} ${summary.missingSounds.length === 1 ? "is" : "are"} listed in info.json but missing from source\\customSounds, and REDmod will refuse the mod` : "",
+    summary.soundsNeedRedmod ? "info.json lists custom sounds, which only a REDmod carries (turn on redcode.pack.redmod)" : "",
     summary.misplacedTweaks.length ? `${summary.misplacedTweaks.map((t) => path.basename(t)).join(", ")} ${summary.misplacedTweaks.length === 1 ? "is" : "are"} not under r6\\tweaks, so TweakXL will not load ${summary.misplacedTweaks.length === 1 ? "it" : "them"}` : "",
   ].filter(Boolean);
   if (problems.length > 0) {

@@ -91,7 +91,7 @@ After Save JSON to Project the editor shows the JSON read back from the written 
 | `source/resources/**/*.xl` | Beside the archive |
 | Other files under `source/resources` | `packed/<same relative path>`, so `resources/r6/tweaks/x.yaml` becomes `packed/r6/tweaks/x.yaml`. `.script`, `.ws` and `info.json` are left out, and so is a `.tweak` file outside `r6/tweaks`. WolvenKit leaves out `.tweak` files in `r6/tweaks` too, which drops TweakXL tweaks in RED format; REDcode packs them |
 
-`packed` is emptied first, so a file removed from the project does not linger in the mod (`redcode.pack.clean`). With `redcode.pack.redmod` the archive and the ArchiveXL files go under `packed/mods/<mod name>/archives`, with an `info.json`, as WolvenKit's REDmod option does. Paths with capital letters or spaces are listed in the log, as WolvenKit warns about them. Needs REDbridge 0.6.1.
+`packed` is emptied first, so a file removed from the project does not linger in the mod (`redcode.pack.clean`). With `redcode.pack.redmod` the archive and the ArchiveXL files go under `packed/mods/<mod name>/archives`, with an `info.json`, as WolvenKit's REDmod option does. Custom sounds come along: the `customSounds` entries of `source/resources/info.json` go into that manifest, and each entry's WAV is copied from `source/customSounds` to `packed/mods/<mod name>/customSounds`, with a warning for a WAV that is missing (REDmod refuses the mod then) or for custom sounds in a plain pack. Paths with capital letters or spaces are listed in the log, as WolvenKit warns about them. Needs REDbridge 0.6.1.
 
 ## Meshes in 3D
 
