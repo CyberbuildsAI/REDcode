@@ -4,7 +4,8 @@
 # Checks the tag against the extension's package.json, builds and packages it (REDcode for Windows
 # x64, since REDbridge is Windows only; the theme for every platform), publishes to the VS Code
 # Marketplace (VSCE_PAT) and Open VSX (OVSX_PAT) and makes the GitHub release with the vsix and the
-# CHANGELOG section. Both tokens are Edgemodders organisation secrets, shared with REDdeck's workflow.
+# CHANGELOG section; a REDcode release also carries the Nexus Mods zip (tools/nexus-zip.mjs), uploaded to
+# Nexus by hand. Both tokens are Edgemodders organisation secrets, shared with REDdeck's workflow.
 name: Publish
 
 on:
@@ -62,6 +63,10 @@ jobs:
           cd "${DIR}"
           "${GITHUB_WORKSPACE}/node_modules/.bin/vsce" package --no-dependencies ${TARGET} --out "${VSIX}"
 
+      - name: Nexus zip
+        if: env.DIR == 'extensions/redcode'
+        run: node tools/nexus-zip.mjs
+
       - name: VS Code Marketplace
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
@@ -87,4 +92,6 @@ jobs:
           notes=$(node -e "const s=require('fs').readFileSync(process.argv[2],'utf8');const m=s.split(/^## /m).find(p=>p.startsWith(process.argv[1]+' ')||p.startsWith(process.argv[1]+'\n'));console.log(m?m.split('\n').slice(1).join('\n').trim():'')" "${VERSION}" "${DIR}/CHANGELOG.md")
           # A theme release never becomes the repo's Latest release, which stays REDcode's.
           latest=""; case "${GITHUB_REF_NAME}" in theme-v*) latest="--latest=false" ;; esac
-          gh release create "${GITHUB_REF_NAME}" "${VSIX}" --title "${TITLE} ${VERSION}" --notes "${notes}" ${latest}
+          files=("${VSIX}")
+          if [ "${DIR}" = extensions/redcode ]; then files+=("dist/REDcode-${VERSION}-nexus.zip"); fi
+          gh release create "${GITHUB_REF_NAME}" "${files[@]}" --title "${TITLE} ${VERSION}" --notes "${notes}" ${latest}

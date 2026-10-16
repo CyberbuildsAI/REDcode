@@ -17,6 +17,7 @@ REDcode is a Cyberpunk 2077 modding IDE built on VS Code, wrapping WolvenKit's C
 ## Store releases
 
 - **`.github/workflows/publish.yml` (added 2026-10-15 by the REDdeck session, at the owner's request):** pushing `vX.Y.Z` publishes REDcode (Windows x64, `"preview": true`) and `theme-vX.Y.Z` publishes the REDnode HUD theme, each to the VS Code Marketplace and Open VSX with the Edgemodders organisation secrets `VSCE_PAT` and `OVSX_PAT`, and makes the GitHub release from the extension's CHANGELOG section. The tag must match the extension's `package.json` version. So a REDcode release tag now also goes to both stores: do not also run `gh release create` by hand. REDcode's first store release was 0.8.2 (see above). `extensions/redcode/ThirdPartyNotices.txt` is the one notices file (vscode-jsonrpc, three.js, opus-decoder, libopus); update it when a bundled package changes.
+- **Nexus Mods:** the page's source is `nexus/description.bbcode` (form fields and steps in `nexus/README.md`; `node tools/check-bbcode.mjs nexus/description.bbcode` before pasting). For REDcode's `v*` tags the publish workflow also builds `dist/REDcode-<version>-nexus.zip` (`tools/nexus-zip.mjs`: the vsix, README.txt with install steps, licenses) and attaches it to the GitHub release; the owner uploads it to Nexus by hand with Mod Manager Download off. Move "Coming next" items into Highlights when they are released.
 
 ## Conventions
 
