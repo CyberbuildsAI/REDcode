@@ -202,12 +202,13 @@ tool("project_export", "Export a game file under a project's source/archive to t
   meshMaterials: z.boolean().optional().describe("Export a mesh's materials and textures too; default true."),
 }, (a, b) => b.exportFile(a.file, a.archiveDir, a.rawDir, { textureFormat: a.textureFormat, meshBinary: a.meshBinary, meshMaterials: a.meshMaterials }));
 
-tool("project_import", "Import a raw file under a project's source/raw back into source/archive through WolvenKit's importer (images to .xbm, glTF or GLB to .mesh, WAV, CSV and so on). With keep (default), the file it replaces keeps its settings: a texture its group, format, compression and flags. Returns ok and the files written, relative to archiveDir. Bridge 0.7.0.", {
+tool("project_import", "Import a raw file under a project's source/raw back into source/archive through WolvenKit's importer (images to .xbm, glTF or GLB to .mesh, CSV and so on; sound effects go through sound_import). With keep (default), the file it replaces keeps its settings: a texture its group, format, compression and flags. A GLB imports only over an existing .mesh at the same path: for a new asset, pass template (a game path or .mesh to start from, bridge 0.9.0). A mesh import also returns mesh: submesh count, the GLB's material names per submesh, the mesh's material entries, appearances, and how appearances were sized to the new submeshes. Returns ok and the files written, relative to archiveDir. Bridge 0.7.0.", {
   file: z.string().describe("The raw file, under rawDir."),
   rawDir: z.string().describe("The project's source/raw folder."),
   archiveDir: z.string().describe("The project's source/archive folder."),
   keep: z.boolean().optional().describe("Keep the replaced file's settings; default true."),
-}, (a, b) => b.importFile(a.file, a.rawDir, a.archiveDir, a.keep ?? true));
+  template: z.string().optional().describe("For a GLB with no mesh to import over: a game path (base\\...mesh) or a .mesh file to start the new mesh from."),
+}, (a, b) => b.importFile(a.file, a.rawDir, a.archiveDir, a.keep ?? true, a.template));
 
 tool("project_pack", "Pack a folder (a project's source/archive) into <modName>.archive in outDir through WolvenKit's packer. Returns the archive path, size, file count and warnings for paths with capital letters or spaces. Bridge 0.6.1.", {
   dir: z.string().describe("The folder to pack, laid out as game paths (base/..., ep1/...)."),

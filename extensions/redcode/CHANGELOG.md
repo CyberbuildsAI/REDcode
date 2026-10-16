@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **A GLB can become a new mesh.** Import from Raw on a `.glb` or `.gltf` with no `.mesh` at its path asks for a template: a game mesh to start from, whose materials and appearances the new mesh keeps. WolvenKit only imports a model over an existing mesh, so REDbridge 0.9.0 copies the template there first. The log lists the submeshes, the GLB's materials and how appearances were sized. `REDcodeApi.importFile` takes `{ template }` and returns the same `mesh` report; MCP `project_import` takes `template`. From REDbridge issue #5, for EDGEfab and EDGEmat.
 - **Import from Raw takes sound effects again**, as WAV files named after the sound's hash (`832549876.wav`, from Copy Hash in the sound list). REDbridge 0.9.0's `sound.importWavs` writes the changed `.opuspak` and a new `sfx_container.opusinfo` into `source/archive`, keeping earlier replacements. A folder import takes every such WAV under it. The API's `importFile` does the same. Voice lines (`.wem`) cannot be imported yet. MCP tool `sound_import`.
 
 ## 0.9.0 (2026-10-15)

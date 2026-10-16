@@ -38,7 +38,7 @@ if (api?.apiVersion === 1) {
 | `onDidChangeProject` | Fires with the new `project()` when a project opens or closes |
 | `soundIndex()` | The game's sound effects: `{ count, events }`, where each event has `hash`, `name` (or `null`), `tags` and `sounds` (the hashes of its variations). Loaded once per bridge process |
 | `sound(ref)` | A sound's audio as `{ data, mime, codec, channels, sampleRate, name }`, in a form a webview decodes |
-| `importFile(file)` | Imports a file under the project's `source/raw` back into `source/archive`, as Import from Raw does, and returns `{ ok, written }` |
+| `importFile(file, options?)` | Imports a file under the project's `source/raw` back into `source/archive`, as Import from Raw does, and returns `{ ok, written, mesh? }`. A GLB with no `.mesh` at its path needs `{ template }`, a game path or `.mesh` to start from; `mesh` reports the submeshes, the GLB's material names per submesh, the material entries, appearances and what was resized. A `<hash>.wav` replaces that game sound effect. Needs REDbridge 0.9.0 for templates and sounds |
 | `pack()` | Packs the open project, as REDcode: Pack does, and returns `{ packedDir, archive, archiveFiles }` |
 
 ### Sound references

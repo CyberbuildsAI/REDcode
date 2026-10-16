@@ -15,6 +15,7 @@ import * as path from "node:path";
 import * as vscode from "vscode";
 import { audioFormat, gameSoundIndex, opusSound, opusToWav, wemOggFor, GameSoundIndex } from "./audio";
 import type { BridgeClient } from "./bridgeClient";
+import type { MeshImport } from "./types";
 import { sourceFile } from "./exportCache";
 import { gamePathOfUri } from "./gameFs";
 import { ProjectFolders, type ProjectInfo } from "./project";
@@ -84,8 +85,12 @@ export interface REDcodeApi {
   soundIndex(): Promise<{ count: number; events: SoundEventInfo[] }>;
   /** A sound's audio. Throws when the sound is not found or the bridge is not running. */
   sound(ref: SoundRef): Promise<SoundAudio>;
-  /** Imports a file under the project's source/raw back into source/archive, as Import from Raw does. */
-  importFile(file: string): Promise<{ ok: boolean; written: string[] }>;
+  /**
+   * Imports a file under the project's source/raw back into source/archive, as Import from Raw does.
+   * A GLB with no .mesh at its path needs options.template, a game path or .mesh to start from; a mesh
+   * import also returns what the mesh ended up with. A <hash>.wav replaces that game sound effect.
+   */
+  importFile(file: string, options?: { template?: string }): Promise<{ ok: boolean; written: string[]; mesh?: MeshImport | null }>;
   /** Packs the open project, as REDcode: Pack does. */
   pack(): Promise<{ packedDir: string; archive?: string; archiveFiles: number }>;
 }
@@ -97,7 +102,7 @@ export interface ApiHost {
   project(): ProjectInfo | undefined;
   onDidChangeProject: vscode.Event<ProjectInfo | undefined>;
   audioCache: string;
-  importFile(file: string): Promise<{ ok: boolean; written: string[] }>;
+  importFile(file: string, options?: { template?: string }): Promise<{ ok: boolean; written: string[]; mesh?: MeshImport | null }>;
   pack(): Promise<{ packedDir: string; archive?: string; archiveFiles: number }>;
 }
 

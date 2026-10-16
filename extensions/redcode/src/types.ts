@@ -269,4 +269,20 @@ export interface SoundImportResult {
 export interface ModkitResult {
   ok: boolean;
   written: string[];
+  /** Set when a GLB import wrote a .mesh (bridge 0.9.0). */
+  mesh?: MeshImport | null;
+}
+
+/** What a GLB import made of a .mesh (project.import, bridge 0.9.0). */
+export interface MeshImport {
+  fromTemplate: boolean;
+  template: string | null;
+  submeshes: number;
+  /** The GLB's material names per submesh, in WolvenKit's submesh order (by node name). */
+  materials: { name: string; submeshes: number[] }[];
+  /** The mesh's own material entries, which the import keeps. */
+  meshMaterials: string[];
+  appearances: string[];
+  /** How appearances were sized to the new submesh count. */
+  adjusted: string[];
 }

@@ -41,7 +41,7 @@ import { shortType, tweakYaml, type TweakMode } from "./tweakYaml";
 import { createProject, findProject, gamePathOf, ProjectFolders, projectPathFor, type ProjectInfo } from "./project";
 import { ProjectExplorer, type ProjectNode } from "./projectExplorer";
 import { isTexture, TextureViewer, textureViewTypeFor } from "./textureViewer";
-import type { BridgeInfo, GameFileInfo } from "./types";
+import type { BridgeInfo, GameFileInfo, MeshImport } from "./types";
 
 /**
  * The oldest REDbridge this extension works with, from redcode.minBridgeVersion in package.json. The
@@ -583,6 +583,27 @@ async function modkitCommand(b: BridgeClient, node: ProjectNode, action: "export
     meshMaterials: config.get<boolean>("export.meshMaterials", true),
   };
   const keep = config.get<boolean>("import.keepSettings", true);
+  // A GLB or glTF with no .mesh at its path becomes a new mesh only from a template (REDbridge 0.9.0).
+  const templates = new Map<string, string>();
+  if (action === "import") {
+    for (const f of files.filter((x) => /\.(glb|gltf)$/i.test(x))) {
+      const target = path.join(archiveDir, path.relative(rawDir, f)).replace(/\.(glb|gltf)$/i, ".mesh");
+      if (fs.existsSync(target)) continue;
+      const pick = await vscode.window.showInformationMessage(
+        `${path.basename(f)} has no mesh at ${path.relative(p.dir, target)} to import over. A new mesh starts from a template: a game mesh of a similar kind (a prop, or a garment of the same slot), whose materials and appearances it keeps.`,
+        { modal: true },
+        "Choose a Template...",
+      );
+      if (!pick) return;
+      const t = await pickGameFile(b, `A template mesh for ${path.basename(f)}: search the game's .mesh files`);
+      if (!t) return;
+      if (!t.name.toLowerCase().endsWith(".mesh")) {
+        void vscode.window.showWarningMessage(`REDcode: ${path.basename(t.name)} is not a .mesh. Pick a .mesh as the template.`);
+        return;
+      }
+      templates.set(f, t.name);
+    }
+  }
   const written: string[] = [];
   const failed: string[] = [];
   await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: `${action === "export" ? "Exporting" : "Importing"} ${files.length} file(s)`, cancellable: true }, async (progress, token) => {
@@ -610,7 +631,11 @@ async function modkitCommand(b: BridgeClient, node: ProjectNode, action: "export
       if (token.isCancellationRequested) break;
       progress.report({ message: path.basename(f), increment: 100 / files.length });
       try {
-        const r = action === "export" ? await b.exportFile(f, archiveDir, rawDir, options) : await b.importFile(f, rawDir, archiveDir, keep);
+        const r = action === "export" ? await b.exportFile(f, archiveDir, rawDir, options) : await b.importFile(f, rawDir, archiveDir, keep, templates.get(f));
+        if (r.mesh) {
+          log.appendLine(`  mesh: ${r.mesh.submeshes} submesh(es)${r.mesh.fromTemplate ? `, new from ${r.mesh.template}` : ""}; GLB materials ${r.mesh.materials.map((m) => `${m.name} [${m.submeshes.join(",")}]`).join(", ")}; appearances ${r.mesh.appearances.length}`);
+          for (const a of r.mesh.adjusted) log.appendLine(`  ${a}`);
+        }
         const base = action === "export" ? rawDir : archiveDir;
         written.push(...r.written.map((w) => path.join(base, w)));
         log.appendLine(`${action === "export" ? "Exported" : "Imported"} ${path.relative(p.dir, f)}: ${r.ok ? "" : "WolvenKit reported a failure; "}${r.written.length ? r.written.join(", ") : "nothing written"}`);
@@ -915,7 +940,7 @@ async function extractToProject(args: ExtractToProjectArgs): Promise<ExtractToPr
 
 /** A file an import rewrote and the CR2W editor has open is reloaded, unless it has unsaved edits. */
 /** REDcodeApi.importFile: one raw file back into source/archive, as Import from Raw does, without its prompts. */
-async function apiImportFile(file: string): Promise<{ ok: boolean; written: string[] }> {
+async function apiImportFile(file: string, options?: { template?: string }): Promise<{ ok: boolean; written: string[]; mesh?: MeshImport | null }> {
   const p = requireProject();
   if (!bridge?.running) throw new Error('REDbridge is not running. Run "REDcode: Restart REDbridge".');
   const archiveDir = path.join(p.dir, ProjectFolders.archive);
@@ -926,12 +951,12 @@ async function apiImportFile(file: string): Promise<{ ok: boolean; written: stri
     explorer.refresh();
     return { ok: s.ok, written: soundFiles };
   }
-  const r = await bridge.importFile(path.resolve(file), path.join(p.dir, ProjectFolders.raw), archiveDir, vscode.workspace.getConfiguration("redcode").get<boolean>("import.keepSettings", true));
+  const r = await bridge.importFile(path.resolve(file), path.join(p.dir, ProjectFolders.raw), archiveDir, vscode.workspace.getConfiguration("redcode").get<boolean>("import.keepSettings", true), options?.template);
   const written = r.written.map((w) => path.join(archiveDir, w));
   log.appendLine(`Imported ${path.relative(p.dir, file)} for another extension: ${written.length ? r.written.join(", ") : "nothing written"}`);
   explorer.refresh();
   await reloadImported(written);
-  return { ok: r.ok, written };
+  return { ok: r.ok, written, mesh: r.mesh };
 }
 
 async function reloadImported(written: string[]): Promise<void> {

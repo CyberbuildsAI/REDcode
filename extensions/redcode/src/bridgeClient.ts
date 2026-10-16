@@ -188,8 +188,9 @@ export class BridgeClient extends EventEmitter<BridgeEvents> {
   }
 
   /** Imports a raw file under rawDir back into archiveDir, through WolvenKit's importer. keep: an existing file keeps its settings. Bridge 0.7.0. */
-  importFile(file: string, rawDir: string, archiveDir: string, keep = true): Promise<ModkitResult> {
-    return this.call("project.import", { file, rawDir, archiveDir, keep });
+  importFile(file: string, rawDir: string, archiveDir: string, keep = true, template?: string): Promise<ModkitResult> {
+    // template (bridge 0.9.0): a game path or .mesh to start a new mesh from, for a GLB with no mesh to go over.
+    return this.call("project.import", { file, rawDir, archiveDir, keep, template: template ?? null });
   }
 
   /** The sound event names WolvenKit knows, with their Wwise hashes, which name the groups in an .opusinfo. Bridge 0.7.2. */
