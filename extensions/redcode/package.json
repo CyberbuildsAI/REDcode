@@ -930,7 +930,7 @@
         },
         {
           "command": "redcode.editInBlender",
-          "when": "view == redcode.project && viewItem =~ /^projectFile/ && resourceExtname =~ /^\\.(glb|gltf|mesh)$/",
+          "when": "view == redcode.project && viewItem =~ /^projectFile\\.model/",
           "group": "1_modkit@2"
         },
         {

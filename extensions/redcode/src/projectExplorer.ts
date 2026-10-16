@@ -119,8 +119,10 @@ export class ProjectExplorer implements vscode.TreeDataProvider<ProjectNode> {
     const item = new vscode.TreeItem(path.basename(node.file), vscode.TreeItemCollapsibleState.None);
     item.id = `file:${node.file.toLowerCase()}`;
     item.iconPath = iconFor(node.file);
-    // Textures open in the viewer on click, so they alone get the "Open in CR2W Editor" entry.
-    item.contextValue = (node.file.toLowerCase().endsWith(".xbm") ? "projectFile.texture" : "projectFile") + this.tags(node.file, false);
+    // Textures open in the viewer on click, so they alone get the "Open in CR2W Editor" entry. Models get
+    // "Edit in Blender"; the tree sets no resourceExtname for its items, so menus match the kind here.
+    const kind = /\.xbm$/i.test(node.file) ? ".texture" : /\.(glb|gltf|mesh)$/i.test(node.file) ? ".model" : "";
+    item.contextValue = "projectFile" + kind + this.tags(node.file, false);
     item.resourceUri = vscode.Uri.file(node.file);
     item.tooltip = node.file;
     item.command = { command: "redcode.openProjectFile", title: "Open", arguments: [node] };
