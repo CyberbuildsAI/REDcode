@@ -80,7 +80,7 @@ Finding the text behind `LocKey#12345`, and the LocKey for a text.
 | `loc.languages()` | The languages with on-screen texts (19 on the owner's game), and whether Phantom Liberty has them |
 | `loc.search(query, language, limit, projectDir?)` | Entries for `LocKey#123` or a number, else entries with every word in the secondary key or a text; exact secondary keys first |
 | `loc.get(keys, language, projectDir?)` | Entries by LocKey number or secondary key, null where there is none |
-| `loc.projectFiles(projectDir, language)` | The project's onscreens files for the language: those its `.xl` files name, then any `.json` under a language folder in `source/archive` |
+| `loc.projectFiles(projectDir, language)` | The project's onscreens files for the language: those its `.xl` files name, then any `.json` in `source/archive` under `<language>\onscreens`, where the game keeps them (not subtitles beside them) |
 | `loc.newFile(projectDir, modName, language)` | The project's onscreens file for the language; written empty when it has none, at `<mod>\localization\<language>.json`, and named in an `.xl` |
 
 - **Entries** carry `key` (the LocKey number as text, since it can pass 2^53), `secondaryKey`, `female`, `male` and `source` (`base`, `ep1` or `project`), and for a project entry its `file` and row `index`.

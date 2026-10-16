@@ -250,7 +250,7 @@ export class BridgeClient extends EventEmitter<BridgeEvents> {
     return this.call("loc.get", { keys, language, projectDir: projectDir ?? null });
   }
 
-  /** The project's onscreens files for a language: those its .xl files name, then any under a language folder in source/archive. */
+  /** The project's onscreens files for a language: those its .xl files name, then any in source/archive under <language>\onscreens. */
   locProjectFiles(projectDir: string, language = "en-us"): Promise<LocProjectFile[]> {
     return this.call("loc.projectFiles", { projectDir, language });
   }
