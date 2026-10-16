@@ -656,7 +656,16 @@
       for (const h of r.hits) {
         const row = el("div", "result" + (isCompiled(h.path) ? " compiled" : ""));
         row.title = h.path;
-        row.append(el("span", "rpath", h.path), el("span", "rtype", h.type), el("span", "rpreview", h.preview));
+        const preview = el("span", "rpreview", h.preview);
+        row.append(el("span", "rpath", h.path), el("span", "rtype", h.type), preview);
+        // A LocKey hit shows its text, as the grid does beside the value.
+        if (/^LocKey#[\w\-.]+$/.test(h.preview)) {
+          request("locText", { query: h.preview }).then((text) => {
+            if (!text) return;
+            row.title = `${h.path}\n${text}`;
+            preview.append(" ", el("span", "dim lockey", text.length > 80 ? `${text.slice(0, 77)}…` : text));
+          }).catch(() => {});
+        }
         row.addEventListener("click", () => { if (isSpecial()) { mode = "tree"; void render(); } expandTo(h.path); void select(h.path, true); });
         list.appendChild(row);
       }
