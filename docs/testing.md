@@ -29,7 +29,7 @@ Gathered on 2026-10-16 from the design pages, the project notes and the session 
 | [Copy path](#copy-path) | By hand | C5 | 2026-10-14 | Pass |
 | [V2 audio player](#v2-audio-player) | By hand | C5 | 2026-10-15 | Pass on the retest |
 | [V3 TweakDB view](#v3-tweakdb-view) | By hand | C5 | 2026-10-15 | Pass, one fix |
-| [Unreleased: issues #5 to #8 and V4](#pending-the-unreleased-work) | By hand | C5 | Not run | |
+| [Release 0.10.0: issues #5 to #8 and V4](#release-0100-issues-5-to-8-and-v4) | By hand | C5 | 2026-10-16 | Pass, ten fixes retested |
 | [Never run](#never-run) | | | Not run | |
 
 ## Automated
@@ -79,6 +79,8 @@ Each new bridge method was checked by a script against the owner's game before t
 | 2026-10-15 | 0.8.0 TweakDB (V3) | 843 types; Clothing has `Items` (1,991) and `TEST` (6); "quadra type66" finds 415 records in 38 ms | Pass |
 | 2026-10-15 | `REDcodeApi` (#4) | Sound index in 126 ms, a sound effect as WAV in 16 ms, voice lines, project files, bad references | Pass |
 | 2026-10-16 | 0.9.0 (REDbridge #5, #6) | A GLB imported over a game mesh template; sound effect WAVs back into `.opuspak` and `.opusinfo` | Pass |
+| 2026-10-16 | 0.10.0 game entries' file and row | 10: for `Johnny Silverhand` and `LocKey#7052` (en-us) and `Dogtown` (de-de), each entry names its game onscreens file, and that row holds the same LocKey | Pass |
+| 2026-10-16 | 0.10.0 onscreens by folder | 4 on TestMod: its `en-us\onscreens\onscreens.json` copy is found, its subtitles file is not, de-de has none, `LocKey#7052` comes from the project | Pass |
 | 2026-10-16 | 0.10.0 `loc` (V4) | 22: 19 languages; search by words, `LocKey#n`, number and secondary key; an unknown key gives null; a project `.xl` overlay wins for its language only; `loc.newFile` with no `.xl`, with an `.xl` holding other blocks (CRLF kept), a second language, a flow list; a row added through a patch reads back as the project's row 0 | Pass |
 
 The editor page, the mesh viewer, the audio player and the TweakDB record page were also run in Chrome over a recorded bridge fixture before each hand test. That checks the page, not the extension host.
@@ -341,24 +343,43 @@ Run 2026-10-15: **pass, one fix.** Found: the new tweak file stayed buried in th
 | 7 | **REDcode: Open TweakDB Record...**, type `jacket` | Matching records |
 | 8 | Play a sound in Browse Game Sounds, **Open in EDGEwave** | Without EDGEwave: an offer to install it |
 
-## Pending: the unreleased work
+## Release 0.10.0: issues #5 to #8 and V4
 
-Built 2026-10-16, on main, not released. Run **REDcode: Update REDbridge** first (bridge 0.10.0), then F5. Not run yet.
+Run 2026-10-16: **pass, with ten fixes and their retests the same day.** REDbridge 0.10.0 from the checkout (`f38162e`), REDcode main. Steps 1 and 6 ran through EDGEwave in **Run EDGEwave with REDcode main** (EDGEwave's F5 configuration).
 
 | # | Do | Expected |
 |---|---|---|
-| 1 | **Sound WAV import** (REDbridge #6): Copy Hash on a sound, export it, edit the WAV, save it as `<hash>.wav` under `source/raw`, **Import from Raw** | The log lists the `.opuspak` and `.opusinfo` written |
-| 2 | **GLB as a new mesh** (REDbridge #5): Import from Raw on a `.glb` with no `.mesh` at its path | Asks for a game mesh as template; the log reports submeshes, materials and appearances |
-| 3 | **Viewer appearances** (#6): a `.mesh` with several appearances; a GLB with its own textures | An Appearance list; the GLB's textures, with Shading back to flat colours |
+| 1 | **Sound WAV import** (REDbridge #6): in Browse Game Sounds pick a sound, **Open in EDGEwave**, edit, **Into the Game... > Override this variation** | A message naming the files; `sfx_container_<n>.opuspak` and `sfx_container.opusinfo` in `source/archive`, the `.opuspak` selected in the Project view |
+| 2 | **GLB as a new mesh** (REDbridge #5): **Export to Raw** on a project `.mesh`, copy the `.glb` to a new name under `source/raw`, **Import from Raw**, **Choose a Template...** | A new `.mesh` at the GLB's path; the log reports submeshes, materials and appearances; it renders in the viewer |
+| 3 | **Viewer appearances** (#6): a garment `.mesh` with several appearances; a GLB with its own textures | An Appearance list that changes the materials; the GLB's textures, with Shading back to flat colours |
 | 4 | **Pack and Try** (#7) | Without Red Hot Tools: Pack and Install |
-| 5 | **Edit in Blender** (#7) on a `.glb` or `.mesh` | Blender opens; each Ctrl+S in Blender re-imports; the status bar shows the watch |
-| 6 | **Custom sounds** (#8): `redcode.pack.redmod` on, a `customSounds` entry in `source/resources/info.json`, its WAV in `source/customSounds`, Pack | The WAV in `packed/mods/<mod>/customSounds`, the entry in the manifest. A missing WAV, or a plain pack, warns |
-| 7 | **LocKeys** (V4): search `Johnny Silverhand`, then `LocKey#7052`; switch the language | Results with key and texts in each language |
-| 8 | Add a result to Project Onscreens | A new `.json` and `.xl` appear; the table opens on row 0 |
-| 9 | Change the text, save, search again | The project's version, with a pencil icon |
-| 10 | Hover a `LocKey#` in a `.yaml` file; open a file with `LocKey#` values in the CR2W editor | The text in the hover, and beside the value |
+| 5 | **Edit in Blender** (#7): right-click a `.glb` in Raw, change the model in Blender, Ctrl+S, again, close Blender | Blender opens; each save re-imports into Archive and the viewer shows it; the status bar watch goes when Blender closes |
+| 6 | **Custom sounds** (#8): `redcode.pack.redmod` on, EDGEwave **Into the Game... > Replace the event with REDmod**, Pack | The WAV in `packed/mods/<mod>/customSounds`, the entry in `packed/mods/<mod>/info.json` |
+| 6a | Rename the WAV, Pack; then **Pack and Install** | Pack warns the WAV is missing; Pack and Install asks "Install anyway?", Cancel logs "Install cancelled" and installs nothing |
+| 6b | Rename it back, Pack and Install | Installs with no question |
+| 7 | **LocKeys** (V4): search `Johnny Silverhand`, then `LocKey#7052`; the globe on the view's title bar to switch language | Results with key and texts in each language |
+| 8 | In a language the project has no file for (de-de for TestMod), **+** on a result | `source/archive/<mod>/localization/de-de.json` made and selected; a `de-de:` line under `localization: onscreens:` in the project's `.xl`; the table on the new row |
+| 9 | Change the text, save, search again; click it, then click a game entry | The project's version with a pencil icon (the key and "project" show when the sidebar is wide enough); the click opens the project's file on its row, the game entry the game's `onscreens.json` read-only on its row |
+| 10 | Hover a `LocKey#` in a `.yaml` file; open `base\gameplay\devices\vending_machines\vending_machine_v.ent`, search `LocKey#`, hover a hit, click it | The text in the hover, in the chosen language and the project's version; the hit's hover and the grid show the text of `LocKey#176` |
 
-Checked outside VS Code so far: the bridge methods ([above](#bridge-checks-against-the-game)), the Blender script with Blender 5.2.2 in background mode, the custom sound copy on a fake project with REDmod on and off, and the viewer's appearances in the Chrome harness.
+Found and fixed during the run (each retested the same day):
+
+| Found | Fix |
+|---|---|
+| The test window ran REDbridge 0.8.0: the checkout's exe had not been rebuilt since 2026-10-15, as seven windows' bridges locked it | The checkout rebuilt with the update marker, so every window's bridge restarted on 0.10.0 by itself |
+| An import through the API (EDGEwave's Into the Game) did not show its result | It reveals what it wrote, a sound's `.opuspak` first (`93c0ba2`) |
+| **Edit in Blender** missing from the Project view menu: the menu tested `resourceExtname`, which the tree does not set | Models carry `.model` in their `contextValue` (`4f353e9`) |
+| An empty `redcode.blenderPath` read as "Blender not found"; its description had lost a backslash | A found Blender is written to the setting, and a gone path is searched again (`67df54d`, `1cbba95`) |
+| `source/customSounds` missing from the Project view | A Custom Sounds root when the project has the folder (`e052105`) |
+| Pack and Install installed a REDmod that REDmod refuses (a missing custom sound) after only a warning | Pack and Install and Pack and Try ask first (`1b33596`) |
+| A LocKeys click only copied the key, with no visible sign | A click opens the entry in its file on its row; game entries carry their file and row (REDbridge `40ae414`, REDcode `e7ad7fe`) |
+| **+** did not show where the file went | The onscreens file is selected in the Project view (`9cd04ed`) |
+| A project's onscreens files by folder took any JSON under the language, subtitles included | Only files under `<language>\onscreens` (REDbridge `f38162e`) |
+| CR2W editor search hits showed no LocKey text | On hover (`3adf1ae`) |
+
+Not seen: the plain-pack custom sound warning as a toast (it is in the log on every pack; REDdeck's install messages covered it). Not covered: a GLB template whose submesh count differs from the GLB's, so the appearance resizing; step 2 used the GLB's own mesh as the template.
+
+Also found: TestMod has `.vscode/settings.json` with its own `redcode.pack.redmod`, which wins over the user setting (the Settings editor says "Also modified in Workspace"); and an English copy of the game's whole `onscreens.json`, so every English entry is a project entry there.
 
 ## Never run
 
@@ -367,5 +388,7 @@ Checked outside VS Code so far: the bridge methods ([above](#bridge-checks-again
 | Hot folder install and Pack and Try's hot path | Red Hot Tools is not installed here; its detection is unverified |
 | The EDGEmat material hook in the mesh viewer | Waits on EDGEmat shipping `renderMaterials`; checked only with a stand-in |
 | The .NET runtime prompt | Needs a machine without .NET 10 |
-| Open in EDGEwave with EDGEwave installed | EDGEwave does not register `edgewave.openSound` yet |
-| A custom sound from a REDmod pack in game | Not tried in the game |
+| Open in EDGEwave with EDGEwave from a store | Run only with EDGEwave from source (F5, 2026-10-16), where it works |
+| A custom sound from a REDmod pack, or a sound override, in game | Not tried in the game |
+| A new mesh from a template with a different submesh count | Step 2 of the 0.10.0 test used the GLB's own mesh |
+| Blender found by the search into an empty `redcode.blenderPath` in VS Code | The owner set the path by hand before the fix; the search itself finds the Steam copy when run outside VS Code |
