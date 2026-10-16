@@ -96,7 +96,8 @@ export interface REDcodeApi {
   /**
    * Packs and gets the project into the game as fast as it allows (REDcode: Pack and Try): with Red Hot
    * Tools into the hot folder, which the running game reloads ("hot"); otherwise installed, through
-   * REDdeck when it is there, for the next game start ("installed"). undefined when the pack failed.
+   * REDdeck when it is there, for the next game start ("installed"). undefined when the pack failed, or
+   * when it would break the mod (a missing REDmod custom sound) and the user cancelled.
    */
   packAndTry(): Promise<"hot" | "installed" | undefined>;
   /** Opens a project .glb, .gltf or .mesh in Blender; each save there is imported back (REDcode: Edit in Blender). */

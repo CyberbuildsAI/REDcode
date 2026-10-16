@@ -185,7 +185,7 @@ export function activate(context: vscode.ExtensionContext): REDcodeApi | undefin
     vscode.commands.registerCommand("redcode.newProject", () => newProject()),
     vscode.commands.registerCommand("redcode.pack", () => packCommand()),
     vscode.commands.registerCommand("redcode.install", () => shipCommand(() => installCommand())),
-    vscode.commands.registerCommand("redcode.packAndInstall", () => shipCommand(async () => (await packCommand()) && installCommand())),
+    vscode.commands.registerCommand("redcode.packAndInstall", () => shipCommand(async () => (await packCommand(true)) && installCommand())),
     vscode.commands.registerCommand("redcode.uninstall", () => shipCommand(() => uninstallCommand())),
     vscode.commands.registerCommand("redcode.installHot", () => shipCommand(() => installHotCommand())),
     vscode.commands.registerCommand("redcode.packAndTry", () => shipCommand(() => packAndTryCommand())),
@@ -342,8 +342,12 @@ async function runPack(extra?: (line: string) => void): Promise<PackSummary> {
   return summary;
 }
 
-/** REDcode: Pack. True when the pack succeeded, so Pack and Install can go on. */
-async function packCommand(): Promise<boolean> {
+/**
+ * REDcode: Pack. True when the pack succeeded, so Pack and Install can go on. Before an install, a pack
+ * with a problem that breaks the mod (a custom sound REDmod will refuse) asks first; other warnings
+ * only show, since the mod still loads with them.
+ */
+async function packCommand(installing = false): Promise<boolean> {
   let summary: PackSummary;
   try {
     summary = await runPack();
@@ -364,6 +368,18 @@ async function packCommand(): Promise<boolean> {
     summary.soundsNeedRedmod ? "info.json lists custom sounds, which only a REDmod carries (turn on redcode.pack.redmod)" : "",
     summary.misplacedTweaks.length ? `${summary.misplacedTweaks.map((t) => path.basename(t)).join(", ")} ${summary.misplacedTweaks.length === 1 ? "is" : "are"} not under r6\\tweaks, so TweakXL will not load ${summary.misplacedTweaks.length === 1 ? "it" : "them"}` : "",
   ].filter(Boolean);
+  if (installing && summary.missingSounds.length > 0) {
+    const n = summary.missingSounds.length;
+    const pick = await vscode.window.showWarningMessage(
+      `${project?.modName ?? "The mod"} is missing custom sound${n === 1 ? "" : "s"} ${summary.missingSounds.join(", ")}, and REDmod will refuse it. Install anyway?`,
+      { modal: true, detail: `info.json lists ${n === 1 ? "it" : "them"}, but source\\customSounds does not have ${n === 1 ? "it" : "them"}. Add the WAV or remove the entry, then pack again.` },
+      "Install Anyway",
+    );
+    if (pick !== "Install Anyway") {
+      log.appendLine("Install cancelled: the pack is missing custom sounds.");
+      return false;
+    }
+  }
   if (problems.length > 0) {
     // Not awaited: Pack and Install goes on while the warning stays up.
     void vscode.window.showWarningMessage(`REDcode: packed, but ${problems.join("; and ")}.`, "Show log").then((pick) => pick && log.show(true));
@@ -561,7 +577,7 @@ async function installHotCommand(): Promise<void> {
  * archives.reload exists (REDnode issue #12).
  */
 async function packAndTryCommand(): Promise<"hot" | "installed" | undefined> {
-  if (!(await packCommand())) return undefined;
+  if (!(await packCommand(true))) return undefined;
   const gamePath = gameFolder();
   if (hasRedHotTools(gamePath)) {
     await installHotCommand();
