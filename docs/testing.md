@@ -393,6 +393,8 @@ Given to the owner 2026-10-17. REDcode main (`8ba7879`) with EDGEdeck 0.27.1 ins
 | 4 | **Uninstall** from the Project view's `...` | The log says "Uninstalled TestMod through EDGEdeck"; the files leave |
 | 5 | Set `redcode.gamePath` to a wrong folder, reload the window | REDcode offers the install EDGEdeck uses, labelled "(EDGEdeck)", when EDGEdeck started first; otherwise a found Steam install. **Use It** restores it |
 
+Run 2026-10-17: **pass, with one fix to retest.** Step 3: TestMod's own `.vscode/settings.json` turns on `redcode.pack.redmod`, so the archive went to `mods/TestMod/archives/` as packed, not to `archive/pc/mod`; the expected result above did not allow for that. Step 5: the wrong path was in TestMod's workspace settings, and **Use It** wrote the user setting, which the workspace value hides, so the setting still showed the wrong path. Fixed: Use It and Set Game Folder write the workspace setting when the workspace has one. Retest: step 5 again, then check that TestMod's `.vscode/settings.json` holds the path chosen.
+
 ## Never run
 
 | Test | Why |

@@ -456,9 +456,13 @@ async function setGameFolder(): Promise<void> {
 }
 
 async function saveGameFolder(dir: string): Promise<void> {
-  // A user setting, so every project and window reads the same install; the change restarts the bridge.
-  await vscode.workspace.getConfiguration("redcode").update("gamePath", dir, vscode.ConfigurationTarget.Global);
-  log.appendLine(`redcode.gamePath set to ${dir}`);
+  // A user setting, so every project and window reads the same install, unless the workspace sets its
+  // own: then that one is the value in use, and writing the user setting would change nothing here.
+  // The change restarts the bridge.
+  const config = vscode.workspace.getConfiguration("redcode");
+  const inWorkspace = config.inspect<string>("gamePath")?.workspaceValue !== undefined;
+  await config.update("gamePath", dir, inWorkspace ? vscode.ConfigurationTarget.Workspace : vscode.ConfigurationTarget.Global);
+  log.appendLine(`redcode.gamePath set to ${dir} (${inWorkspace ? "workspace" : "user"} setting)`);
 }
 
 function gameFolder(): string {

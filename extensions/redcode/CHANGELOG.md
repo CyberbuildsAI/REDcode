@@ -3,6 +3,7 @@
 ## Unreleased
 
 - **REDdeck is now EDGEdeck** (REDcode issue #9). Install, Uninstall, Pack and Install and the first-run game folder offer look for the mod manager as `edgemodders.edgedeck`, and the messages and log name it EDGEdeck. With only the old `edgemodders.reddeck` installed, REDcode installs directly, as with no mod manager. The check for a REDdeck older than 0.21.0 is gone, since every EDGEdeck release has the API.
+- **Use It and Set Game Folder change the game folder in use.** When the workspace sets its own `redcode.gamePath`, they now write that one; before, they wrote the user setting, which the workspace value hides, so the wrong folder stayed.
 
 ## 0.10.0 (2026-10-16)
 
