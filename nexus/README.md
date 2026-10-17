@@ -18,7 +18,7 @@ The source of REDcode's Nexus Mods page lives here, so updates are edits in the 
 | Author | Edgemodders |
 | Language | English |
 | Primary image | `docs/assets/brand/social.png` (1280 x 640). The banner (`docs/assets/brand/banner.png`) is already at the top of the description |
-| Requirements | None on Nexus. Off-site: VS Code 1.70 or later (or VSCodium, or EDGEkit); REDbridge and the .NET 10 runtime, which REDcode offers to install. Optional: REDdeck, once it has a Nexus page |
+| Requirements | None on Nexus. Off-site: VS Code 1.70 or later (or VSCodium, or EDGEkit); REDbridge and the .NET 10 runtime, which REDcode offers to install. Optional: EDGEdeck, once it has a Nexus page |
 | Permissions | MIT: open source, free to modify and redistribute with the license notice. Bundled packages keep their licenses (`ThirdPartyNotices.txt`). REDbridge, a separate download, is GPL-3.0 |
 | Tags | Modders resource, utility, tools |
 

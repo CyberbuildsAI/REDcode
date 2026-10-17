@@ -5,7 +5,7 @@
 # x64, since REDbridge is Windows only; the theme for every platform), publishes to the VS Code
 # Marketplace (VSCE_PAT) and Open VSX (OVSX_PAT) and makes the GitHub release with the vsix and the
 # CHANGELOG section; a REDcode release also carries the Nexus Mods zip (tools/nexus-zip.mjs), uploaded to
-# Nexus by hand. Both tokens are Edgemodders organisation secrets, shared with REDdeck's workflow.
+# Nexus by hand. Both tokens are Edgemodders organisation secrets, shared with EDGEdeck's workflow.
 name: Publish
 
 on:

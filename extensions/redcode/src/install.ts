@@ -1,5 +1,5 @@
-// Installing a packed project into the game when REDdeck is not there to do it. See
-// docs/design/ship.md. REDdeck owns the game folder when it is installed; this is the fallback.
+// Installing a packed project into the game when EDGEdeck is not there to do it. See
+// docs/design/ship.md. EDGEdeck owns the game folder when it is installed; this is the fallback.
 // Safe by default: the files REDcode copies are recorded in the project's .redcode/installed.json,
 // Uninstall removes only those, and a file that was already there is backed up first and put back
 // on Uninstall. No VS Code imports, so the smoke script can run it.

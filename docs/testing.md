@@ -101,7 +101,7 @@ Register the server ([MCP](mcp.html)) and run a client against it. Checked by an
 
 | Need | Why |
 |---|---|
-| The repo built and **F5** with **Run REDcode** (or **Run REDcode and REDdeck** when REDdeck is part of the test) | Runs the source in an Extension Development Host; the installed copy is replaced while it runs |
+| The repo built and **F5** with **Run REDcode** (or **Run REDcode and EDGEdeck** when EDGEdeck is part of the test) | Runs the source in an Extension Development Host; the installed copy is replaced while it runs |
 | **REDcode: Update REDbridge** first when the test needs a new bridge | The checkout path pulls and builds. Other windows' bridges lock the exe; the command offers to stop them |
 | The test project `E:\Modding\Cyberpunk 2077\Projects\TestMod` | WolvenKit project with an `.ent`, `.app`, atlas, onscreens file, `tower.mesh`, a decal `.xbm` and tweaks. Nothing from it goes into this repo |
 | The REDcode output channel | Most steps log there; send its lines with any failure |
@@ -222,7 +222,7 @@ Run 2026-10-13: **pass.** Not run: the .NET runtime prompt, which needs a machin
 | 6 | Update on that install | "Already the latest release" |
 | 7 | Set `redcode.bridgePath` back to the checkout exe | |
 
-Install REDbridge overwrites `redcode.bridgePath`, so note the old value first. REDdeck has its own `reddeck.bridgePath`.
+Install REDbridge overwrites `redcode.bridgePath`, so note the old value first. EDGEdeck has its own `edgedeck.bridgePath`.
 
 ### E5: texture view, read-only game files, Properties view
 
@@ -257,11 +257,11 @@ TestMod carries edited copies of real game files; while installed they replace t
 
 | # | Do | Expected |
 |---|---|---|
-| 1 | F5 with **Run REDcode and REDdeck** | REDdeck's Mods view shows the library |
-| 2 | Open TestMod, press the rocket (**Pack and Install**) | A pack, then REDdeck adds "TestMod" version dev and deploys; a question first if other mods have changes waiting |
-| 3 | Look in the game folder | `archive/pc/mod/TestMod.archive`, the `.xl`, the YAML in `r6/tweaks`, all in `reddeck.deployment.json` |
+| 1 | F5 with **Run REDcode and EDGEdeck** | EDGEdeck's Mods view shows the library |
+| 2 | Open TestMod, press the rocket (**Pack and Install**) | A pack, then EDGEdeck adds "TestMod" version dev and deploys; a question first if other mods have changes waiting |
+| 3 | Look in the game folder | `archive/pc/mod/TestMod.archive`, the `.xl`, the YAML in `r6/tweaks`, all in `edgedeck.deployment.json` |
 | 4 | Rocket again | The same TestMod refreshed, not a second one |
-| 5 | **Uninstall** from the Project view's `...` | REDdeck turns it off and deploys; the files leave |
+| 5 | **Uninstall** from the Project view's `...` | EDGEdeck turns it off and deploys; the files leave |
 | 6 | Play button, **Run Game** | Steam starts the game |
 
 ### S3 Export and S4 Import
@@ -324,7 +324,7 @@ First run 2026-10-14: sound effects failed with "no supported source was found" 
 | 4 | Game Assets filter `vo .wem`, click one | A voice line plays |
 | 5 | Save a sound as `.opus` into Raw, click it | The same player |
 | 6 | Right-click a `.wav` in Raw, Open With..., **REDcode Audio** | The player |
-| 7 | Set `redcode.gamePath` to a wrong folder, reload | REDcode offers the found install (REDdeck's or Steam's); **Use It** restores it |
+| 7 | Set `redcode.gamePath` to a wrong folder, reload | REDcode offers the found install (EDGEdeck's or Steam's); **Use It** restores it |
 
 Found in step 7: the host aborted at startup twice after the setting change (see [Before any hand test](#before-any-hand-test)).
 

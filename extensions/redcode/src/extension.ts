@@ -32,7 +32,7 @@ import { MeshViewer } from "./meshViewer";
 import { AudioPlayer, AudioViewType, SoundsViewType } from "./audioPlayer";
 import { GameSoundIndex } from "./audio";
 import { packProject, type PackSummary } from "./pack";
-import { findREDdeck, runningREDdeck } from "./reddeck";
+import { findEDGEdeck, runningEDGEdeck } from "./edgedeck";
 import { findGames, isGameFolder, steamPath } from "./gameFinder";
 import { findBlender, writeBlenderScript } from "./blender";
 import { TweakDb, TweakHover, TweakTree, type TweakNode } from "./tweakView";
@@ -408,13 +408,13 @@ async function shipCommand(fn: () => Promise<unknown>): Promise<void> {
 
 /**
  * When redcode.gamePath is not the game (on a first run it is the default Steam folder, which holds
- * nothing on most machines), offer the install REDdeck uses, or one found on the machine.
+ * nothing on most machines), offer the install EDGEdeck uses, or one found on the machine.
  */
 async function offerGameFolder(): Promise<void> {
   if (isGameFolder(vscode.workspace.getConfiguration("redcode").get<string>("gamePath", ""))) return;
-  // REDdeck's folder only if REDdeck is running already: activating it here races a window reload.
-  const fromDeck = runningREDdeck()?.gamePath();
-  const found = isGameFolder(fromDeck) ? [{ path: fromDeck, source: "REDdeck" }] : await findGames();
+  // EDGEdeck's folder only if EDGEdeck is running already: activating it here races a window reload.
+  const fromDeck = runningEDGEdeck()?.gamePath();
+  const found = isGameFolder(fromDeck) ? [{ path: fromDeck, source: "EDGEdeck" }] : await findGames();
   if (deactivated) return;
   if (found.length === 0) {
     const pick = await vscode.window.showWarningMessage("REDcode needs your Cyberpunk 2077 folder to read the game's files.", "Choose Folder...");
@@ -475,7 +475,7 @@ function packedExists(p: ProjectInfo): boolean {
 }
 
 /**
- * REDcode: Install. Through REDdeck when it is installed, so REDdeck's manifest, conflicts and undo
+ * REDcode: Install. Through EDGEdeck when it is installed, so EDGEdeck's manifest, conflicts and undo
  * cover the mod; otherwise a direct copy recorded in .redcode/installed.json.
  */
 async function installCommand(): Promise<void> {
@@ -485,42 +485,34 @@ async function installCommand(): Promise<void> {
     if (pick) await vscode.commands.executeCommand("redcode.packAndInstall");
     return;
   }
-  const found = await findREDdeck();
-  if ("api" in found) {
-    const deck = found.api;
+  const deck = await findEDGEdeck();
+  if (deck) {
     const ours = vscode.workspace.getConfiguration("redcode").get<string>("gamePath", "");
     if (deck.gamePath() && ours && path.resolve(deck.gamePath()).toLowerCase() !== path.resolve(ours).toLowerCase()) {
-      log.appendLine(`Note: REDdeck deploys to ${deck.gamePath()}, while redcode.gamePath is ${ours}. Install goes where REDdeck deploys.`);
+      log.appendLine(`Note: EDGEdeck deploys to ${deck.gamePath()}, while redcode.gamePath is ${ours}. Install goes where EDGEdeck deploys.`);
     }
     const r = deck.installProject(p.file);
-    log.appendLine(`${r.added ? "Added" : "Refreshed"} ${r.name} in REDdeck (${r.files} files, mod id ${r.id})`);
+    log.appendLine(`${r.added ? "Added" : "Refreshed"} ${r.name} in EDGEdeck (${r.files} files, mod id ${r.id})`);
     const others = deck.pendingMods(r.id);
     if (others.length > 0) {
       const pick = await vscode.window.showWarningMessage(
-        `Deploying ${r.name} also deploys changes waiting in REDdeck for ${others.join(", ")}.`,
-        { modal: true, detail: "Deploy puts the whole list REDdeck has into the game. Cancel to leave it for later; the mod is in REDdeck already." },
+        `Deploying ${r.name} also deploys changes waiting in EDGEdeck for ${others.join(", ")}.`,
+        { modal: true, detail: "Deploy puts the whole list EDGEdeck has into the game. Cancel to leave it for later; the mod is in EDGEdeck already." },
         "Deploy all",
       );
       if (pick !== "Deploy all") {
-        log.appendLine(`Install: ${r.name} is in REDdeck; not deployed, at your choice.`);
+        log.appendLine(`Install: ${r.name} is in EDGEdeck; not deployed, at your choice.`);
         return;
       }
     }
-    // REDdeck asks about changed files itself and reports the deploy with its own message.
+    // EDGEdeck asks about changed files itself and reports the deploy with its own message.
     const result = await deck.deploy();
     if (result) {
-      log.appendLine(`REDdeck deployed: ${result.linked} added, ${result.removed} removed, ${result.kept} unchanged${result.skipped.length ? `; skipped ${result.skipped.join(", ")}` : ""}${result.conflicts ? `; ${result.conflicts} conflict(s), resolved by order` : ""}`);
+      log.appendLine(`EDGEdeck deployed: ${result.linked} added, ${result.removed} removed, ${result.kept} unchanged${result.skipped.length ? `; skipped ${result.skipped.join(", ")}` : ""}${result.conflicts ? `; ${result.conflicts} conflict(s), resolved by order` : ""}`);
     } else {
-      log.appendLine(`Install: REDdeck did not deploy (refused or cancelled); ${r.name} is in its library.`);
+      log.appendLine(`Install: EDGEdeck did not deploy (refused or cancelled); ${r.name} is in its library.`);
     }
     return;
-  }
-  if ("tooOld" in found) {
-    const pick = await vscode.window.showWarningMessage(
-      `REDdeck ${found.tooOld} is too old to install projects for REDcode; 0.21.0 or newer can. Install directly into the game instead?`,
-      "Install directly",
-    );
-    if (pick !== "Install directly") return;
   }
   await installDirectCommand(p);
 }
@@ -540,15 +532,15 @@ async function installDirectCommand(p: ProjectInfo): Promise<void> {
   vscode.window.setStatusBarMessage(`$(check) REDcode: installed ${record.files.length} file(s) into the game`, 6000);
 }
 
-/** REDcode: Uninstall: turn the mod off in REDdeck and deploy, or remove the direct copy. */
+/** REDcode: Uninstall: turn the mod off in EDGEdeck and deploy, or remove the direct copy. */
 async function uninstallCommand(): Promise<void> {
   const p = requireProject();
-  const found = await findREDdeck();
-  const id = "api" in found ? found.api.projectMod(p.file) : undefined;
-  if ("api" in found && id) {
-    found.api.turnOff(id);
-    const result = await found.api.deploy();
-    log.appendLine(result ? `Uninstalled ${p.name} through REDdeck: ${result.removed} file(s) removed` : `Uninstall: ${p.name} is off in REDdeck; not deployed yet.`);
+  const deck = await findEDGEdeck();
+  const id = deck?.projectMod(p.file);
+  if (deck && id) {
+    deck.turnOff(id);
+    const result = await deck.deploy();
+    log.appendLine(result ? `Uninstalled ${p.name} through EDGEdeck: ${result.removed} file(s) removed` : `Uninstall: ${p.name} is off in EDGEdeck; not deployed yet.`);
     return;
   }
   if (readRecord(p)) {
@@ -556,7 +548,7 @@ async function uninstallCommand(): Promise<void> {
     vscode.window.setStatusBarMessage(`$(check) REDcode: removed ${removed} file(s) from the game`, 6000);
     return;
   }
-  void vscode.window.showInformationMessage(`${p.name} is not installed${"api" in found ? " in REDdeck or" : ""} by REDcode.`);
+  void vscode.window.showInformationMessage(`${p.name} is not installed${deck ? " in EDGEdeck or" : ""} by REDcode.`);
 }
 
 /** REDcode: Install to hot folder: the packed archive into archive/pc/hot, which Red Hot Tools reloads in a running game. */
@@ -574,7 +566,7 @@ async function installHotCommand(): Promise<void> {
 /**
  * REDcode: Pack and Try (REDcode issue #7): pack, then get it into the game as fast as the game allows.
  * With Red Hot Tools, the archive goes to the hot folder and the running game reloads it. Without it,
- * Pack and Install (through REDdeck when it is there), and the game needs a restart until REDnode's
+ * Pack and Install (through EDGEdeck when it is there), and the game needs a restart until REDnode's
  * archives.reload exists (REDnode issue #12).
  */
 async function packAndTryCommand(): Promise<"hot" | "installed" | undefined> {
@@ -1130,11 +1122,11 @@ async function openGameFileByPath(gamePath: string): Promise<void> {
   await withBridge(async () => void (await vscode.commands.executeCommand("vscode.openWith", gameUri(gamePath), soundViewTypeFor(gamePath) ?? cr2wViewTypeFor(gamePath))));
 }
 
-// ---- extract to project, for REDdeck ----------------------------------------------------------
+// ---- extract to project, for EDGEdeck ----------------------------------------------------------
 
-/** The arguments of redcode.extractToProject, REDcode request #1 from REDdeck. */
+/** The arguments of redcode.extractToProject, REDcode request #1 from EDGEdeck. */
 interface ExtractToProjectArgs {
-  /** A .archive file on disk, such as a mod in REDdeck's library. */
+  /** A .archive file on disk, such as a mod in EDGEdeck's library. */
   archive: string;
   /** Resource paths (base\...) or hashes inside it. */
   paths: string[];
@@ -1153,8 +1145,8 @@ interface ExtractToProjectResult {
 
 /**
  * REDcode: extract resources from a mod archive on disk into the open project's source/archive, at
- * their game paths. Called by REDdeck by name, with no UI of its own beyond the Project view refresh;
- * REDdeck asks the user and calls again with overwrite for the kept ones.
+ * their game paths. Called by EDGEdeck by name, with no UI of its own beyond the Project view refresh;
+ * EDGEdeck asks the user and calls again with overwrite for the kept ones.
  */
 async function extractToProject(args: ExtractToProjectArgs): Promise<ExtractToProjectResult> {
   const p = requireProject();

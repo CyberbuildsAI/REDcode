@@ -93,7 +93,7 @@ Finding the text behind `LocKey#12345`, and the LocKey for a text.
 Edit a REDnode mod in REDcode, deploy it into the running game without a restart, and get the game's logs, events and a debugger back. This is the core of the "one loop" goal, and it spans two repositories.
 
 - **Its own extension**, `redcode-rednode`, an optional add-on, and its own design page written with the REDnode session, since it needs a **development endpoint on REDnode's side** that does not exist yet: deploy or hot reload a package, stream logs and events, report the Node inspector's port.
-- **What REDcode brings**: a deploy command over REDdeck's REDnode kind (REDdeck already deploys REDnode packages to `red4ext/plugins/REDnode/apps/<id>`), an output channel for the game's log, a launch configuration that attaches VS Code's debugger to the REDnode process, and the live halves of V3 and V4.
+- **What REDcode brings**: a deploy command over EDGEdeck's REDnode kind (EDGEdeck already deploys REDnode packages to `red4ext/plugins/REDnode/apps/<id>`), an output channel for the game's log, a launch configuration that attaches VS Code's debugger to the REDnode process, and the live halves of V3 and V4.
 - **Order**: last in C5, because it waits on REDnode. Its design page can start as soon as REDnode has room for the endpoint.
 
 ## Deferred

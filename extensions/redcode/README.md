@@ -146,8 +146,8 @@ The rocket button in the Project view, **REDcode: Pack and Install**, packs and 
 
 | With | Install does |
 |---|---|
-| [REDdeck](https://github.com/Edgemodders/REDdeck) 0.21.0 or newer | Hands the project to REDdeck: the first time it becomes a mod named after the project (version dev), after that the same mod gets the new files and keeps its place in the order. REDdeck deploys it with its manifest, conflict check and undo. When other mods have changes waiting, REDcode asks before the deploy takes them along. Uninstall turns the mod off in REDdeck and deploys |
-| No REDdeck | Copies `packed` into the game folder and records the files in the project's `.redcode/installed.json`. A file that was already in the game is backed up there first, after a question, and put back on Uninstall. Reinstalling removes the previous set first, so a file the project dropped does not stay behind |
+| [EDGEdeck](https://github.com/Edgemodders/EDGEdeck) | Hands the project to EDGEdeck: the first time it becomes a mod named after the project (version dev), after that the same mod gets the new files and keeps its place in the order. EDGEdeck deploys it with its manifest, conflict check and undo. When other mods have changes waiting, REDcode asks before the deploy takes them along. Uninstall turns the mod off in EDGEdeck and deploys |
+| No EDGEdeck | Copies `packed` into the game folder and records the files in the project's `.redcode/installed.json`. A file that was already in the game is backed up there first, after a question, and put back on Uninstall. Reinstalling removes the previous set first, so a file the project dropped does not stay behind |
 
 **Install to the Hot Folder** (the flame button) copies the packed archive into `archive/pc/hot`, which [Red Hot Tools](https://github.com/psiberx/cp2077-red-hot-tools) reloads while the game runs. It shows only when the game has Red Hot Tools under `red4ext/plugins`. **Run Game** starts the game through Steam when it is in a Steam library and from `bin/x64/Cyberpunk2077.exe` otherwise (`redcode.launch`), with `-modded` when the project packs as a REDmod.
 
@@ -155,7 +155,7 @@ The rocket button in the Project view, **REDcode: Pack and Install**, packs and 
 
 | Setting | Default | Meaning |
 |---|---|---|
-| `redcode.gamePath` | The default Steam folder | The Cyberpunk 2077 install, the folder containing `bin`, `archive` and `r6`. When it is not the game, REDcode offers on start the install REDdeck uses or one it finds: every Steam library, GOG, Epic. **REDcode: Set Game Folder** changes it |
+| `redcode.gamePath` | The default Steam folder | The Cyberpunk 2077 install, the folder containing `bin`, `archive` and `r6`. When it is not the game, REDcode offers on start the install EDGEdeck uses or one it finds: every Steam library, GOG, Epic. **REDcode: Set Game Folder** changes it |
 | `redcode.bridgePath` | empty | Path to `REDbridge.exe`. Empty means a bridge bundled with the extension, or one on `PATH` |
 | `redcode.dotnetRoot` | empty | `DOTNET_ROOT` for the bridge when the .NET 10 runtime is installed per user |
 | `redcode.bridgeRepository` | `Edgemodders/REDbridge` | The GitHub repository whose releases Install REDbridge and Update REDbridge download |

@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- **REDdeck is now EDGEdeck** (REDcode issue #9). Install, Uninstall, Pack and Install and the first-run game folder offer look for the mod manager as `edgemodders.edgedeck`, and the messages and log name it EDGEdeck. With only the old `edgemodders.reddeck` installed, REDcode installs directly, as with no mod manager. The check for a REDdeck older than 0.21.0 is gone, since every EDGEdeck release has the API.
+
 ## 0.10.0 (2026-10-16)
 
 C5 V4, the LocKeys view, is done and hand-tested, with REDcode issues #6, #7 and #8 and REDbridge issues #5 and #6 for EDGEfab, EDGEmat and EDGEwave. Needs REDbridge 0.10.0.

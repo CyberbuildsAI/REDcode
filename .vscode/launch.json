@@ -22,16 +22,16 @@
       "preLaunchTask": "build redcode"
     },
     {
-      "name": "Run REDcode and REDdeck (no other extensions)",
+      "name": "Run REDcode and EDGEdeck (no other extensions)",
       "type": "extensionHost",
       "request": "launch",
       "args": [
         "--extensionDevelopmentPath=${workspaceFolder}/extensions/redcode",
         "--extensionDevelopmentPath=${workspaceFolder}/extensions/rednode-hud-theme",
-        "--extensionDevelopmentPath=${workspaceFolder}/../REDdeck",
+        "--extensionDevelopmentPath=${workspaceFolder}/../EDGEdeck",
         "--disable-extensions"
       ],
-      "outFiles": ["${workspaceFolder}/extensions/redcode/dist/**/*.js", "${workspaceFolder}/../REDdeck/dist/**/*.js"],
+      "outFiles": ["${workspaceFolder}/extensions/redcode/dist/**/*.js", "${workspaceFolder}/../EDGEdeck/dist/**/*.js"],
       "preLaunchTask": "build redcode"
     }
   ]

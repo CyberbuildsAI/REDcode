@@ -59,7 +59,7 @@ Every record type and record, with a page per record where links take you to the
 [b][img]https://staticdelivery.nexusmods.com/mods/3333/images/35356/35356-1792195114-1378531843.png[/img][/b]
 
 [color=#00ffff][size=4][b]Pack, install, play[/b][/size][/color]
-[b]Pack[/b] builds your mod the way WolvenKit does (Ctrl+Shift+B), [b]Install[/b] puts it in the game (through REDdeck when you have it, so you can undo it), and [b]Run Game[/b] starts Cyberpunk. [b]Pack and Try[/b] does it in one click, straight into the running game when you have Red Hot Tools. Export to glTF, PNG and WAV, edit, and import back: a GLB can become a new mesh, and edited sound effects go back into the game's sound banks. REDmod packs carry your custom sounds.
+[b]Pack[/b] builds your mod the way WolvenKit does (Ctrl+Shift+B), [b]Install[/b] puts it in the game (through EDGEdeck when you have it, so you can undo it), and [b]Run Game[/b] starts Cyberpunk. [b]Pack and Try[/b] does it in one click, straight into the running game when you have Red Hot Tools. Export to glTF, PNG and WAV, edit, and import back: a GLB can become a new mesh, and edited sound effects go back into the game's sound banks. REDmod packs carry your custom sounds.
 
 [size=4][b][color=#19f3ff]TweakXL files[/color][/b][/size]
 Syntax highlighting, brackets, comments and snippets for TweakXL's [i].tweak[/i] format.
@@ -78,7 +78,7 @@ Planned: the [b]REDnode loop[/b], to edit a REDnode mod and see it in the runni
 [*]Cyberpunk 2077 on PC: the Steam, GOG or Epic install. REDcode finds it.[/*]
 [*]REDbridge: REDcode offers to download it on first start. Nothing to set up.[/*]
 [*]The .NET 10 runtime, which REDbridge runs on. REDcode offers to install it when it is missing.[/*]
-[*]Optional: [url=https://www.nexusmods.com/cyberpunk2077/mods/35366]REDdeck[/url], for installs you can undo.[/*]
+[*]Optional: [url=https://www.nexusmods.com/cyberpunk2077/mods/35366]EDGEdeck[/url], for installs you can undo.[/*]
 [/list]
 [size=5][b][color=#fcee0a]Install[/color][/b][/size]
 
@@ -97,9 +97,9 @@ Do not install it with Vortex: it is not a game mod, and Vortex would put it in 
 REDcode is one of the EDGE tools. Each works on its own and together:
 
 [list]
-[*][b][url=https://www.nexusmods.com/cyberpunk2077/mods/35366]REDdeck[/url][/b]: a simple mod manager in VS Code. REDcode's Install goes through it.[/*]
-[*][b][url=https://www.nexusmods.com/cyberpunk2077/mods/35355]REDnode[/url][/b]: mods in JavaScript, web pages over the game, and REDagent, an AI assistant in the game. REDdeck knows REDnode packages and puts them in the right place. [/*]
-[*][b][url=https://github.com/Edgemodders/REDbridge]REDbridge[/url][/b]: runs WolvenKit's libraries for REDcode, REDdeck and REDnode.[/*]
+[*][b][url=https://www.nexusmods.com/cyberpunk2077/mods/35366]EDGEdeck[/url][/b]: a simple mod manager in VS Code. REDcode's Install goes through it.[/*]
+[*][b][url=https://www.nexusmods.com/cyberpunk2077/mods/35355]REDnode[/url][/b]: mods in JavaScript, web pages over the game, and REDagent, an AI assistant in the game. EDGEdeck knows REDnode packages and puts them in the right place. [/*]
+[*][b][url=https://github.com/Edgemodders/REDbridge]REDbridge[/url][/b]: runs WolvenKit's libraries for REDcode, EDGEdeck and REDnode.[/*]
 [*][b]The REDnode HUD theme[/b]: the dark, yellow and cyan theme REDcode's pages are drawn for, in the same stores.[/*]
 [*][b][url=https://github.com/Edgemodders/EDGEkit]EDGEkit[/url][/b]: one editor with every EDGE tool built in.[/*]
 [/list]
@@ -112,7 +112,7 @@ No. It runs WolvenKit's libraries and writes WolvenKit's projects, so you can sw
 WolvenKit's libraries are GPL-3.0 and run in .NET, so they live in their own program, REDbridge (GPL-3.0), which REDcode talks to. REDcode itself stays MIT. REDcode downloads REDbridge from its GitHub releases and tells you when there is a newer one.
 
 [b]Will it change my game folder?[/b]
-Only when you press Install (or Pack and Install), and only with your mod's files. Through REDdeck, an install can be undone exactly.
+Only when you press Install (or Pack and Install), and only with your mod's files. Through EDGEdeck, an install can be undone exactly.
 
 [b]Is it free?[/b]
 Yes, and open source under the MIT license. The code is on [url=https://github.com/Edgemodders/REDcode]GitHub[/url].

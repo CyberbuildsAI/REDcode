@@ -4,7 +4,7 @@ title: Extension API
 
 # REDcode's API for other extensions
 
-REDcode returns an API from `activate()`, so other VS Code extensions can use REDcode without importing its code. EDGEwave, the EDGE sound studio, asked for it in [REDcode issue #4](https://github.com/Edgemodders/REDcode/issues/4); REDcode uses REDdeck's API the same way.
+REDcode returns an API from `activate()`, so other VS Code extensions can use REDcode without importing its code. EDGEwave, the EDGE sound studio, asked for it in [REDcode issue #4](https://github.com/Edgemodders/REDcode/issues/4); REDcode uses EDGEdeck's API the same way.
 
 ## Getting it
 

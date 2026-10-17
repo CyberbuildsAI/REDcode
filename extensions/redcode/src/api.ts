@@ -6,7 +6,7 @@
 //   if (api?.apiVersion === 1) { ... }
 //
 // List "edgemodders.redcode-cyberpunk" in extensionDependencies to have it activated first. The
-// interfaces below are the contract; copy them, as REDcode copies REDdeck's in src/reddeck.ts. New
+// interfaces below are the contract; copy them, as REDcode copies EDGEdeck's in src/edgedeck.ts. New
 // members may be added within version 1; a change that breaks callers raises apiVersion.
 // See docs/api.md.
 
@@ -96,7 +96,7 @@ export interface REDcodeApi {
   /**
    * Packs and gets the project into the game as fast as it allows (REDcode: Pack and Try): with Red Hot
    * Tools into the hot folder, which the running game reloads ("hot"); otherwise installed, through
-   * REDdeck when it is there, for the next game start ("installed"). undefined when the pack failed, or
+   * EDGEdeck when it is there, for the next game start ("installed"). undefined when the pack failed, or
    * when it would break the mod (a missing REDmod custom sound) and the user cancelled.
    */
   packAndTry(): Promise<"hot" | "installed" | undefined>;

@@ -1,6 +1,6 @@
 // Finds Cyberpunk 2077 installs on this machine, for a first run with redcode.gamePath empty: Steam
 // (every library in libraryfolders.vdf), GOG (its registry key) and the Epic launcher's manifests,
-// then the usual default folders. No VS Code imports. REDdeck's game path, when REDdeck is there, is
+// then the usual default folders. No VS Code imports. EDGEdeck's game path, when EDGEdeck is there, is
 // asked for by the caller first.
 
 import { execFile } from "node:child_process";
