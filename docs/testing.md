@@ -381,6 +381,18 @@ Not seen: the plain-pack custom sound warning as a toast (it is in the log on ev
 
 Also found: TestMod has `.vscode/settings.json` with its own `redcode.pack.redmod`, which wins over the user setting (the Settings editor says "Also modified in Workspace"); and an English copy of the game's whole `onscreens.json`, so every English entry is a project entry there.
 
+## Issue #9: Install through EDGEdeck
+
+Given to the owner 2026-10-17. REDcode main (`8ba7879`) with EDGEdeck 0.27.1 installed from the store. **Run REDcode** keeps installed extensions, so it needs no EDGEdeck clone.
+
+| # | Do | Expected |
+|---|---|---|
+| 1 | F5 with **Run REDcode**; open the REDcode log | REDcode starts; EDGEdeck is in the Extensions view |
+| 2 | Open TestMod, press the rocket (**Pack and Install**) | A pack, then the log says "Added TestMod in EDGEdeck" (or "Refreshed"); EDGEdeck deploys, asking first if other mods have changes waiting |
+| 3 | Look in the game folder | `archive/pc/mod/TestMod.archive` and its files listed in `edgedeck.deployment.json` |
+| 4 | **Uninstall** from the Project view's `...` | The log says "Uninstalled TestMod through EDGEdeck"; the files leave |
+| 5 | Set `redcode.gamePath` to a wrong folder, reload the window | REDcode offers the install EDGEdeck uses, labelled "(EDGEdeck)", when EDGEdeck started first; otherwise a found Steam install. **Use It** restores it |
+
 ## Never run
 
 | Test | Why |
