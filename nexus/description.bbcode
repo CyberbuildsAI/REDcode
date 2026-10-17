@@ -2,17 +2,24 @@
 
 [center][size=5][b][color=#fcee0a]A Cyberpunk 2077 modding workspace in VS Code, built on WolvenKit.[/color][/b][/size][/center]
 
-[center][size=3]Browse the game's archives, add files to a WolvenKit project, edit them in a tree and property grid, see textures, meshes in 3D and sounds, browse the TweakDB and the game's texts, then pack, install and start the game. All in one window, next to your code and your AI assistant.[/size][/center]
-
+[center]Browse the game's archives, add files to a WolvenKit project, edit them in a tree and property grid, see textures, meshes in 3D and sounds, browse the TweakDB and the game's texts, then pack, install and start the game. All in one window, next to your code and your AI assistant.[/center]
+[center][/center]
+[center][size=3]This is the first of many VSCode extension tools we are releasing from the Edgemodders community. All the tools will work together, with optional AI assistants. [/size][/center]
+[center][/center]
+[center][color=#f6b26b][size=3][i]This is an early but fully functional release.[/i][/size][/color][/center]
 [line]
 
 [quote][size=4][b][color=#fcee0a]STATUS: PREVIEW[/color][/b][/size]
 What is here works and is tested against the game. New features land in small updates.
 [b]This is not a game mod.[/b] It is an extension for VS Code, so install it there (steps below), not with Vortex. The quickest way is straight from the [url=https://marketplace.visualstudio.com/items?itemName=Edgemodders.redcode-cyberpunk]VS Code Marketplace[/url] or [url=https://open-vsx.org/extension/edgemodders/redcode-cyberpunk]Open VSX[/url]; the file here is the same extension.[/quote]
+Full native audio editor
+[img]https://staticdelivery.nexusmods.com/mods/3333/images/35356/35356-1792178922-1211899946.png[/img]
 
-[line]
+Fully connected, searchable, fast, hyperlinked TweakDB browser and editor.
+[img]https://staticdelivery.nexusmods.com/mods/3333/images/35356/35356-1792178926-415640651.png[/img]
 
-[color=#19f3ff][i][Screenshot 1: REDcode open on a project: the Project and Game Assets views on the left, a CR2W file in the tree and property grid on the right.][/i][/color]
+3D mesh viewer with individual parts and segment selection.
+[img]https://staticdelivery.nexusmods.com/mods/3333/images/35356/35356-1792178927-243433757.png[/img]
 
 [size=5][b][color=#fcee0a]What REDcode is[/color][/b][/size]
 
@@ -28,23 +35,31 @@ Every file in the game, in folders, with search as you type and a filter that na
 [size=4][b][color=#19f3ff]A real CR2W editor[/color][/b][/size]
 .ent, .app, .mesh, materials, scenes and the rest open as a tree and a property grid: dropdowns for enums, add and remove in arrays, undo and redo, search across the whole file. Localization files open as a table you edit in place. Atlases open on their texture with every part drawn over it, to move and resize.
 
-[color=#19f3ff][i][Screenshot 2: the atlas editor, an .inkatlas with its parts drawn over the texture.][/i][/color]
+[img]https://staticdelivery.nexusmods.com/mods/3333/images/35356/35356-1792179920-170863714.png[/img]
 
 [size=4][b][color=#19f3ff]Textures, meshes and sounds[/color][/b][/size]
-Textures show as images. Meshes open in 3D: orbit, pick the LOD, switch appearances, turn submeshes on and off, see each one's material. A GLB shows with its own textures. [b]Edit in Blender[/b] opens a model in Blender, and every save there comes back into your project by itself. Voice lines and sound effects play in a player with a waveform, and [b]Browse Game Sounds[/b] lists the game's 73,000 sound effects as events to filter and play.
+Textures show as images. Meshes open in 3D: orbit, pick the LOD, switch appearances, turn submeshes on and off, see each one's material. Voice lines and sound effects play in a player with a waveform, and [b]Browse Game Sounds[/b] lists the game's 73,000 sound effects as events to filter and play.
 
-[color=#19f3ff][i][Screenshot 3: a vehicle or weapon mesh in the 3D view, with the submesh list.][/i][/color]
+[color=#19f3ff][i][img]https://staticdelivery.nexusmods.com/mods/3333/images/35356/35356-1792180039-1848638956.png[/img][/i][/color]
+
+[color=#19f3ff][size=4][b]Full Blender Round-Trip Editing[/b][/size][/color]
+
+[color=#ffffff][size=3]View in REDcode, launch the model into Blender, make edits and save, the save imports seamlessly back into REDcode.[/size][/color]
+[color=#19f3ff][i][img width=406]https://staticdelivery.nexusmods.com/mods/3333/images/35356/35356-1792189663-827977558.png[/img][img width=418]https://staticdelivery.nexusmods.com/mods/3333/images/35356/35356-1792189673-2071866892.png[/img][/i][/color]
+
 
 [size=4][b][color=#19f3ff]The TweakDB, browsable[/color][/b][/size]
 Every record type and record, with a page per record where links take you to the records it names, LocKeys show their text and resource paths open the file. [b]New Tweak from This Record[/b] writes a TweakXL file that clones or changes it, every flat listed and ready to uncomment. Hover a record path in a tweak file to see what it is.
 
-[color=#19f3ff][i][Screenshot 4: a TweakDB record page, for example a weapon, with its flats and links.][/i][/color]
+[color=#19f3ff][i][img]https://staticdelivery.nexusmods.com/mods/3333/images/35356/35356-1792180246-1379258345.png[/img][/i][/color]
+[color=#19f3ff][i][img]https://staticdelivery.nexusmods.com/mods/3333/images/35356/35356-1792180248-2025710685.png[/img][/i][/color]
 
-[size=4][b][color=#19f3ff]The game's texts, in 19 languages[/color][/b][/size]
-The [b]LocKeys[/b] view finds the text behind any [i]LocKey#[/i], and the LocKey behind any text, in the base game and Phantom Liberty. Click a result to open it in its file. One click adds it to your project's own text file, made and wired up for ArchiveXL if you have none, so you can change what the game says. Hover a LocKey in a tweak, a script or a CR2W file to read it.
+[color=#00ffff][size=4][b]The game's texts, in 19 languages[/b] [/size][/color]
+[b]The LocKeys view finds the text behind any [i]LocKey#[/i], and the LocKey behind any text, in the base game and Phantom Liberty. Click a result to open it in its file. One click adds it to your project's own text file, made and wired up for ArchiveXL if you have none, so you can change what the game says. Hover a LocKey in a tweak, a script or a CR2W file to read it. [/b]
+[b][img]https://staticdelivery.nexusmods.com/mods/3333/images/35356/35356-1792195114-1378531843.png[/img][/b]
 
-[size=4][b][color=#19f3ff]Pack, install, play[/color][/b][/size]
-[b]Pack[/b] builds your mod the way WolvenKit does (Ctrl+Shift+B), [b]Install[/b] puts it in the game (through REDdeck when you have it, so you can undo it), and [b]Run Game[/b] starts Cyberpunk. [b]Pack and Try[/b] does it in one click, straight into the running game when you have Red Hot Tools. Export to glTF, PNG and WAV, edit, and import back: a GLB can become a new mesh, and edited sound effects go back into the game's sound banks. REDmod packs carry your custom sounds.
+[color=#00ffff][size=4][b]Pack, install, play[/b][/size][/color]
+[b]Pack[/b] builds your mod the way WolvenKit does (Ctrl+Shift+B), [b]Install[/b] puts it in the game (through REDdeck when you have it, so you can undo it), and [b]Run Game[/b] starts Cyberpunk. [b]Pack and Try[/b] does it in one click, straight into the running game when you have Red Hot Tools. Export to glTF, PNG and WAV, edit, and import back: a GLB can become a new mesh, and edited sound effects go back into the game's sound banks. REDmod packs carry your custom sounds.
 
 [size=4][b][color=#19f3ff]TweakXL files[/color][/b][/size]
 Syntax highlighting, brackets, comments and snippets for TweakXL's [i].tweak[/i] format.
@@ -53,7 +68,7 @@ Syntax highlighting, brackets, comments and snippets for TweakXL's [i].tweak[/i]
 [url=https://www.npmjs.com/package/@edgemodders/redcode-mcp]@edgemodders/redcode-mcp[/url] gives Claude Code and other assistants the same engine: browse the archives, read and patch CR2W files, export, import, pack, and query the TweakDB and the game's texts. Ask your assistant to make the mod, and watch it work in the same project.
 
 [size=4][b][color=#19f3ff]Coming next[/color][/b][/size]
-Planned: the [b]REDnode loop[/b], to edit a REDnode mod and see it in the running game without a restart, with the game's logs and a debugger in VS Code.
+Planned: the [b]REDnode loop[/b], to edit a REDnode mod and see it in the running game without a restart, with the game's logs and a debugger in VS Code.
 
 [size=5][b][color=#fcee0a]Requirements[/color][/b][/size]
 
@@ -63,9 +78,8 @@ Planned: the [b]REDnode loop[/b], to edit a REDnode mod and see it in the runnin
 [*]Cyberpunk 2077 on PC: the Steam, GOG or Epic install. REDcode finds it.[/*]
 [*]REDbridge: REDcode offers to download it on first start. Nothing to set up.[/*]
 [*]The .NET 10 runtime, which REDbridge runs on. REDcode offers to install it when it is missing.[/*]
-[*]Optional: [url=https://github.com/Edgemodders/REDdeck]REDdeck[/url], for installs you can undo.[/*]
+[*]Optional: [url=https://www.nexusmods.com/cyberpunk2077/mods/35366]REDdeck[/url], for installs you can undo.[/*]
 [/list]
-
 [size=5][b][color=#fcee0a]Install[/color][/b][/size]
 
 [b]From a store (recommended, updates itself):[/b] in VS Code, open the Extensions view (Ctrl+Shift+X), search for [b]REDcode for Cyberpunk 2077[/b] and click Install. Or open its [url=https://marketplace.visualstudio.com/items?itemName=Edgemodders.redcode-cyberpunk]Marketplace[/url] or [url=https://open-vsx.org/extension/edgemodders/redcode-cyberpunk]Open VSX[/url] page.
@@ -76,7 +90,6 @@ Planned: the [b]REDnode loop[/b], to edit a REDnode mod and see it in the runnin
 [*]In VS Code, open the Extensions view (Ctrl+Shift+X), click [b]...[/b] at its top, choose [b]Install from VSIX...[/b] and pick [i]redcode-cyberpunk-<version>.vsix[/i].[/*]
 [*]Click the REDcode icon in the activity bar. REDcode looks for the game and offers to download REDbridge.[/*]
 [/list]
-
 Do not install it with Vortex: it is not a game mod, and Vortex would put it in the game folder.
 
 [size=5][b][color=#fcee0a]The EDGE platform[/color][/b][/size]
@@ -84,13 +97,12 @@ Do not install it with Vortex: it is not a game mod, and Vortex would put it in 
 REDcode is one of the EDGE tools. Each works on its own and together:
 
 [list]
-[*][b][url=https://github.com/Edgemodders/REDdeck]REDdeck[/url][/b]: a simple mod manager in VS Code. REDcode's Install goes through it.[/*]
-[*][b][url=https://github.com/Edgemodders/REDnode]REDnode[/url][/b]: mods in JavaScript, web pages over the game, and REDagent, an AI assistant in the game.[/*]
+[*][b][url=https://www.nexusmods.com/cyberpunk2077/mods/35366]REDdeck[/url][/b]: a simple mod manager in VS Code. REDcode's Install goes through it.[/*]
+[*][b][url=https://www.nexusmods.com/cyberpunk2077/mods/35355]REDnode[/url][/b]: mods in JavaScript, web pages over the game, and REDagent, an AI assistant in the game. REDdeck knows REDnode packages and puts them in the right place. [/*]
 [*][b][url=https://github.com/Edgemodders/REDbridge]REDbridge[/url][/b]: runs WolvenKit's libraries for REDcode, REDdeck and REDnode.[/*]
 [*][b]The REDnode HUD theme[/b]: the dark, yellow and cyan theme REDcode's pages are drawn for, in the same stores.[/*]
 [*][b][url=https://github.com/Edgemodders/EDGEkit]EDGEkit[/url][/b]: one editor with every EDGE tool built in.[/*]
 [/list]
-
 [size=5][b][color=#fcee0a]Questions[/color][/b][/size]
 
 [b]Does it replace WolvenKit?[/b]
@@ -117,15 +129,14 @@ Yes, and open source under the MIT license. The code is on [url=https://github.c
 [*]Open VSX: [url=https://open-vsx.org/extension/edgemodders/redcode-cyberpunk]edgemodders/redcode-cyberpunk[/url][/*]
 [*]Community Discord: [url=https://discord.gg/63qP3Erw43]discord.gg/63qP3Erw43[/url][/*]
 [/list]
-
 [size=5][b][color=#fcee0a]Credits[/color][/b][/size]
 
 [list]
+[*][b][url=https://www.nexusmods.com/profile/Cyberbuilds]Cyberbuilds [/url]for the concepts, designs and entire development.[/b][/*]
 [*][b]WolvenKit[/b] and its team and contributors (GPL-3.0): every game file REDcode reads and writes goes through their libraries, in REDbridge.[/*]
 [*][b]three.js[/b] (MIT): the 3D mesh view.[/*]
 [*][b]opus-decoder[/b] and [b]libopus[/b]: playing the game's Opus sounds.[/*]
 [*][b]TweakXL[/b] by psiberx: the tweak formats REDcode writes and highlights.[/*]
 [*]The Cyberpunk 2077 modding community, whose tools and knowledge this builds on.[/*]
 [/list]
-
 [size=2]REDcode is not affiliated with CD PROJEKT RED, the WolvenKit team or Microsoft. Cyberpunk 2077 and REDengine are trademarks of CD PROJEKT. Visual Studio Code is a trademark of Microsoft.[/size]
